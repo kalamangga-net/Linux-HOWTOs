@@ -1,0 +1,258 @@
+Home Electrical Device Control HOWTO
+
+Rui Li
+
+<ruili@worldnet.att.net>
+
+Joy Yokley - Coverted document from Linuxdoc to DocBook v4.1 (SGML).
+
+2003-02-08
+Revision History                                                             
+Revision 0.008       2003-02-08         Revised by: Goldencat                
+Revision 0.007       2002-02-12         Revised by: RL                       
+Revision 0.006       2001-06-27         Revised by: JEY                      
+Revision 0.005       2001-06-13         Revised by: RL                       
+Revision 0.004       2001-06-12         Revised by: JEY                      
+
+
+This HOWTO will tell you how to use Linux to control your home electrical
+devices. You will only need to make a very simple circuit to control almost
+any kind of electrical device using Linux!
+
+-----------------------------------------------------------------------------
+Table of Contents
+1. Introduction
+2. System Requirement
+3. Electronic Circuit
+4. Examples of Relays
+5. Special Thanks
+6. Copyright and License
+
+1. Introduction
+
+Many people asked me, "Is it possible to control some electrical stuff [e.g.
+lights, radio, tv, etc.] by using a home computer?" The answer is YES. The
+process is very easy, and anyone can do it.
+
+After I read the Coffee Machine Mini-HOWTO, I got an idea of how to control
+my home electrical appliances. I made some modifications on the circuit
+discussed in that Coffee Machine Mini-HOWTO, and wrote a simple program. The
+circuit can control many small electrical devices.^_^ You can use crontab to
+set your lights to come on automatically or to turn on your airconditioner. I
+use it to control my VCR and VCD ( I do still need some modification on VCR/
+VCD). By writing a simple program, you can control everything over the web.
+You can use telnet with SSH and your telephone dial in to control all the
+appliances you have on the circuit.
+
+This circuit is VERY SIMPLE. Even if you don't know anything about circuits,
+you can set up this circuit.
+-----------------------------------------------------------------------------
+
+2. System Requirement
+
+Get any computer that is running Linux and has a working parallel port. :)
+I'm using a 386DX with 4MB RAM 40MB HD. You will need gcc to compile the
+program. If you want to use telnet or SSH, you will also need telnetd or sshd
+. You can write your own program by using ioperm and outb. If you would like
+to use my program, you will need g++.
+
+Click the following link to download my program. You will need g++ to compile
+it. [http://edc.sourceforge.net/paralle.tar.gz] edc.sourceforge.net/
+paralle.tar.gz.
+-----------------------------------------------------------------------------
+
+3. Electronic Circuit
+
+The data line of the parallel port can provide between 0 and 5 volts.
+Therefore, we can use this line to control a relay and let that relay control
+an electrical device.
+
+Use pins 2 through 9 to get +5V
+
+Use pins 18 through 25 as the Ground
+            ____________________________________________________________       
+           /                                                            \      
+           \     13  12  11  10   9   8   7   6   5   4   3   2   1     /      
+            \                                                          /       
+             \     25  24  23  22  21  20  19  18  17  16  15  14     /        
+              \______________________________________________________/         
+                                                                               
+                                                                               
+                                                                               
+                                                                               
+                                             | Vcc for Relay                   
+                                             |                                 
+                                             |                                 
+                                    / -------+--------| |---------|            
+P data              4.7K         B /  c      | 1N4002 |_|         |-------     
+-----------/\/\/\/\---------+-----| NPN    _____        | relay   |home device 
+                            |     \   e     /_\       |-|         |-------     
+                 LED        X      \         +--------| |---------|            
+P Ground                    |       |        |                                 
+----------------------------+-------+--------+                                 
+Relay Ground                                 |                                 
+---------------------------------------------+                                 
+                                                                               
+                                                                               
+
+Below is the key to the diagram above:
+P data          parallel port data line(pin 2 to pin 9, use any)                      
+                                                                                      
+P Ground                        parallel port ground (pin 18 to pin 25, use any)      
+                                                                                      
+Vcc                             depends on the type of your relay. I'm using 12VDC    
+                                                                                      
+Relay Ground    the ground for 12VDC                                                  
+                                                                                      
+4.7k                            4.7K resistor                                         
+                                                                                      
+NPN                             C2235 NPN transistor                                  
+                                                                                      
+1N4002                  1N4002 diode                                                  
+                                                                                      
+LED                             light emitting diode                                  
+                                                                                      
+relay                           a coil relay                                          
+
++5 volts from parallel port will turn on the relay. Once the relay is on, the
+device connected to that relay will be on. When the parallel port's data line
+goes back to 0, it will turn off the relay, and device is off.
+-----------------------------------------------------------------------------
+
+4. Examples of Relays
+
+The diagrams below are used to explain how relays work.
+
+The relay itself is just a switch as seen in the diagram below:
+relay power off                        relay power on                        
+                                                                             
+       |3                                    |3                              
+       |                                     |                               
+       |                                     |                               
+       o                                     o                               
+        \                                    |                               
+       o \                                   o                               
+       |                                     |                               
+       |                                     |                               
+       |                                     |                               
+       |4                                    |4                              
+
+The diagram below demonstrates the setup of a 4 pin relay.
+      ____________________________                                           
+      |                          |                                           
+  1   |                          |  3                                        
+ -----|---------s     o----------|-------                                    
+      |  coil   s      \switch   |                                           
+  2   |         s       \        |  4                                        
+ -----|---------s     o- \-------|-------                                    
+      |                          |                                           
+      |                          |                                           
+      |                          |                                           
+      |__________________________|                                           
+
+In the diagram above, pin 3 and pin 4 are disconnected by default. When you
+send +12V between pin 1 and pin 2, it will turn on a switch, and pin 3 and 4
+are now connected.
+
+The following is a 5 pin relay:
+           _______________________________                                   
+           |                             |                                   
+     1     |                             |       5                           
+  ---------|---+            o------------|----------------                   
+           |   |-----------/---- s       |                                   
+           |              /      s       |                                   
+     3     |             /       s       |                                   
+  ---------|-----------o/   coil s       |       4                           
+           |                 o---s-------|----------------                   
+           |                     |       |                                   
+           |                     |       |                                   
+     2     |                     |       |                                   
+ ----------|---------------------+       |                                   
+           |_____________________________|                                   
+
+In the above diagram pin 3 is connected to pin 5, by default. By sending +12V
+between pin 1 and pin 2, you will will turn on a switch. Pin 1 and pin 2 will
+disconnect, and pin 5 and pin 4 will connect.
+ relay power off                 relay power on                              
+                                                                             
+     |5                                  |5                                  
+     |                                   |                                   
+     |                                   |                                   
+     o                                   o                                   
+      \                                  |                                   
+     o \                                 o  o                                
+     |  o                                |  |                                
+     |  |                                |  |                                
+     |  |                                |  |                                
+    4|  |3                              4|  |3                               
+
+Some relays may have more that 5 pins. More pins just means there are more
+switches.
+
+I wrote a simple program that can control 8 relays. The program is available
+at the following location and will need g++ in order to be able to use this
+program. [http://edc.sourceforge.net/paralle.tar.gz] http://
+edc.sourceforge.net/paralle.tar.gz
+
+A complete circuit can control up to eight relays, that means that a complete
+circuit can control eight different devices. You will need a DB25 connector.
+Using a parallel switch cable, connect this relay board to your computer. I
+put the relay board in a box and use a parallel switch cable to connect it to
+my Linux box:
+Panel: LED, Switch              Back:  DB25 connector                        
+
+Below is an example of how a relay board would connect with your electrical
+device:
+                        CONNECTED RELAY BOARD                                        
+                                                                                     
+                                                                                     
+                         +-----+ power outlet                                        
+       1 _______3        |   __|________             ||   ||                         
+       --|     |---------+  |  |       |             ||   ||                         
+       2 |relay|4           | (o) (o)  |            _||___||__                       
+       --|_____|----+       |------|---|            |        |                       
+                    |              |                |        |                       
+                    | +------------+                |        | plug                  
+            ground  | | hot                         |        |                       
+                    | |                             |        |                       
+                  __|_|__                           |        |                       
+                  | | | |                           |________|                       
+                  | | | | plug                                                       
+                  | | | |                                                            
+                  |_|_|_| (i know it doesn't look like a plug, but it's a plug :-) ) 
+                   || ||                                                             
+                   || ||                                                             
+
+To connect the system, just connect your home electrical device to the power
+outlet. That is it! You don't need to make any change on the electrical
+device. And you can connect any kind of device to that power outlet. Plug
+this power outlet into any wall outlet.
+
+To see photos of what the finished product looks like, go to the following
+sites:
+
+  * [http://edc.sourceforge.net/p1.jpg] http://edc.sourceforge.net/p1.jpg
+   
+  * [http://edc.sourceforge.net/p2.jpg] http://edc.sourceforge.net/p2.jpg
+   
+  * [http://edc.sourceforge.net/p3.jpg] http://edc.sourceforge.net/p3.jpg
+   
+
+The following URL shows a complete electronic circuit (control 8 devices):
+[http://edc.sourceforge.net/01.png] http://edc.sourceforge.net/01.png
+-----------------------------------------------------------------------------
+
+5. Special Thanks
+
+Special thanks to Rufus Chang [mailto:rufus@chu.url.com.tw]
+rufus@chu.url.com.tw.
+
+Special thanks to Chih-Wei Huang [mailto:cwhuang@linux.org.tw]
+cwhuang@linux.org.tw.
+-----------------------------------------------------------------------------
+
+6. Copyright and License
+
+Copyright Rui Li 2000-2001. License is GNU GPL, but it is requested that you
+retain the author's name and email on all copies. Please keep my name and
+e-mail address when you are copying this HOWTO.

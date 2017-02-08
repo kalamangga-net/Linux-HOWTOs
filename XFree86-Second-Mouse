@@ -1,0 +1,183 @@
+Second Mouse in X mini-HOWTO
+
+Greg Wierzchowski
+
+greg.wierzchowski@usa.net
+
+2001-07-18
+Revision History                                                             
+Revision 1.2            2001-11-17             Revised by: GW                
+Corrected for the Wheel Mouse in XFree 3.x.                                  
+Revision 1.1            2001-07-21             Revised by: GW                
+Added "Alternatives" section.                                                
+Revision 1.0            2001-07-18             Revised by: GW                
+Initial Release.                                                             
+
+
+Quick instructions to enable a second mouse in X.
+
+-----------------------------------------------------------------------------
+Table of Contents
+1. Introduction
+2. Copyright and License
+3. Mouse Protocols
+4. XFree 3.x
+5. XFree 4.x
+6. Alternatives
+7. Credits
+
+1. Introduction
+
+This mini-HOWTO was created by gathering the information already available on
+the internet, in newsgroups and other HOWTOs. I needed to hook up an USB
+mouse in addition to the built-in trackpoint on my Thinkpad laptop.
+
+Examples in this mini-HOWTO pertain to my particular hardware configuration,
+which is PS/2 mouse as a primary pointer and USB wheel mouse as an additional
+one. It should be pretty straightforward to implement another combination,
+say, a PS/2 and a serial mice. Two things that would have to be changed are
+the mouse protocol and the mouse device. Wherever possible, I try to provide
+appropriate examle.
+
+The instructions for X are divided into two sections, one fro XFree version 3
+and one for XFree 4. The format of the XF86Config file has significantly
+changed between versions and requires slightly different approach. In XFree
+3.x, the second mouse has to appear in an Xinput section, which has slightly
+different syntax than the regular Pointer section. In XFree 4.x, it's just
+another pointer.
+-----------------------------------------------------------------------------
+
+2. Copyright and License
+
+This document is copyright 2001 by Greg Wierzchowski and is released under
+the terms of the GNU Free Documentation License, which is hereby incorporated
+by reference. Send feedback to greg.wierzchowski@usa.net.
+-----------------------------------------------------------------------------
+
+3. Mouse Protocols
+
+Two most important parameters in the XF86Config file, ones that are crucial
+to the mouse working properly are the Protocol and Device.
+
+As far as Protocol is concerned, it seems that gpm uses compatible protocol
+names, so please look there for the detailed information. Here is the excerpt
+taken from the gpm info page (just the few most commont types):
+
+
+Table 1. Most Common Mouse Protocols in X
++------------------------------------+-------------------------------------+
+|Protocol Name                       |Description                          |
++------------------------------------+-------------------------------------+
+|Microsoft                           |Standard Microsoft mice.             |
++------------------------------------+-------------------------------------+
+|MouseSystems                        |This is the standard protocol for    |
+|                                    |three-button serial devices.         |
++------------------------------------+-------------------------------------+
+|MMSeries                            |Title says it all. This mouse decoder|
+|                                    |accepts standard serial options,     |
+|                                    |although they should not be needed.  |
++------------------------------------+-------------------------------------+
+|Logitech                            |This is the protocol used by old     |
+|                                    |serial Logitech mice.                |
++------------------------------------+-------------------------------------+
+|BusMouse                            |Some bus devices use this protocol,  |
+|                                    |including those produced by Logitech.|
++------------------------------------+-------------------------------------+
+|PS/2                                |The protocol used by most busmice.   |
++------------------------------------+-------------------------------------+
+|IMPS/2                              |"IntelliMouse" on the ps/2 port. Also|
+|                                    |works with USB mice                  |
++------------------------------------+-------------------------------------+
+-----------------------------------------------------------------------------
+
+4. XFree 3.x
+
+In XFree 3.x, additional pointing devices, like mice or tablets, are defined
+through the use of an Xinput section. The primary mouse is defined as usual:
+Section "Pointer"                                                            
+    Protocol    "PS/2"                                                       
+    Device      "/dev/mouse"                                                 
+EndSection                                                                   
+In the case above, it's a regular three-button PS/2 mouse, which works for
+the trackpoint as well. Now, for the USB mouse:
+    Section "Xinput"                                                         
+  SubSection "Mouse"                                                         
+    DeviceName "USB Mice"                                                    
+    Protocol "IMPS/2"                                                        
+    ZAxisMapping 4 5                                                         
+    Port "/dev/input/mice"                                                   
+    Alwayscore                                                               
+  EndSubSection                                                              
+EndSection                                                                   
+My mouse is a wheel mouse, thus the protocol is IMPS/2. ZAxisMapping line is
+also needed for the wheel to work. I also want the mouse to always work
+alongside the other one, and this is achieved through the AlwaysCore option.
+If. for example, this was a serial mouse, the Port would read "/dev/ttyS0"
+for COM1.
+-----------------------------------------------------------------------------
+
+5. XFree 4.x
+
+With XFree 4.x the task is even easier. First, the primary mouse, usually
+present in the config file already:
+Section "InputDevice"                                                        
+        Identifier  "Mouse0"                                                 
+        Driver      "mouse"                                                  
+        Option      "Device" "/dev/mouse"                                    
+        Option      "Protocol" "PS/2"                                        
+        Option      "Emulate3Buttons" "off"                                  
+        Option      "ZAxisMapping" "4 5"                                     
+EndSection                                                                   
+To add another mouse just copy the above section and modify it, so that it
+reads:
+Section "InputDevice"                                                        
+        Identifier  "Mouse1"                                                 
+        Driver      "mouse"                                                  
+        Option      "Device" "/dev/input/mice"                               
+        Option      "Protocol" "IMPS/2"                                      
+        Option      "Emulate3Buttons" "off"                                  
+        Option      "ZAxisMapping" "4 5"                                     
+EndSection                                                                   
+Well, this way you can define as many additional pointers as you wish, and
+the same applies to joysticks and tablets.
+
+To make both mice work together, there's one more change to be made to the
+XF86Config file. There is a section called ServerLayout where all the
+components are specified. Here's how it looks before adding a second mouse:
+Section "ServerLayout"                                                       
+        Identifier "XFree86 Configured"                                      
+        Screen      0  "Screen0" 0 0                                         
+        InputDevice    "Mouse0" "CorePointer"                                
+        InputDevice    "Keyboard0" "CoreKeyboard"                            
+EndSection                                                                   
+And after adding the second mouse:
+Section "ServerLayout"                                                       
+        Identifier "XFree86 Configured"                                      
+        Screen      0  "Screen0" 0 0                                         
+        InputDevice    "Mouse0" "CorePointer"                                
+        InputDevice    "Mouse1" "AlwaysCore"                                 
+        InputDevice    "Keyboard0" "CoreKeyboard"                            
+EndSection                                                                   
+-----------------------------------------------------------------------------
+
+6. Alternatives
+
+Another way to use two (or more) mice at the same time time is to use a
+program such as MultiMouse by Takashi Manabe. It's a daemon multiplexing
+several mice and making them available through the special device /dev/mumse
+as a MouseSystems compatible mouse.
+
+According to the author: "This program allows you to use multiple mice at the
+same time. This program is developed for a subnote user who want to use both
+a pre-mounted pointing device and a external serial mouse."
+
+I'm not sure if the program supports second mouse other than serial, but the
+advantage is that the second mouse works in console mode too. MultiMouse can
+be found at Sunsite (sunsite.unc.edu /pub/Linux/system/Misc) and Tucows
+(www.tucows.com Linux Console -> Utilities).
+-----------------------------------------------------------------------------
+
+7. Credits
+
+Special thanks to all the people who contribute to the Linux community and
+who made this HOWTO possible.

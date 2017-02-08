@@ -1,0 +1,535 @@
+  Thin Client: New User Guide
+  Stephen Noble stephen7 at bigfoot.com
+  30th November 1999
+
+  1.How to turn inexpensive legacy computers into fast terminals using
+  the power of your main computer, you will need : A fast computer to
+  act as Server, A client computer (old and unwanted). Linux compatible
+  network cards. A connection between computers.  2.How to centralise
+  system administaration by useing NFS, ie placing the entire file sys-
+  tem of a faster client on the server.
+  ______________________________________________________________________
+
+  Table of Contents
+
+
+  1. Introduction
+
+  2. Hardware and Documentation
+
+     2.1 Hardware
+     2.2 Documentation
+
+  3. Server setup
+
+     3.1 Check your network services on your server
+     3.2 Setting up a dhcpd daemon
+     3.3 Tftpd setup
+     3.4 Kernel image
+     3.5 Security
+
+  4. Client setup
+
+  5. Network files system
+
+     5.1 server specific
+     5.2 client specific
+
+  6. X-terminal
+
+  7. Acknowledgments & further exercises
+
+
+
+  ______________________________________________________________________
+
+  1.  Introduction
+
+
+  o  Linux allows any reasonably new computer to be used as a server to
+     a thin client, or many thin clients, these thin clients can be
+     inexpensive legacy computers. For a console terminal you need a 386
+     with 4-8mb of ram, or for an X-Terminal a 486/66 with 8-16mb ram.
+
+  o  One Option is without a hard drive, it keeps the noise down and
+     simplifies administration as you only have one system to maintain.
+
+  o  If you have legacy apps, you can have them on a hard drive with
+     it's legacy Operating System
+
+  o  This howto is aimed at those new to Unix/Linux, it will cover the
+     essential areas you need to be aware of and point you to other
+     documentation in that area you need to be familiar with.
+
+  o  You will probably use this as an aid to the
+     http://www.slug.org.au/etherboot/  documentation, I include some
+     more examples of config files, and leave many of the other features
+     of etherboot as an exercise for the reader
+
+  o  If your client is sufficiently powerful only the file system need
+     be shared, applications can run on the client system. (say a 233
+     32mb ram).  Install an application on the server and all clients
+     have access
+
+
+
+  2.  Hardware and Documentation
+
+
+  2.1.  Hardware
+
+  When you start, you will need at least this
+
+
+
+  o  a computer to act as Server,
+
+  o  a client computer, I unplugged the power to the hard disk and
+     disabled the drive in the bios to emulate a diskless machine
+
+  o  compatible network cards
+
+  o  connection between computers, I used twisted pair ethernet with
+     RJ45 terminators
+
+  o  For two computers a cross-over cable  is sufficient, and saves
+     another power point, the first computer shop I went to gave me
+     blank stares, idiots !
+
+  o  For two or more clients, you need a hub, a kit with a 10 mb 4 port
+     hub ,2 cards sells for under A$150, you can probably do better,
+     I've had some success with $5 second hand cards, 3m cables for $6,
+     a new hub for $40, a found monitor and a $60 pentium 75
+
+
+  2.2.  Documentation
+
+  You may like to familiarise yourself with the linux documentation,
+  specifically you can read (skim) for an overview the following :
+
+
+  o  /usr/doc/HOWTO/mini/Diskless - a similar howto tackling this
+     problem
+
+  o  Networking Overview HOWTO - Networking capabilities of the Linux
+
+  o  Ethernet HOWTO -  Information on Ethernet hardware compatibility
+
+  o  NET-3 HOWTO -  How to configure TCP/IP networking under Linux.
+
+
+  Also you probably have in the  /usr/doc/LDP/ directory
+
+  o  The System Administrators' Guide
+
+  o  The Network Administrators' Guide
+
+  o  Linux Installation and Getting Started
+
+
+  The obligitory link
+
+
+  o  http://www.magma.ca/~bklimas help for new linux users.
+
+
+  One last thing
+
+  o  my network server is snoball , my client is elite and my
+     (local)domain is gundog.net Replace with your computers names where
+     applicable
+
+
+  3.  Server setup
+
+  The server needs to be setup in readiness for the client in a number
+  of ways
+
+
+  3.1.  Check your network services on your server
+
+  run the command /sbin/ifconfig if your output is similar to below then
+  your loopback and ethernet card are correctly configured.
+
+
+  ______________________________________________________________________
+  [cassie@snoball cassie]$ /sbin/ifconfig
+  lo        Link encap:Local Loopback
+       inet addr:127.0.0.1  Bcast:127.255.255.255  Mask:255.0.0.0
+       UP BROADCAST LOOPBACK RUNNING  MTU:3584  Metric:1
+       RX packets:854 errors:0 dropped:0 overruns:0 frame:0
+       TX packets:854 errors:0 dropped:0 overruns:0 carrier:0
+       collisions:0
+  eth0      Link encap:Ethernet  HWaddr 00:AA:00:BB:BD:09
+       inet addr:192.168.53.1  Bcast:192.168.53.255  Mask:255.255.255.0
+       UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+       RX packets:190369 errors:0 dropped:0 overruns:0 frame:0
+       TX packets:249267 errors:0 dropped:0 overruns:0 carrier:1
+       collisions:4793           Interrupt:5 Base address:0x320
+  ______________________________________________________________________
+
+
+
+  If not ...
+
+  o  loopback, if this isn't here you need to activate it at start up,
+
+  o  ethernet card, is it being detected,is the driver a module
+
+  o  you can set these in linuxconf or netcfg
+
+
+  3.2.  Setting up a dhcpd daemon
+
+  Here the server gives out IP numbers to requests by clients
+
+
+  o  is DHCPD installed, maybe (as root) just run ntsysv and have it
+     start at boot time
+
+  o  this /etc/dhcpd.conf file assigns static IP numbers if you have a
+     matching MAC address, A MAC address is a unique 'number' given to
+     the NIC.  The start of the 'number' is based on the manufacturer,
+     if you don't have a sticker on the card, attempt to load the rom
+     image from eprom or floppy and see what it reports. (see client
+     setup)
+
+
+     ___________________________________________________________________
+     #/etc/dhcpd.conf
+     subnet 192.168.35.0 netmask 255.255.255.0 {
+         option domain-name "gundog.net";
+         range dynamic-bootp 192.168.35.128 192.168.35.255;
+         default-lease-time 21600;
+         max-lease-time 43200;
+         }
+
+     host 286 {
+             filename "/tftpboot/kermit.nb";
+             hardware ethernet 00:80:c8:22:ae:de;
+             fixed-address 192.168.35.70;
+             }
+
+     host elite {
+         filename "/tftpboot/vmlinuz.xterm";
+         hardware ethernet 00:00:79:80:34:c9;
+         fixed-address 192.168.35.23;
+             option host-name "elite";
+     ___________________________________________________________________
+
+
+
+  o  the /etc/hosts file resolves IP numbers into host names
+
+     ___________________________________________________________________
+     #etc/hosts
+     127.0.0.1       localhost    localhost.localdomain
+     192.168.53.1    snoball      snoball.gundog.net
+     192.168.53.23   elite        elite.gundog.net
+     ___________________________________________________________________
+
+
+
+  3.3.  Tftpd setup
+
+  trivial ftp - after you have your IP number your client requests a
+  kernal, this is delivered over ethernet.
+
+  o  Install tftpd, make sure it's active in /etc/inetd.conf, typical
+     line
+
+
+     ___________________________________________________________________
+     tftp dgram udp wait root /usr/sbin/tcpd in.tftpd -s /tftpboot
+     ___________________________________________________________________
+
+
+
+  restart inetd, kill -HUP "process id of inetd"
+
+
+  3.4.  Kernel image
+
+  You must compile a kernel for the Client that includes NFS support and
+  the NIC driver for that client compiled in (not modules).  Answer yes
+  to Root file system on NFS? and BOOTP support?
+
+  After building the kernel, run mknbi-linux from the Etherboot
+  distribution on it.(the mknbi program in the netboot/linux directory)
+  Install this tagged image as /tftpdir/"vmlinuz.xterm".
+
+
+  see etherboot-4.2/doc/html/README-3.html
+
+  should i put a copy of mine somewhere for download RH6.0 ne2000 NIC
+
+
+  3.5.  Security
+
+  It's easiest to allow anybody and anything to run services and process
+  on your computer, but one day you will be sorry. You restrict these by
+  your /etc/hosts.deny and specifically restore rights by
+  /etc/hosts.allow, indicative examples :
+
+  ______________________________________________________________________
+  #hosts.deny
+  # all except those in hosts.allow
+  ALL:ALL
+
+
+  #hosts.allow
+  #only hosts within my domain and my host at home.
+  ALL:LOCAL, 192.168.53.       #<-- note:no space after :
+  ______________________________________________________________________
+
+
+
+  more security - look for more information in the ldp-howto's and if
+  your using etherboot, in it's security howto.
+
+
+  4.  Client setup
+
+  Network loader
+
+  A small program that runs as a BIOS extension, can be loaded from a
+  floppy, or you can burn an eprom chip and insert it on your network
+  card for a totally diskless client. It handles the DHCPD query and
+  TFTP loading and then transfers control to the loaded image. It uses
+  TCP/IP protocols.
+
+
+  There are two free implementations of TCP/IP net loaders: Etherboot
+  and Netboot: Etherboot uses built-in drivers while Netboot uses Packet
+  drivers.
+
+
+  o  see etherboot-4.2/doc/html/README-2.html,
+
+  o  I compiled the option to ask local or Network and default to local
+     after 5 seconds
+
+  o  making a boot rom floppy, floppyload.bin was tricky to find, I
+     copied it into the directory of compiled rom images
+
+     ___________________________________________________________________
+     cat floppyload.bin ne2000.lzrom > /dev/fd0
+     ___________________________________________________________________
+
+
+
+  5.  Network files system
+
+
+  The Client requests to mount /tftpboot/<IP address of client> as its /
+  by NFS from server. You must export this from the server,(maybe
+  symlink to /tftpboot/client to be safe.)
+
+  NFS is a big topic there is a HOWTO and two mini Howto's.
+
+  first you need to create a copy of your current system under /tftpboot
+  ken has written two scripts that do all your work, I called them
+  makefirst and makecopy. my first client takes 20-30mb and the copy
+  less. I used du -h to look for large unnecesary files.
+
+  see etherboot-4.2/doc/html/diskless-5.html
+
+  the following seem to me to be the critical files here
+
+
+  5.1.  server specific
+
+
+  ______________________________________________________________________
+  #/etc/exports
+  /tftpboot/elite             elite(rw,no_root_squash)
+  /tftpboot/elite             gordon(rw,no_root_squash)
+  /usr                        *.gundog.net(ro)
+  /home                       *.gundog.net(rw)
+  /mnt/cdrom                  (ro)
+
+  run exportfs -a  to reread the exports file after
+  changes /usr/sbin/exportfs --help
+
+
+  #/etc/sysconfig/network
+  NETWORKING=yes
+  FORWARD_IPV4="no"
+  HOSTNAME="snoball"         <-----------
+  GATEWAYDEV=""
+  GATEWAY=""
+
+
+  #/etc/sysconfig/network-scripts/ifcfg-eth0
+  IPADDR="192.168.53.1"            <-----------
+  BOOTPROTO=none
+  ______________________________________________________________________
+
+
+
+  5.2.  client specific
+
+
+
+  ______________________________________________________________________
+  #tftpboot/elite/etc/fstab
+  snoball:/tftpboot/elite    /               nfs rw  1 1
+  none                    /proc proc          defaults   0 0
+  snoball:/usr           /usr                 nfs     ro  1 1
+  snoball:/home          /home                nfs     rw  1 1
+
+
+  #tftpboot/elite/etc/sysconfig/network
+  NETWORKING=yes
+  FORWARD_IPV4=nomore
+  HOSTNAME=elite
+  GATEWAYDEV=
+  GATEWAY="192.168.53.1"       <-----------
+
+
+  #/tftpboot/elite/etc/sysconfig/network-scripts/ifcfg-eth0
+  DEVICE=eth0
+  USERCTL=yes
+  ONBOOT=yes
+  BOOTPROTO=none
+  BROADCAST=192.168.53.255
+  NETWORK=192.168.53.0
+  NETMASK=255.255.255.0
+  IPADDR=192.168.53.23         <-----------
+  ______________________________________________________________________
+
+
+
+  #odd fiddles #itemize> #item>fast...  #item>cp /usr/bin/xargs
+  /tftpboot/client/bin/xargs #/itemize>
+
+
+  6.  X-terminal
+
+
+  With no further changes your client should boot on the CLIENT pc, it
+  just happens to be sharing it's files via NFS
+
+  At this point you have a console terminal. you need to make just a few
+  more changes to run X
+
+
+
+  o  Configuring X
+
+     As root on client run Xconfigurator and mouseconfig,
+
+     If this fails use XF86Setup check your RPMS dir on your CD (eg.ls
+     *Setup*)
+
+
+  o  X Font Server
+
+
+
+     ___________________________________________________________________
+     #chech how xfs starts on server /etc/rc.d/init.d/xfs
+       start)
+         echo -n "Starting X Font Server: "
+         rm -fr /tmp/.font-unix
+         daemon --check xfs su xfs -c xfs -s /bin/sh
+         touch /var/lock/subsys/xfs
+         echo
+         ;;
+
+     #edit XF86Config for all machines
+         FontPath  "tcp/snoball:7100"
+     ___________________________________________________________________
+
+
+
+  o  Console login
+
+     You are now set up for a console login to the client PC. You are
+     using the client memory and processor, this is adequate for console
+     programs and there and many or great merit, program in python,
+     email with pine or browse with lynx.
+
+
+     You may still start X from here, make the server changes in the
+     next section, at the prompt type X -query snoball and you will get
+     the login box to the server
+
+
+  o  Graphical login
+
+     Server set up
+
+
+     ___________________________________________________________________
+     1. Make sure the client is matched by a clause in /etc/X11/xdm/Xaccess
+     *   CHOOSER BROADCAST   #any indirect host can get a chooser
+
+
+     2. Comment out the :0 in /etc/X11/xdm/Xservers
+     #:0 local /usr/X11R6/bin/X
+
+     3. Then make sure that xdm is run from the init scripts.
+     #etc/inittab
+     id:5:initdefault:
+
+     and
+     # Run xdm in runlevel 5
+     # xdm is now a separate service
+     x:5:respawn:/etc/X11/prefdm -nodaemon
+     xdm:5:respawn:/usr/X11R6/bin/xdm -nodaemon
+     ___________________________________________________________________
+
+
+
+  On the client
+
+  Get the slow PC's to run on the server, Fast PC's (eg 166mhz 32mb
+  ram)can run ok on their own CPU and memory
+
+
+  the part maarked WARNING dosn't actually work as yet, but I'm close to
+  getting the syntax correct, use the two stage method via the console
+  login in the mean time.
+
+  ______________________________________________________________________
+  #/tftpboot/elite/etc/inittab
+
+  id:5:initdefault:                                    #WARNING
+  x:5:respawn:/usr/X11R6/bin/Xwrapper -query snoball   #WARNING
+
+  OR to run on client ??
+
+  id:3:initdefault:                                    #runlevel 3 ie console
+  x:5:respawn:/etc/X11/prefdm -nodaemon
+  ______________________________________________________________________
+
+
+
+  7.  Acknowledgments & further exercises
+
+
+  Markus Gutschke and Ken Yap the authors of the Etherboot program.
+
+
+
+  Extend your system with the following programs
+
+  o  squid -      cache your web browsing for others on your network
+
+  o  junkbuster - banish web banner adds
+
+  o  mailman -    mailinglist ;setup via e-mail or web
+
+  o  imp -        web based email (with a java enabled browser)
+
+  o  python -     for some Java and C is just too hard
+
+  o  sgmltools -  knock out multiple versions of your docs
+
+  o  suggestions ?
+
+  stephen7 at bigfoot.com
+
+
+

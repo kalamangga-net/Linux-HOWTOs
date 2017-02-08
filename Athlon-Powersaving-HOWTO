@@ -1,0 +1,557 @@
+Athlon Powersaving HOWTO
+
+Daniel Nofftz
+
+<daniel@nofftz.net.NOSPAM>
+
+2007-06-06
+Revision History                                                             
+Revision 1.2.3              2007-06-06           Revised by: dn              
+corrected the correction from 1.2.3 (thx to Rajeev V. Pillai)                
+Revision 1.2.2              2007-05-30           Revised by: dn              
+corrected a typo in the nforce disable command                               
+Revision 1.2.1              2007-05-13           Revised by: dn              
+corrections to the new copyright statement, corrections to the disclaimer    
+Revision 1.2                2007-05-10           Revised by: dn              
+coolrun added, new URL for (brazilian) Portuguese Version, License Change    
+(GNU FDL to GNU GPL), some minor accessibility related changes               
+Revision 1.1.12             2006-04-06           Revised by: dn              
+typos corrected                                                              
+
+
+  How to enable the power-saving functionality of the Athlon/Duron/AthlonXP
+processor on some motherboards/chipsets. This is usefull for saving Power and
+lowering the Temperature of the CPU and the System. (It also will reduce
+noise if you use temperature controlled fans in your case/on your cpu
+heatsink).
+
+-----------------------------------------------------------------------------
+Table of Contents
+1. Introduction
+    1.1. Basics on the Athlon Power Saving Mode
+    1.2. Copyright and License
+    1.3. Disclaimer
+    1.4. Feedback/Questions/Support
+    1.5. New Versions of this Document
+   
+   
+2. The Different Approaches
+    2.1. The Command-line Hack (recommended)
+    2.2. The coolrun shellscript (recommended)
+    2.3. The Athcool Program (recommended)
+    2.4. BIOS updates
+    2.5. Kernel Patches
+    2.6. The LVCool Solution
+    2.7. The FVCool Program
+    2.8. AMD 760MP Powersaving
+   
+   
+3. What Else?
+    3.1. How to test whether it works
+    3.2. Known Bugs/Problems
+    3.3. Fix for sound skips and other problems
+    3.4. Another Fix for sound skips and other problems (on some
+        Via-Chipsets)
+    3.5. ToDo
+    3.6. Translations
+   
+   
+
+1. Introduction
+
+1.1. Basics on the Athlon Power Saving Mode
+
+  The HLT signal which is used by the normal idle-loop of the Linux kernel
+doesn't normaly bring any significant power-saving on processors of the
+Athlon/Duron family (hereafter referred to as Athlon processors). To get real
+power-saving on an Athlon processor, you have to put the processor in the
+STPGNT-Mode (Stop Grant Mode). In this mode, the processor is disconnected
+from the front-side bus (FSB), and can turn off parts of the CPU as well as
+reduce the clock to save power.
+
+  Some modern Motherboards/Chipsets also support a Function to make a STPGNT
+when a HLT signal is detected.
+-----------------------------------------------------------------------------
+
+1.2. Copyright and License
+
+  This document, Athlon Powersaving HOWTO, is copyrighted (c) 2003-2007 by 
+Daniel Nofftz.
+
+  This work is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License, version 2, as published by the
+Free Software Foundation.
+
+  A copy of the license is available at [http://www.daniel.nofftz.net/linux/
+gpl_v2.txt]   http://www.daniel.nofftz.net/linux/gpl_v2.txt.
+
+  Linux is a registered trademark of Linus Torvalds.
+-----------------------------------------------------------------------------
+
+1.3. Disclaimer
+
+  This work is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+details.
+
+  All copyrights are held by their respective owners, unless specifically
+noted otherwise. Use of a term in this document should not be regarded as
+affecting the validity of any trademark or service mark. Naming of particular
+products or brands should not be seen as endorsements.
+-----------------------------------------------------------------------------
+
+1.4. Feedback/Questions/Support
+
+  Feedback is most essential for this document. New solutions for new
+chipsets are especially needed, as are comments, whether the provided
+solutions work or don't work. Also please report spelling errors if you find
+them, cause i am no native english speaker. Send your additions, comments,
+criticisms and questions to the following email address: <
+daniel@nofftz.net.NOSPAM>. You can email me in German or English!
+
+  If you want to support me, you could donate through Paypal (to the same
+email-adress) or send me some new Hardware to play with. ;)
+-----------------------------------------------------------------------------
+
+1.5. New Versions of this Document
+
+  The newest version of this HOWTO will always first be made available at:
+[http://www.daniel.nofftz.net/linux/] http://www.daniel.nofftz.net/linux/
+
+  The sourcecode of this HOWTO is hosted at the [http://www.tldp.org] Linux
+Documentation Project or can be requested from me.
+-----------------------------------------------------------------------------
+
+2. The Different Approaches
+
+  In the following section I present different approaches to achieve the same
+goal: power-saving on your Athlon/Athlon-XP based system. My recommended
+approach at the moment is to use the "command-line hack" or the athcool
+programm (the kernel patch is outdated and will not be developed any further,
+and the LVCool patch supports only one chipset family.)
+
+  Nearly all of these approaches will set the " Disconnect enable when STPGNT
+detected" bit in the north bridge of the chipset. All other work is done by
+the ACPI subsystem of the kernel which sends a STPGNT signal to the
+processor, when it enters the acpi-c2 idle mode.
+
+  If you haven't already got a kernel with ACPI support, you have to enable
+it in the kernel setup and then recompile the new kernel. You'll find the
+ACPI-options under General Setup+Power Management Setup->ACPI. You must have
+at least the following options: ACPI Bus Manager, System and Processor.
+
+  Or for the new 2.4.22 Kernel: General Setup+ACPI Support. You must have at
+least the following option: Processor.
+
+2.6.x Kernel: Powermanagment options+ACPI. You must have at least the option 
+Processor enabled. You shouldn't enable Thermal Zone !!
+
+  Some Chipsets also support a STPGNT if a HLT signal is detected. This
+Motherboards/Chipsets don't need ACPI to be enabled! At the moment i look for
+feedback which Chipsets work without ACPI and which need ACPI. Maybee you
+could test it on your Motherboard and send me a mail. (see Section 3.1)
+-----------------------------------------------------------------------------
+
+2.1. The Command-line Hack (recommended)
+
+  To use the command-line hack you normaly have to enable ACPI in the kernel,
+otherwise it is mentioned. No reboot is needed to enable the Powersaving. You
+could enable/disable it from the command line with this commands:
+
+ 
+
+on KT133/133A, KX133, KL/KLE133, KM/KN133, ...: (needs definitively acpi
+    enabled)
+      enable: setpci -v -H1 -s 0:0.0 52=$(printf %x $((0x$(setpci -H1 -s 0:
+    0.0 52) | 0x80)))
+   
+      disable: setpci -v -H1 -s 0:0.0 52=$(printf %x $((0x$(setpci -H1 -s 0:
+    0.0 52) & 0x7f)))
+   
+on KT266/266A/333,KM266/266A/333, ...:
+    enable:
+   
+    setpci -v -H1 -s 0:0.0 92=$(printf %x $((0x$(setpci -H1 -s 0:0.0 92) |
+    0x80)))
+   
+    setpci -v -H1 -s 0:0.0 95=$(printf %x $((0x$(setpci -H1 -s 0:0.0 95) |
+    0x02)))
+   
+    disable:
+   
+    setpci -v -H1 -s 0:0.0 92=$(printf %x $((0x$(setpci -H1 -s 0:0.0 92) &
+    0x7f)))
+   
+    setpci -v -H1 -s 0:0.0 95=$(printf %x $((0x$(setpci -H1 -s 0:0.0 95) &
+    0xfd)))
+   
+on KT333CF/KT400/KT400A/KM400/KM400A/KT600:
+    enable:
+   
+    setpci -v -H1 -s 0:0.0 D2=$(printf %x $((0x$(setpci -H1 -s 0:0.0 D2) |
+    0x80)))
+   
+    setpci -v -H1 -s 0:0.0 D5=$(printf %x $((0x$(setpci -H1 -s 0:0.0 D5) |
+    0x02)))
+   
+    disable:
+   
+    setpci -v -H1 -s 0:0.0 D2=$(printf %x $((0x$(setpci -H1 -s 0:0.0 D2) &
+    0x7f)))
+   
+    setpci -v -H1 -s 0:0.0 D5=$(printf %x $((0x$(setpci -H1 -s 0:0.0 D5) &
+    0xfd)))
+   
+on KT880:
+    enable:
+   
+    setpci -v -H1 -s 0:0.0 82=$(printf %x $((0x$(setpci -H1 -s 0:0.0 82) |
+    0x80)))
+   
+    setpci -v -H1 -s 0:0.0 85=$(printf %x $((0x$(setpci -H1 -s 0:0.0 85) |
+    0x02)))
+   
+    disable:
+   
+    setpci -v -H1 -s 0:0.0 82=$(printf %x $((0x$(setpci -H1 -s 0:0.0 82) &
+    0x7f)))
+   
+    setpci -v -H1 -s 0:0.0 85=$(printf %x $((0x$(setpci -H1 -s 0:0.0 85) &
+    0xfd)))
+   
+on SIS730/733:
+    enable: setpci -v -H1 -s 0:0.0 6B=$(printf %x $((0x$(setpci -H1 -s 0:0.0
+    6B) | 0x01)))
+   
+    disable: setpci -v -H1 -s 0:0.0 6B=$(printf %x $((0x$(setpci -H1 -s 0:0.0
+    6B) & 0xfe)))
+   
+on SIS735/740/745/755:
+    enable: setpci -v -H1 -s 0:0.0 6A=$(printf %x $((0x$(setpci -H1 -s 0:0.0
+    6A) | 0x0003)))
+   
+    disable: setpci -v -H1 -s 0:0.0 6A=$(printf %x $((0x$(setpci -H1 -s 0:0.0
+    6A) & 0xfffc)))
+   
+on SIS741/741GX/746/748:
+    setpci -v -H1 -s 0:0.0 6C=$(printf %x $((0x$(setpci -H1 -s 0:0.0 6C) |
+    0x0003)))
+   
+    disable:
+   
+    setpci -v -H1 -s 0:0.0 6C=$(printf %x $((0x$(setpci -H1 -s 0:0.0 6C) &
+    0xfffc)))
+   
+on Nforce:
+    enable:
+   
+    setpci -v -H1 -s 0:0.0 E7=$(printf %x $((0x$(setpci -H1 -s 0:0.0 E7) |
+    0x06)))
+   
+    disable:
+   
+    setpci -v -H1 -s 0:0.0 E7=$(printf %x $((0x$(setpci -H1 -s 0:0.0 E7) &
+    0xf9)))
+   
+on Nforce2: (works without acpi enabled)
+    enable: setpci -v -H1 -s 0:0.0 6F=$(printf %x $((0x$(setpci -H1 -s 0:0.0
+    6F) | 0x10)))
+   
+    disable: setpci -v -H1 -s 0:0.0 6F=$(printf %x $((0x$(setpci -H1 -s 0:0.0
+    6F) & 0xef)))
+   
+on AMD751 and AMD760/761:(not for the 760MP!!!)(works without acpi enabled)
+      enable: setpci -v -s 0:0.0 0x62=$(printf %x $((0x$(setpci -H1 -s 0:0.0
+    62) | 0x06)))
+   
+      disable: setpci -v -s 0:0.0 0x62=$(printf %x $((0x$(setpci -H1 -s 0:0.0
+    62) & 0xf9)))
+   
+
+-----------------------------------------------------------------------------
+2.2. The coolrun shellscript (recommended)
+
+  coolrun is a small shellscript which uses the command line hacks and does
+all the work for you. It is developed/maintened by Grozdan Nikolov and based
+on this HOWTO.
+
+  You can read more about it (and download it) here: [https://sourceforge.net
+/projects/coolrun/]   https://sourceforge.net/projects/coolrun/
+-----------------------------------------------------------------------------
+
+2.3. The Athcool Program (recommended)
+
+  Athcool is a small program which performs the same task as the setpci
+commands above. It supports the same chipsets and detects what chipset you
+have, issuing the right settings in the chipset to get the power-saving to
+work.
+
+  You can read more about it (and download it) here: [http://
+members.jcom.home.ne.jp/jacobi/linux/softwares.html]   http://
+members.jcom.home.ne.jp/jacobi/linux/softwares.html I am not the Author of
+this program!
+-----------------------------------------------------------------------------
+
+2.4. BIOS updates
+
+  On some newer boards the manufacturer provides a BIOS update which sets the
+needed bit/bits in the chipset of the board (or let you choose in the
+BIOS-setup whether it should be enabled). Refer to the homepage of your
+motherboard manufacturer to see if such a BIOS-update is available.
+-----------------------------------------------------------------------------
+
+2.5. Kernel Patches
+
+  The patch is based on another patch (from Jan Niehusmann) I found on the
+Newsnet. I modified the patch to also support the KT266/266A chipset. By the
+way, my patch does the same as the command-line hack, except that the Patch
+does it from within the kernel. This is why I recommend using the
+command-line hack, which is really simple to use and you don't have to modify
+your kernel.
+
+Ok... now step by step, here's how to apply the patch:
+
+ 1.   First you have to download the patch:
+   
+    [http://www.daniel.nofftz.net/linux/amd_cool.diff]   Kernel Patch for
+    2.4.17
+   
+    [http://www.daniel.nofftz.net/linux/amd_cool.linux-2.4.21.diff]   Kernel
+    Patch for 2.4.21 (thx to Thomas Reinhardt for porting it to 2.4.21)
+   
+    [http://www.daniel.nofftz.net/linux/amd_cool.linux-2.6.5.diff]   Kernel
+    Patch for 2.6.5 which supports all Via Chipsets up to the KT600 (thx to
+    Sebastian Droege for porting it to 2.6.5 and adding the other Chipsets)
+   
+    [http://www.daniel.nofftz.net/linux/amd_cool.linux-2.6.9.diff]   Kernel
+    Patch for 2.6.9 which supports all Via Chipsets up to the KT600 (thx to
+    Alexander Hug for porting it from 2.6.5 to 2.6.9)
+   
+ 2.   Login as root
+   
+ 3.   cd /usr/src
+   
+ 4.   Apply the patch: cat $path-to-patch/amd_cool.diff | patch -p0 (The new
+    2.6.5 Patch: cd to linux and patch -p1)
+   
+ 5.   cd linux
+   
+ 6.   Make the new kernel
+   
+ 7.   Reboot, and at the kernel boot-prompt, enter the statement 
+    amd_disconnect=yes . This is because there are known bugs within the
+    Athlon processor, which could cause problems on several boards. You
+    should test the patch, and if it works, you can append the statement 
+    amd_disconnect=yes to the file /etc/lilo.conf.
+   
+
+-----------------------------------------------------------------------------
+2.6. The LVCool Solution
+
+  LVCool is a small port of the Windows programm [http://vcool.occludo.net/]
+VCool. It only supports the KT133/133A and KX133 chipset and I can't provide
+support for it. You can download it [http://vcool.occludo.net/VC_Linux.html]
+here. This solutions needs no ACPI compiled in the kernel.
+-----------------------------------------------------------------------------
+
+2.7. The FVCool Program
+
+[http://www.nt.phys.kyushu-u.ac.jp/shimizu/download/download.html]   Here is
+another Powersaving program which supports several chipsets. I didn't test it
+by myself but i heared it works. Check it out ... There is also a program
+provided with which you could use the onboard monitoring chips on some
+motherboards (like the lm-sensors package).
+-----------------------------------------------------------------------------
+
+2.8. AMD 760MP Powersaving
+
+  There is a kernel module which enables powersaving on the 760MP
+multiprocessor chipset. You could find it [http://www.muru.com/linux/
+amd-smp-idle/]   here. I don't know how good it works, but i got at least one
+mail from someone who said it works for him. So check it out.
+-----------------------------------------------------------------------------
+
+3. What Else?
+
+3.1. How to test whether it works
+
+  Ok ... you use one of the described powersaving possibilitys and you want
+to verify, whether it works. Here are two ways to check it:
+
+  If you have temperature controlled Fan on your CPU-Heatsink, you could
+check for the noise level of the Fan to see whether it works or not. After a
+few idle minutes you give the CPU somthing to do.
+
+I normaly do it like this:
+
+ 1. get superuser (root)
+ 2. cd /usr/src/linux
+ 3. and give the computer something to do: while true; do make clean; make
+    bzImage; done
+
+After about 20 or 30 seconds you should notice that the noise of the fan is
+getting louder while the fan is getting faster. Don't forget to end the
+while-loop after some time ( a few minutes) with STRG-C.
+
+  The same procedure as above works also with a monitoring program for the
+cpu-temperature (like [http://secure.netroedge.com/~lm78/] lm-sensors, [http:
+//www.nt.phys.kyushu-u.ac.jp/shimizu/download/download.html] xmbmon and
+[http://www.tinet.org/~com.ea/rtsensors/] rtsensors).
+-----------------------------------------------------------------------------
+
+3.2. Known Bugs/Problems
+
+There are two known bugs in the Athlon/Duron processor. This is number 11 and
+number 14 in the AMD Athlon Processor Revision Guide. It looks like the
+Athlon XP is significantly less often affected by these bugs. So if you have
+an Athlon XP you are on the lucky side (like me).
+
+There could be following problems (caused by the bugs):
+
+  * skips during sound playback
+   
+  * skips and slowdown during video playback
+   
+  * slowdown of the ultra-DMA harddisk transfers
+   
+  * system hangs
+   
+  * USB problems
+   
+  * someone reported a high cheeping noise
+   
+
+Sometimes a BIOS-update will help (it exists as a workaround for bug 11,
+which could be done by the BIOS). But as far as I know there are only a few
+boards out there which have this workaround in the BIOS.
+
+For the Asus A7V133-C, it is known that the BIOS-option PCI master read
+caching will solve most problems when it is enabled. So look at your BIOS to
+see whether it has such functionality.
+
+It is also known that on some boards, the BIOS option Delayed Transaction
+solves some of the problems. You may want to give this option a try too.
+
+WARNING: On boards with KT133A, this could enable the famous VIA-Southbridge
+bug!
+
+From a Newsnet post, regarding Asus A7V:
+
+  * without delayed transaction: sound-skips and TV-skips
+   
+  * with delayed transaction: no sound skips and only slight TV problems
+   
+  * with delayed transcation and master read caching: nearly no TV problems
+    and no sound skips at all
+   
+
+There are other causes for problems:
+
+  * the PSU is not strong enough to handle the fluctuations in the power
+    consumption of the processor/motherboard
+   
+  * some motherboard voltage-regulators could have the same problems like the
+    PSU ;)
+   
+  * you have a K7S5A (as far as I know, this board could be really wierd when
+    power-saving is enabled)
+   
+
+  If you have minor problems with power-saving enabled, and nevertheless want
+to use power-saving, you can enable the power-saving by default, and turn it
+off if you want to playback music, watch TV, ...
+-----------------------------------------------------------------------------
+
+3.3. Fix for sound skips and other problems
+
+Thank you to Michael Hamilton for submitting me the idea how it works.
+
+The working of this Fix was confirmed by two People, so it looks like it
+works, but it may not work for everyone. Please feel free to submit further
+experiences!
+
+Lets go: It looks like at least the sound skips are curable by maximizing the
+pci latency timer of the device.
+
+First you have to find the "pci-address" of your Soundcard. This could be
+done with lspci. You have to look for something like "Multimedia audio
+controller" or "AudioPCI". Take the "pci-address" of the device (looks like
+something like that: 01:06.0 -> it stands for: bus:slot.function) and
+maximize the latency timer for it. This is done by setpci:
+
+setpci -v -s "pci-address" latency_timer=ff
+
+For additional Information on the Latency Timer you could look [http://
+www-106.ibm.com/developerworks/linux/library/l-hw2.html] here.
+
+Maybe this works also for other problems like USB-Problems and
+Harddisk-Transfer-Slowdowns, but this hasn't been tested for now. Feel free
+to test it (but don't blame me, if it doesn't work or makes everything worse)
+and report whether it works. The problem is, that i have none of this
+problems and so can't test this by myself.
+
+If it works, you have to perform this setpci command at every startup/reboot
+of the Computer. So it would be wise to put it in one of the init-scripts
+(after the driver module is loaded!).
+-----------------------------------------------------------------------------
+
+3.4. Another Fix for sound skips and other problems (on some Via-Chipsets)
+
+Thank you to Wijatmoko Prayitno for submitting this!
+
+The working of this Fix was confirmed for KT266, KT/KM333 and KT/KM400
+Chipsets. It may also work for other Via-Chipsets. Please report if it works
+on other Via-Chipsets !
+
+This is quite easy and works like the Commandline-Hack for enabling the
+Powersaving:
+
+Soundfix on KT/KM333 and KT/KM400 Chipsets:
+      enable: setpci -v -H1 -s 0:0.0 70=$(printf %x $((0x$(setpci -H1 -s 0:
+    0.0 70) | 0x08)))
+   
+      disable: setpci -v -H1 -s 0:0.0 70=$(printf %x $((0x$(setpci -H1 -s 0:
+    0.0 70) & 0xf7)))
+   
+
+If it works, you have to perform this setpci command at every startup/reboot
+of the Computer. So it would be wise to put it in one of the init-scripts
+(after the driver module is loaded!).
+-----------------------------------------------------------------------------
+
+3.5. ToDo
+
+Adding more chipsets and more informations to this document.
+
+Adding some Informations on the Powersaving System of the Athlon64 and
+Opteron CPUs.
+
+Adding some Informations on Notebooks and Power-Saving.
+-----------------------------------------------------------------------------
+
+3.6. Translations
+
+  Translations into different languages also exist. At the moment, some of
+them are not up to date.
+
+[http://tldp.fsf.hu/HOWTO/Athlon-Powersaving-HOWTO-hu/index.html]  
+Hungarianby Zsolt Mocza
+
+[http://perso.wanadoo.es/cmayo/docs/Athlon-Powersaving-HOWTO-es.html]  
+Spanish by Carlos Mayo (very out-dated)
+
+[http://www.gigantefotos.com.br/sl/pt_BR_Athlon_Powersaving_HOWTO.html]  
+brasilian Portuguese/Portuguese by Bruno Buys
+
+[http://www.daniel.nofftz.net/linux/Athlon-Powersaving-HOWTO-fr.html]  
+French by Mathieu Pillard (very out-dated)
+
+[http://www.daniel.nofftz.net/linux/Athlon-Powersaving-HOWTO-it.html]  
+Italian by Maurizio Fantino (very out-dated)
+
+[http://www.linuxwiki.de/AMDPowerSaving]   German (only parts) by Fabian
+Mohren
+
+[http://www.linux.or.jp/JF/JFdocs/Athlon-Powersaving-HOWTO/index.html]
+Japanese by Seiji Kaneko

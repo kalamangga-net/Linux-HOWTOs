@@ -1,0 +1,381 @@
+HOWTO Use a Compaq Remote Insight Lights Out Edition for a Headless, Remote
+Linux Installation
+
+Marc Nozell
+
+Compaq Computer Corporation
+
+           marc.nozell@compaq.com
+        
+Revision History                                                             
+Revision v1.1         10 April 2002                Revised by: MN            
+Update for new Red Hat release, new RIB/LOE firmware v2.41 release           
+screenshots, add grub.conf suggestion, misc cleanup of filenames/hostnames.  
+Revision v1.0         25 October 2000              Revised by: MN            
+Initial public release.                                                      
+
+
+This document describes how to install Linux on a headless Compaq ProLiant
+server with a Compaq Remote Insight Lights-Out Edition card without physical
+access to the system. The installation is done remotely through the use of a
+Java-enabled browser.
+
+-----------------------------------------------------------------------------
+Table of Contents
+1. Introduction
+    1.1. Trademarks
+    1.2. Feedback
+    1.3. Distribution Policy
+   
+   
+2. Compaq Remote Insight Lights-Out Background
+    2.1. Key Features
+   
+   
+3. Linux Installation using a Remote Insight Lights-Out
+    3.1. Hardware Installation
+    3.2. Setting up a Linux Distribution Point
+    3.3. Creating a Virtual Floppy Disk
+    3.4. Downloading a Virtual Floppy Disk to the Server
+    3.5. Power on and Booting
+    3.6. Post-installation configuration
+   
+   
+
+1. Introduction
+
+This document is a quick guide which shows how to install Linux on a remote,
+headless Compaq ProLiant system equipped with a Compaq Remote Insight
+Lights-Out Edition (RIB/LOE) card without needing physical access to the
+system.
+
+This document further describes how to use a virtual floppy disk for the
+initial install of Linux, and to setup an Apache server to provide the
+distribution media for completing the installation.
+-----------------------------------------------------------------------------
+
+1.1. Trademarks
+
+Compaq, Compaq Insight Manager, ProLiant, are registered with the United
+States Patent and Trademark office.
+
+Microsoft, Windows, Windows NT are trademarks and/or registered trademarks of
+Microsoft Corporation.
+
+Red Hat is a trademark of Red Hat, Inc., in the United States and other
+countries.
+
+SuSE is a trademark of SuSE GmbH.
+
+Linux is a registered trademark of Linus Torvalds.
+
+Other product names mentioned herein may be trademarks and/or registered
+trademarks of their respective companies.
+-----------------------------------------------------------------------------
+
+1.2. Feedback
+
+  Feedback will make this HOWTO more useful. If you have any suggestions,
+corrections, or comments, send them to marc.nozell@compaq.com
+-----------------------------------------------------------------------------
+
+1.3. Distribution Policy
+
+Copyright (c) 2000-2002 Compaq Computer Corporation.
+
+The information in this publication is subject to change without notice and
+is provided "AS IS" WITHOUT WARRANTY OF ANY KIND. THE ENTIRE RISK ARISING OUT
+OF THE USE OF THIS INFORMATION REMAINS WITH RECIPIENT. IN NO EVENT SHALL
+COMPAQ BE LIABLE FOR ANY DIRECT, CONSEQUENTIAL, INCIDENTAL, SPECIAL, PUNITIVE
+OR OTHER DAMAGES WHATSOEVER (INCLUDING WITHOUT LIMITATION, DAMAGES FOR LOSS
+OF BUSINESS PROFITS, BUSINESS INTERRUPTION OR LOSS OF BUSINESS INFORMATION),
+EVEN IF COMPAQ HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+The limited warranties for Compaq products are exclusively set forth in the
+documentation accompanying such products. Nothing herein should be construed
+as constituting a further or additional warranty.
+
+  This publication does not constitute an endorsement of the product or
+products that were tested. The configuration or configurations tested or
+described may or may not be the only available solution. This test is not a
+determination or product quality or correctness, nor does it ensure
+compliance with any federal, state, or local requirements. 
+
+This document may be distributed under the terms set forth in the LDP license
+at [http://sunsite.unc.edu/LDP/COPYRIGHT.html] sunsite.unc.edu/LDP/
+COPYRIGHT.html.
+
+This HOWTO is free documentation; you can redistribute it and/or modify it
+under the terms of the Linux Document Project (LDP) license. This document is
+distributed in the hope that it will be useful, but without any warranty;
+without even the implied warranty of merchantability or fitness for a
+particular purpose. See the LDP license for more details.
+-----------------------------------------------------------------------------
+
+2. Compaq Remote Insight Lights-Out Background
+
+The Remote Insight Lights-Out is an optional management PCI card with a
+dedicated LAN connection. It provides full access and control of servers even
+when the server is in a failed state.
+-----------------------------------------------------------------------------
+
+2.1. Key Features
+
+  The key features of the Remote Insight Lights-Out card:
+
+  * Self-contained with on-board processor, memory, NIC, and ROM
+   
+  * External power adapter ensures continuous server access
+   
+  * Enables 'headless' server deployments in data centers
+   
+  * Virtual Floppy Drive allows host server to remotely boot from a standard
+    1.44 MB floppy diskette in a network client, enabling remote OS
+    installation from a network drive, and remote server ROM updates
+   
+  * Full control of your server with browser-based, virtual graphical remote
+    console
+   
+  * No additional software required for Compaq ProLiant servers - the client
+    just requires a browser that supports Java.
+   
+  * Virtual Power Button provides full control of remote server power state -
+    turn your server on or off remotely
+   
+  * Remote Reboot allows cold reboot when system is not responding.
+   
+  * SSL encryption of HTTP data before transmitting over the network
+   
+  * Dedicated, low-bandwidth network connection provides secure access over
+    LAN
+   
+  * Group administration for user accounts
+   
+
+  To get more information about the Remote Insight Lights-Out Edition see the
+Compaq web page at [http://www.compaq.com/lights-out] http://www.compaq.com/
+lights-out
+-----------------------------------------------------------------------------
+
+3. Linux Installation using a Remote Insight Lights-Out
+
+After you have installed the card into the server system you will need to set
+up a Linux distribution repository, build and download a special boot floppy,
+and drive the installation through a browser.
+-----------------------------------------------------------------------------
+
+3.1. Hardware Installation
+
+The first step is to install the Remote Insight Lights-Out Edition card in a
+Compaq ProLiant Server and configure it for network access. Using DHCP is the
+easiest way to get the Remote Insight Lights-Out card on the network.
+-----------------------------------------------------------------------------
+
+3.2. Setting up a Linux Distribution Point
+
+On another server, make the contents of the Red Hat installation CD available
+via HTTP or FTP. For this example, the server is named disto.OUR-LAB.com and
+HTTP is used.
+
+Copy the entire CD to the local hard disk and give appropriate file
+protections to allow the web server to read it. For Red Hat V6.2, use the
+following commands.
+         # mount -t iso9660 -o ro /dev/cdrom /mnt/cdrom                       
+         # mkdir /usr/src/distros/RH62                                        
+         # (cd /mnt/cdrom && tar cf - . ) | (cd /usr/src/RHCD && tar xvfp - ) 
+         # umount /mnt/cdrom                                                  
+         # chmod +x -R /usr/src/distros/RH62                                  
+                                                                              
+Red Hat V7.0 and later versions contain two binary distribution CDs, so both
+need to be copied into the same directory structure. This example shows the
+steps for Red Hat 7.2. Put the first binary distribution CD into the drive
+and as above use the following commands:
+         # mount -t iso9660 -o ro /dev/cdrom /mnt/cdrom                               
+         # mkdir /usr/src/distros/RH72                                                
+         # (cd /mnt/cdrom && tar cf - . ) | (cd /usr/src/distros/RH72 && tar xvfp - ) 
+         # umount /mnt/cdrom                                                          
+                                                                                      
+Then put the second binary distribution CD into the drive and issue the
+following commands.
+         # mount -t iso9660 -o ro /dev/cdrom /mnt/cdrom                               
+         # mkdir /usr/src/distros/RH72                                                
+         # (cd /mnt/cdrom && tar cf - . ) | (cd /usr/src/distros/RH72 && tar xvfp - ) 
+         # umount /mnt/cdrom                                                          
+         # chmod +x -R /usr/src/distros/RH72                                          
+                                                                                      
+
+Edit httpd.conf to add the following lines near the section wehre other
+Aliases are defined. The location of the configuration file varies. On a
+default Red Hat system, it is in /etc/httpd/httpd.conf. If the Apache server
+was installed from sources using the default location, it is in /usr/local/
+apache/conf/httpd.conf. You can also try locate httpd.conf to find it.
+        <Directory /usr/src/distros/>                                        
+                Options Indexes                                              
+                AllowOverride all                                            
+        </Directory>                                                         
+                                                                             
+        Alias /distros  /usr/src/distros                                     
+                                                                             
+
+Restart the Apache server. If you are still running the default Apache
+shipped with Red Hat, do this:
+        # /etc/rc.d/init.d/httpd restart                                     
+                                                                             
+
+Other Linux distributions may put the Apache Web Server startup script in a
+different place.
+
+The location of of apachectl may vary; find it with locate apachectl. If you
+installed the Apache server yourself, you may want to use apachectl. If you
+used the Apache default file locations, it would be the following.
+        # /usr/local/apache/bin/apachectl restart                            
+                                                                             
+
+Verify that the Red Hat content is available:
+        # lynx http://distro.OUR-LAB.com/distros                             
+                                                                             
+-----------------------------------------------------------------------------
+
+3.3. Creating a Virtual Floppy Disk
+
+  Create a special Red Hat boot floppy that can perform a network
+installation. The file from the Red Hat CD is in images/bootnet.img;in this
+example, /usr/src/distros/RH72/images/bootnet.img or http://
+distro.OUR-LAB.com/distros/RH72/images/bootnet.img. Other distributions can
+also install across the network using similar steps.
+
+From a Linux or UNIX system follow these steps. Put a floppy in the drive.
+        # dd if=/usr/src/distros/RH72/images/bootnet.img of=/dev/fd0 bs=1440k 
+                                                                              
+
+Take that special boot floppy to a Microsoft Windows system that has the
+CPQIMAGE program to build an IMG file from a floppy to be uploaded to the
+Compaq Remote Insight Lights-Out card. This is the only step that requires
+the use of a Microsoft platform. The CPQIMAGE program is not available on any
+other platform.
+
+The CPQIMAGE program for Microsoft Windows 95/98/NT 4.0/2000 is available for
+download from [http://www.compaq.com/manage/lightsout-downloads.html] http://
+www.compaq.com/manage/lightsout-downloads.html. Choose the "Diskette Image
+Utility" download.
+
+Build a file named redhat-bootnet.img using that Windows-based application.
+Note for multi-system installations, this file can be reused or simply
+provided to the customer.
+-----------------------------------------------------------------------------
+
+3.4. Downloading a Virtual Floppy Disk to the Server
+
+Now that a special version of the bootnet.img has been created, it needs to
+be loaded into the Virtual Floppy Disk on the Remote Insight Lights-Out card.
+
+ 1. Connect to the Remote Insight Lights-Out card of the Linux system from a
+    Java-enabled browser (Netscape, MSIE) using the URL https://XX.XX.XX.XX
+    where the X's are the IP address assigned to the card. You can use a
+    Linux system running Netscape or a Windows system running Netscape or
+    Microsoft Internet Explorer. Just have the redhat-bootnet.img local to
+    the system running the browser. Note that this special image file is
+    larger than a regular 1.44MB floppy. Note: You may want to use FTP to
+    move the file to the system that you will run the browser on.
+   
+ 2. Log in to the Remote Insight Lights-Out card by using a web browser to
+    connect to the IP address assigned to the card.
+   
+ 3. Select the "Insert Virtual Floppy" from the web interface, link (on left
+    near the bottom) and load the redhat-bootnet.img file you just created
+    into the virtual floppy.
+   
+   
+    Figure 1. Uploading bootnet floppy image
+   
+    [upload-bootnet]
+   
+    Uploading a floppy image to the Virtual Floppy
+   
+ 4. Select the "Virtual Floppy Boot Option" of 'Boot Once' in the "Virtual
+    Floppy Status" section.
+   
+   
+    Figure 2. Virtual Floppy Boot Once Dialog
+   
+    [virtual-floppy-bootonce-dialog]
+   
+    Image of Virtual Floppy Options
+   
+
+-----------------------------------------------------------------------------
+3.5. Power on and Booting
+
+Now the system is ready to be powered. From the browser, click on the
+'Virtual Power Button' and power on the server.
+
+ 1. Turn on the virtual console by selecting 'Remote Console (2-cursor) under
+    the "Remote Console" section. This starts a Java applet that will show
+    you exactly what is being displayed on the console, for example, the
+    memory self check, BIOS startup, SCSI probe, etc. If you have a Compaq
+    SmartArray card, you can click on the button to send an F10 keypress.
+   
+   
+    Figure 3. BIOS bootup
+   
+    [bios-boot]
+   
+    Browser window showing memory check during BIOS boot
+   
+ 2. Enter "text" for a non-GUI installation method at the boot: prompt. The
+    graphical interface would work also, but it is slower over the network.
+   
+ 3. Follow the Red Hat installation. When it gets to the place where it asks
+    for where the distribution media location (CDROM, HardDrive, HTTP, NFS,
+    FTP), select 'HTTP'.
+   
+   
+    Figure 4. Red Hat bootup
+   
+    [redhat-boot]
+   
+    Red Hat text-based installation
+   
+ 4. Put the name of the web server with the Red Hat distribution for the
+    hostname, in this example, distro.OUR-LAB.com. The directory for this
+    example is /rh. If you didn't previously specify a DNS server in the TCP/
+    IP configuration step prior to this, you can use the IP address of the
+    system serving the distribution.
+   
+   
+    Figure 5. Red Hat bootup
+   
+    [redhat-http-setup]
+   
+    Selecting HTTP based installation
+   
+ 5. Proceed with a normal Red Hat installation.
+   
+ 6. Skip the configuration of the X server when it gets to the X11
+    configuration step.
+   
+    If you want to run a graphical interface on your server system, it can be
+    configured later using Xconfigurator or xf86config. Compaq suggests that
+    the server resolution be set to 640x480 at 16-bit color depth and mouse
+    acceleration to be 1x.
+   
+ 7. Proceed with a normal Red Hat installation. Note that there is a 15
+    minute timeout for the Remote Console, if your Red Hat installation takes
+    longer than that you may be disconnected from the Remote Console. If this
+    happens, simply reconnect to the URL https://XX.XX.XX.XX, where the X's
+    are the IP address assigned to the card, and continue from where you left
+    off.
+   
+
+-----------------------------------------------------------------------------
+3.6. Post-installation configuration
+
+  The default configuration for the grub bootloader that Red Hat 7.2 installs
+goes into graphics mode for the boot selection. While the Remote Console will
+work properly, it looks nicer if there is no splash image. To do this, edit /
+etc/grub.conf and remove or comment out the line that looks like:
+                splashimage=(hd0,1)/grub/splash.xpm.gz                       
+                                                                             
+and add the following line:
+                terminal --dumb --timeout=3 console                          
+                                                                             

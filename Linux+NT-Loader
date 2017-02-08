@@ -1,0 +1,256 @@
+  NT OS Loader + Linux mini-HOWTO
+  Bernd Reichert, <reichert@dial.eunet.ch>
+  v1.11, 2 September 1997
+
+  1.  Abstract
+
+  This document describes the use of the Windows NT boot loader to start
+  Linux.  This procedures have been tested with Windows NT 4.0 WS and
+  Linux 2.0.
+
+
+  2.  How does the NT OS Loader work
+
+  The NT OS loader likes to have the boot sector from the other
+  operating systems available as a file. It reads this file and starts
+  the operating system selected, i.e. either Windows NT in different
+  Modes or any other OS.
+
+
+  3.  Tips on how to install Windows NT and Linux on the same System
+
+  3.1.  Windows NT installation
+
+  Try to install Windows NT first. If you want to use NTFS for your
+  Windows NT-partition, keep in mind, that the todays production version
+  of Linux cannot access NTFS partitions.  An alpha driver that can read
+  NTFS-Partitions is available at http://www.informatik.hu-
+  berlin.de/~loewis/ntfs.  You may create a separate FAT-Partition for
+  data exchange or you have to use DOS-formatted floppies.
+
+
+  3.2.  Partitioning
+
+  Another Mini-howto recommends not to use NTs "Disk Administartor" to
+  create the Linux swap- and root-partitions. It is sufficient to see
+  the free space there. I also recommend to use linux's fdisk later.
+
+
+  3.3.  Linux installation
+
+  Now boot linux from diskettes, create the swap and root-partition.
+  Fdisk assumes the ntfs-partition to be a HPFS-partition.  This is
+  normal.  Boot again from diskettes and install Linux as you like.
+
+
+  Just in case the installation procedure suggests that you could mount
+  the HPFS partition which it has found: Ignore it.
+
+
+  3.4.  Lilo
+
+  When you come to the Lilo-Section, specify your Linux-root-partition
+  as your boot device because the Master Boot Record (MBR) of your
+  harddisk is owned by Windows NT. This means that the root-entry and
+  the boot-entry in your /etc/lilo.conf have the same value.  If you
+  have a IDE-harddisk and your Linux-partition is the second partition,
+  your boot-entry in /etc/lilo.conf looks like:
+
+
+
+       boot=/dev/hda2
+
+
+
+  If you have two disks and your Linux resides on the first partition of
+  your second disk, your boot-entry in /etc/lilo.conf looks like:
+
+
+
+       boot=/dev/hdb1
+
+
+
+  Run lilo with a kernel that matches your system.  Check the kernel by
+  booting from diskette first if you are not sure.
+
+
+  If you cannot boot Windows NT now, you have a problem.  I hope you
+  have created a repair-disk recently.
+
+
+
+  4.  Bootpart
+
+  There is a NT-programm called bootpart written by G. Vollant that can
+  do the jobs from the next two points for you. Bootpart is available at
+  http://ourworld.compuserve.com/homepages/gvollant/bootpart.htm.
+
+
+  If you want to know how things are working together, use the
+  procedures described in point 5 and 6.
+
+
+
+  5.  The Linux part of the work
+
+  You have to boot from diskettes until the NT-part is fixed.
+
+
+  Now you have to peel the bootsector from your Linux-root-Partition.
+  With /dev/hda2 as your linux-partition, the dd-command is:
+
+
+
+       # dd if=/dev/hda2 of=/bootsect.lnx bs=512 count=1
+
+
+
+  There is something wrong if your bootsect.lnx has more than 512 bytes.
+
+  Now copy the file bootsect.lnx to a DOS-formated floppy if this is
+  your way to transfer files to the NTFS-Windows-partition.
+
+  You can copy it with
+
+
+
+       # mcopy /bootsect.lnx a:
+
+
+
+  or with
+
+
+
+  # mount -t msdos /dev/fd0 /mnt
+  # copy /bootsect.lnx /mnt
+  # umount /mnt
+
+
+
+  6.  The Windows NT part of the work
+
+  Copy the file from the diskette to C:\\bootsect.lnx. I don't tell you
+  how to do that.
+
+  What lilo.conf is for linux is c:\\boot.ini for Windows NT.  Remove
+  the, system- and the read-only-attribute before you can modify it
+  with:
+
+
+
+       C:\attrib -s -r c:\boot.ini
+
+
+
+  Now change the file boot.ini with an editor, notepad for example, as
+  follows:
+
+
+
+       [boot loader]
+       timeout=30
+       default=multi(0)disk(0)rdisk(0)partition(1)\WINNT
+       [operating systems]
+       multi(0)disk(0)rdisk(0)partition(1)\WINNT="Windows NT Workstation ...
+       multi(0)disk(0)rdisk(0)partition(1)\WINNT="Windows NT Workstation ...
+       C:\BOOTSECT.LNX="Linux"
+
+
+
+  Only the last line has been added in this example.  Restore the
+  attributes after you have saved boot.ini with:
+
+
+
+       C:\attrib +s +r c:\boot.ini
+
+
+
+  After a shutdown of your Windows NT and a restart your should see the
+  following:
+
+
+
+    OS Loader V4.00
+
+    Please select the operating system to start:
+
+    Windows NT Workstation Version 4.0
+    Windows NT Workstation Version 4.0 [VGA mode]
+    Linux
+
+  Select Linux and see
+
+    LILO loading zImage ....
+
+
+
+  7.  Play it again Sam
+
+  A new copy of bootsect.lnx must be transfererd to C:\BOOTSECT.LNX evry
+  time the bootsector of your linux-partition has been modified.  This
+  happens for example when you install a new kernel with lilo.  As you
+  can see such a system in not ideal for testing experimental kernels.
+
+
+
+  8.  Troubleshooting
+
+  If things do not work as expected, check bootability with a floppy
+  disk.  With /dev/hdb1 as your Linux-partition, your /etc/lilo.conf has
+  the following entries:
+
+
+
+       root=/dev/hdb1
+       boot=/dev/fd0
+
+
+
+  Run lilo with a diskette inserted. Now try to boot from the diskette.
+  If your Linux on /dev/hdb1 can't be started, the NT OS loader will
+  also fail to start it.  If you see a lot of 01 01 01 01, your root-
+  disk is not accessible.  Check whether all your disks are known by the
+  bios.
+
+
+  If the floppy boots your Linux partition, you can peel of your boot-
+  sector for the NT OS loader with:
+
+
+
+       # dd if=/dev/fd0 of=/bootsect.lnx bs=512 count=1
+
+
+
+  You can keep this diskette as your rescue-diskette just in case your
+  Windows NT installation breaks.
+
+
+
+  9.  References
+
+
+  ·  The Linux+WindowsNT mini-HOWTO
+
+  ·  The FAQ for FreeBSD 2.X
+
+
+  10.  Acknowledgements
+
+
+  ·  Thanks to Xiaoming Yi <z3c20@ttacs.ttu.edu> for the tip that the
+     procedures work also with other disks than the first one.
+
+  ·  Thanks to Frank Dennler <Frank.Dennler@zkb.ch> for the diskette-
+     trick.
+
+
+  11.  Feedback
+
+  Any comments are welcome.
+
+
+

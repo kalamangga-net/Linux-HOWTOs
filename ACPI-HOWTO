@@ -1,0 +1,1260 @@
+ACPI: Advanced Configuration and Power Interface
+
+Emma Jane Hogbin
+
+  [http://www.xtrinsic.com] xtrinsic
+
+
+   <emmajane@xtrinsic.com>
+
+Erich Schubert - Author of the section on DSDT.
+Revision History                                                             
+Revision v1.5.1            2004-07-15           Revised by: ejh              
+Link included to the French translation of this document.                    
+Revision v1.5              2004-05-21           Revised by: ejh              
+Minor updates for the 2.6.6 kernel and corrections regarding which kernels   
+need patching.                                                               
+Revision v1.4              2004-05-12           Revised by: ejh              
+Initial thoughts on the 2.6.5 kernel; includes information on battery        
+monitoring applications causing touchpad lockup problems.                    
+
+
+Outlines how to patch a kernel for ACPI support.
+
+-----------------------------------------------------------------------------
+Table of Contents
+1. About this document
+2. Copyright and License
+3. Translations
+4. About ACPI
+5. Why switch?
+6. DSDT: Differentiated System Description Table
+7. Installing from scratch
+    7.1. Choosing a kernel
+   
+   
+8. Backups
+9. Download and Unpack the New Kernel
+    9.1. Required packages
+    9.2. Unpack
+   
+   
+10. Configure the new kernel
+11. Compile the new kernel
+12. Install the new kernel
+13. Reboot and test
+14. Load related modules
+15. Switching from APM to ACPI
+16. Using ACPI
+17. References and Resources
+18. Thanks
+A. Patching Old Kernels
+    A.1. Getting the Source Files
+   
+   
+B. ACPI the Non-Debian Way
+    B.1. Compile the kernel
+    B.2. Install the new kernel
+    B.3. Software packages
+   
+   
+C. GNU Free Documentation License
+    C.1. PREAMBLE
+    C.2. APPLICABILITY AND DEFINITIONS
+    C.3. VERBATIM COPYING
+    C.4. COPYING IN QUANTITY
+    C.5. MODIFICATIONS
+    C.6. COMBINING DOCUMENTS
+    C.7. COLLECTIONS OF DOCUMENTS
+    C.8. AGGREGATION WITH INDEPENDENT WORKS
+    C.9. TRANSLATION
+    C.10. TERMINATION
+    C.11. FUTURE REVISIONS OF THIS LICENSE
+    C.12. How to use this License for your documents
+   
+   
+
+1. About this document
+
+When I first started the switch from APM to ACPI I didn't realize the kernel
+needed to be patched. My problem (insanely loud fan) was fixed just by
+upgrading to 2.4.20 (Debian packaged kernel with an earlier patch from [http:
+//acpi.sourceforge.net] acpi.sourceforge.net). Unfortunately after the first
+upgrade I wasn't able to halt my computer without using the power switch to
+power-down my computer. It wasn't until later that I realized I had an old,
+ineffectual ACPI patch. This HOWTO was written to summarize the install
+process for myself, and hopefully help others who are also having a hard time
+finding information about ACPI. Please note: the main article outlines [http:
+//www.debian.org] The Debian Way of doing things. There is also generic
+information in the Appendix B for those of you who prefer ... the generic
+way.
+-----------------------------------------------------------------------------
+
+2. Copyright and License
+
+      Copyright (c) 2003, 2004 Emma Jane Hogbin.
+   
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.1 or any
+    later version published by the Free Software Foundation; with no
+    Invariant Sections, no Front-Cover Texts, and with no Back-Cover Texts. A
+    copy of the license is included in Appendix C.
+   
+-----------------------------------------------------------------------------
+3. Translations
+
+This document is also available in the following languages:
+
+  * English version 1.2 translated to: [http://www.traduc.org/docs/HOWTO/
+    lecture/ACPI-HOWTO.html] Francais. Merci a Guillaume Lelarge et Vanessa
+    Conchodon pour le traduction!
+   
+
+-----------------------------------------------------------------------------
+4. About ACPI
+
+In the world of power management ACPI is relatively new to the game. It was
+first released in 1996 by Compaq/Hewlett-Packard, Intel, Microsoft, Phoenix
+and Toshiba. These developers aimed to replace the previous industry standard
+for power management. Their [http://www.acpi.info] ACPI.info site contains
+the official specifications, a list of companies that support ACPI and a
+number of other goodies. This is definitely not required reading, but may be
+of some interest to the insanely curious.
+
+ACPI allows control of power management from within the operating system. The
+previous industry standard for power management, Advanced Power Management
+(APM), is controlled at the BIOS level. APM is activated when the system
+becomes idle--the longer the system idles, the less power it consumes (e.g.
+screen saver vs. sleep vs. suspend). In APM, the operating system has no
+knowledge of when the system will change power states.
+
+ACPI can typically be configured from within the operating system. This is
+unlike APM where configuration often involves rebooting and entering the BIOS
+configuration screens to set parameters.
+
+ACPI has several different software components:
+
+  * a subsystem which controls hardware states and functions that may have
+    previously been in the BIOS configuration
+   
+    These states include:
+   
+      + thermal control
+       
+      + motherboard configuration
+       
+      + power states (sleep, suspend)
+       
+   
+  * a policy manager, which is software that sits on top of the operating
+    system and allows user input on the system policies
+   
+  * the ACPI also has device drivers that control/monitor devices such as a
+    laptop battery, SMBus (communication/transmission path) and EC (embedded
+    controller).
+   
+
+If you would like more information on power management in laptops, check out
+the resources on [http://www.tuxmobil.org] tuxmobil.org. Specifically: Power
+Management with Linux - APM, ACPI, PMU and the [http://tuxmobil.org/
+Mobile-Guide.db/mobile-guide-p2c1-hardware-in-detail.html] Hardware in Detail
+section of the Linux Mobile Guide.
+-----------------------------------------------------------------------------
+
+5. Why switch?
+
+Not all systems support both APM and ACPI. I switched because my system only
+supported ACPI. Pretty easy decision really. If you're switching to get
+[http://acpi.sourceforge.net/documentation/sleep.html] S3 (suspend to RAM)
+support and you're using a 2.4.x kernel, don't bother. It is [http://
+lists.debian.org/debian-laptop/2003/debian-laptop-200304/msg00418.html] not
+supported. Period.
+
+Not sure if your system is supported? ACPI4Linux has a list of supported
+machines/BIOSes started on their Wiki. Please contribute to the list if
+you've installed ACPI! They also have a list of machines that are [http://
+acpi.sourceforge.net/documentation/blacklist.html] not supported.
+
+For more information about the power management in laptops you may (also)
+find the [http://www.tldp.org/HOWTO/mini/Battery-Powered/index.html] Battery
+Powered Linux Mini-HOWTO useful.
+-----------------------------------------------------------------------------
+
+6. DSDT: Differentiated System Description Table
+
+Thanks to [http://www.vitavonni.de/] Erich writing this section.
+
+You might need to override the DSDT when certain features like battery status
+are incorrectly reported (usually causing error messages to syslog). DELL
+laptops usually need this kind of override. Fixed DSDT for many systems are
+available on the [http://acpi.sourceforge.net/dsdt/index.php] DSDT page,
+along with a patch that tells the kernel to ignore the BIOS-supplied table
+but use the compiled-in fixed DSDT.
+
+Basically you need to copy the fixed table into your kernel source with a
+special filename (or modifying the filename in the patch supplied at the
+[http://acpi.sourceforge.net/dsdt/index.php] DSDT page) This override is
+quite easy: instead of loading the DSDT table from bios, the kernel uses the
+compiled-in DSDT table. That's all.
+-----------------------------------------------------------------------------
+
+7. Installing from scratch
+
+ACPI is constantly being revised. It is available in later versions of the
+2.4.x series kernel (2.4.22 and higher), and all 2.6.x series kernels. If you
+would like to use a kernel before 2.4.22, you will need to patch your kernel
+source to add ACPI functionality. If at all possible you should use the
+latest stable version of the kernel. Patches are available from [http://
+acpi.sourceforge.net] acpi.sourceforge.net.
+
+Red Hat Fedora Core 2 now ships with ACPI enabled by default! This is big
+progress for the ACPI development team. Congratulations to everyone.
+
+Note Even the latest kernel will sometimes have minor bug fixes available as 
+     a patch. You should check the ACPI4Linux web site to see if there are   
+     any patches available.                                                  
+
+ You need to get the patch that exactly matches the version of the kernel
+that you are running. Since this is the "install from scratch" section I will
+assume you know exactly which kernel you will be installing.
+-----------------------------------------------------------------------------
+
+7.1. Choosing a kernel
+
+This document was originally written for the 2.4.20 kernel and has been
+updated since to include information about the 2.6.x series kernels. At the
+time of this update the 2.6.x series kernels are proving easy for some and
+harder for others. (I personally cannot properly power down my computer with
+the 2.6.5 kernel.)
+
+If you can, I would recommend waiting to upgrade your kernel to the 2.6.x
+series until more bugs are ironed out. There are a lot of changes in the
+2.6.x series kernel. When I upgraded to 2.6.5 to update this document I ran
+into problems with my wireless connection, my nvidia graphics card, and with
+ACPI. Your mileage may vary. I personally had good success with the 2.4.20
+with the latest patch and the 2.4.22 kernel with no patch. A Google through
+your distribution's mailing list, and the acpi-devel mailing list should help
+you to pick the right kernel.
+
+Note This document uses the 2.4.20 kernel as an example for 2.4.x series     
+     kernels. Substitute your own kernel version as appropriate.             
+
+Regardless of which kernel you choose, if it is a kernel that requires
+patching, it is important to use the latest version of the ACPI patch. Some
+distributions have already patched their kernels. This is the case for
+Debian, and may be the case for others. For more information on the patches
+that have been applied to the Debian kernel source package scan through: /usr
+/src/kernel-source-<version>/README.Debian. If you are not using Debian you
+will probably still be able to find an equivalent file for your distribution.
+
+A user on acpi-support confirmed that I shouldn't need any of the additional
+patches that have been applied to the kernel to run my laptop. If you are
+running a production-level server and/or are serving web pages to the
+internet, you should really apply any additional security patches.
+
+Warning If a kernel has had other patches applied to it, you may have        
+        problems applying the ACPI patch. Of course, an ACPI patch should not
+        be applied to a kernel that is already patched for ACPI. As long as  
+        there has not been an ACPI patch applied to the kernel it should be  
+        possible to apply one now. Depending on the patches applied, you may 
+        need to modify some of the Makefiles for your patch to be successful.
+        This is beyond my current grasp of reality so it is not covered in   
+        this document.                                                       
+-----------------------------------------------------------------------------
+
+7.1.1. Debian-ized pre-patched kernel
+
+If you would prefer to use a Debian-ized kernel instead of a fresh one,
+[http://people.debian.org/~maxx] maxx has provided a pre-patched
+kernel-source package with the latest patch for the 2.4.20 kernel. This would
+be instead of downloading a fresh (non-patched) kernel from [http://
+www.kernel.org] www.kernel.org. He sent me an email with the following
+details:
+        I took the kernel-source 2.4.20-8 from unstable, removed the        
+        ACPI changes [i.e. the old patch] and applied                       
+        acpi-20021212-2.4.20.diff.gz from acpi.sf.net since the             
+        vanilla 2.4.20 HAS several security leaks (ptrace, hash             
+        table, ...).                                                        
+                                                                            
+        You can find the package at [http://people.debian.org/~maxx/        
+        kernel-source-2.4.20/] http://people.debian.org/~maxx/              
+        kernel-source-2.4.20/ (I didn't upload the .orig.tar.gz             
+        since you can get it from any debian mirror and the .deb is         
+        already big enough)                                                 
+                             --[http://people.debian.org/~maxx] maxx        
+
+Warning I have not tested these packages. You may or may not have any luck   
+        with them. Please don't email me asking about them, ask maxx instead.
+-----------------------------------------------------------------------------
+
+8. Backups
+
+If you are already running a kernel that is the same version of the one you
+are about to patch I recommend creating a fresh directory for the newly
+patched kernel. Remember that backups are never a bad thing. These are the
+files that I back up:
+
+  * /etc/lilo.conf
+   
+  * /usr/src/*.deb (Debian-specific)
+   
+  * /etc/modules
+   
+  * /etc/modutils/aliases
+   
+  * /usr/src/linux/.config
+   
+  * If you are not doing things The Debian Way you should also back up the /
+    lib/modules directory, /boot/vmlinuz, /usr/src/linux/arch/i386/boot/
+    bzImage and /usr/src/System.map. It's possible my notes on the location
+    of these files differs. Do a locate <file> if they're not where I've
+    stated they should be.
+   
+
+-----------------------------------------------------------------------------
+9. Download and Unpack the New Kernel
+
+9.1. Required packages
+
+The following is a list of packages required to patch a 2.4.x series kernel.
+I am still working on the notes for a 2.6.x series install.
+
+2.4.x series kernels
+
+  * kernel source files
+   
+  * ACPI patch that exactly matches the kernel version
+   
+  * debian packages: make, bzip2, gcc, libc6-dev, tk8.3, libncurses5-dev,
+    kernel-package
+   
+  * after you've patched the kernel add the debian packages: acpid, acpi
+    (this last package is available in testing and unstable versions of
+    Debian, but not stable)
+   
+
+-----------------------------------------------------------------------------
+9.2. Unpack
+
+We need to unpack the bz2 file (bzip2) and shuffle the directories around a
+bit. /usr/src/linux probably points to your current kernel. We need it to
+point to the new kernel, so we'll do that as well.
+
+  *     cd /usr/src
+   
+  *   mkdir kernel-source-<version> (use an alternate name if you already
+    have a version of this kernel installed)
+   
+  *   cp linux.<version>.tar.bz2 /usr/src/kernel-source-<version>
+   
+  *   cd /usr/src/kernel-source-<version>
+   
+  *   tar xjfv linux.<version>.tar.bz2
+   
+  *   mv linux.<version> /usr/src/linux-<version>
+   
+  *   rm linux (assuming that's a link to your old kernel)
+   
+  *   ln -s /usr/src/linux-<version> linux
+   
+
+If your kernel needs to be patched, do so now. Instructions are available
+from Appendix A.
+-----------------------------------------------------------------------------
+
+10. Configure the new kernel
+
+Note Patch Your Kernel First                                                 
+     If you are using an old kernel you will need to patch it before you can 
+     proceed. Instructions on patching your kernel are available from        
+     Appendix A. The 2.6.x series kernels do not need to be patched.         
+
+Now instead of using make menuconfig, I have an excellent alternative. Check
+this out: copy your current .config file into /usr/src/linux. Now use "make
+oldconfig". It will run through your old config file and see what's been
+updated so that you don't have to find all the new options. For everything to
+do with ACPI and your specific hardware (Toshibas choose the Toshiba options,
+Asus choose the Asus options) choose M for module. There are about ten
+different ACPI related options that you will need to select.
+
+In point form, this is how the kernel should be configured:
+
+  *   cd /usr/src/linux
+   
+  *   cp /usr/src/<oldkernel-source-directory>/.config .config
+   
+  *   make oldconfig (say M to all new options for ACPI--you can also say "Y"
+    if you prefer to compile it directly into your kernel)
+   
+
+Now go in to the config file with make menuconfig. I want you do check and
+make sure you have your APM (the old stuff) turned off. Under "General Setup"
+, make sure that:
+
+  *   Power Management Support is ON
+   
+  *   APM (Advanced Power Management) is OFF (this is the old one--you don't
+    even want it as a module unless you really know what you're doing. And if
+    you really know what you're doing you're probably not reading this.)
+   
+  * everything to do with ACPI should be M (modules) or * (compiled directly
+    into the kernel). Read the list carefully. Some options will not apply to
+    your hardware.
+   
+
+exit and save the new configuration
+-----------------------------------------------------------------------------
+
+11. Compile the new kernel
+
+If you have additional modules that are not part of the main source tree, you
+will need to add modules_image when you make your Debian packages. This is
+almost inevitable if you're using a laptop and an older kernel. Only my
+nvidia graphics card now requires additional modules.
+
+  *   cd /usr/src/linux
+   
+  *   make-kpkg clean
+   
+  *   make-kpkg --append-to-version=.<date> kernel_image modules_image
+   
+
+Note Naming kernel builds                                                    
+     I no longer use .date to distinguish kernel builds. It was too          
+     frustrating to have 030627a, 032627b (etc) as I tried to figure things  
+     out. I now use names, in alphabetical order, starting with the kernel   
+     build "alien". I'm going to leave the date option in though as I still  
+     think it's a good way to do things.                                     
+                                                                             
+     My current kernel, 2.6.6, is "Elrond." The machine itself is "Smeagol." 
+
+Note Kernel compile help                                                     
+     For non-Debian instructions see the Appendix "Appendix B".              
+                                                                             
+     For more information on how to compile the kernel The Debian Way please 
+     read Creating custom kernels with Debian's kernel-package system        
+-----------------------------------------------------------------------------
+
+12. Install the new kernel
+
+I like to configure lilo on my own, but do whatever tickles your fancy.
+
+  *   cd /usr/src
+   
+  *   dpkg -i kernel-image-<version>.<date>_10.00.Custom_i386.deb At this
+    point I decline all the lilo updates and configure it myself by hand.
+   
+  * configure lilo by hand: vi /etc/lilo.conf
+   
+  *   load the new kernel into lilo: lilo
+   
+  *   If you have any other deb files for your modules you should install
+    them now as well. If you're not sure check /usr/src for additional .deb
+    files.
+   
+
+Note Kernel compile help                                                     
+     For non-Debian instructions see the Appendix "Appendix B".              
+                                                                             
+     For more information on how to compile the kernel The Debian Way please 
+     read Creating custom kernels with Debian's kernel-package system        
+-----------------------------------------------------------------------------
+
+13. Reboot and test
+
+At this point you should reboot your machine. When your system comes back up
+(assuming of course that everything went well and you still have a system),
+check to see what kernel you're running with uname -a. It should show you the
+one you just built. You also need to make sure the correct patch was
+installed. You can do that with   dmesg | grep ACPI.*Subsystem\ revision . It
+should give the output: ACPI: Subsystem revision 20021212. The revision is
+the date the patch was released. This number will be different than mine if
+you are not using the 2.4.20 kernel. To look at all ACPI-related bits that
+were loaded/started when your system rebooted, do this: dmesg | grep ACPI . 
+dmesg prints your boot messages and grep ACPI makes sure that only
+ACPI-related messages are printed.
+
+You can also check to see what version you're using with cat /proc/acpi/info.
+Don't believe everything you read though. My output says that S3 is a
+supported state, but we already know it's not. It does give the correct
+version though, which is useful.
+-----------------------------------------------------------------------------
+
+14. Load related modules
+
+Check to see that each of the ACPI modules have been loaded after your
+machine boots. You can do this with the command lsmod. You are looking for
+the following options: button, battery, fan, ac, thermal and processor. If
+you chose "Y" instead of modules when you compiled your kernel, you will not
+see this list. The output on my computer looks like this:
+Module                  Size  Used by    Tainted: P                          
+button                  2420   0 (unused)                                    
+battery                 5960   0 (unused)                                    
+ac                      1832   0 (unused)                                    
+fan                     1608   0 (unused)                                    
+thermal                 6664   0 (unused)                                    
+processor               8664   0 [thermal]                                   
+NVdriver              945408  11                                             
+
+The last module is my graphics card, which uses proprietary drivers. This is
+why I have a "P" next to Tainted on the top line.
+
+If you compiled ACPI support in as "M"odules and you don't see the ACPI
+modules listed you will need to load the modules by hand. The modules should
+be in /lib/modules/<version>. <date>/kernel/drivers/acpi/, and are as
+follows:
+-rw-r--r--    1 root     root         4.1k Jun  3 23:57 ac.o                 
+-rw-r--r--    1 root     root         9.5k Jun  3 23:57 battery.o            
+-rw-r--r--    1 root     root         5.2k Jun  3 23:57 button.o             
+-rw-r--r--    1 root     root         3.7k Jun  3 23:57 fan.o                
+-rw-r--r--    1 root     root          14k Jun  3 23:57 processor.o          
+-rw-r--r--    1 root     root          11k Jun  3 23:57 thermal.o            
+-rw-r--r--    1 root     root         6.2k Jun  3 23:57 toshiba_acpi.o       
+
+Note Extensions on Modules                                                   
+     The module name is the bit before .o extension on a module filename.    
+     processor.o is the file, and processor is the module name. To install a 
+     loadable kernel module use: insmod processor.                           
+                                                                             
+     The 2.4.x series kernels use the extension .o; however, the 2.6.x series
+     kernel use the extension .ko.                                           
+
+The first time I rebooted I loaded them all by hand, typing insmod <
+modulename>. I personally load processor first, although there are mixed
+feelings on whether or not the order matters.
+
+Note Operating System Power Management (OSPM)                                
+     The first time I tried this the modules were all in separate directories
+     and were ospm_<name>. This was probably because I was using an old      
+     patch, but it is something to be aware of. The OSPM modules are now     
+     deprecated so hopefully you won't see them.                             
+
+To prevent having to load the modules each time you reboot you can do one of
+two things: compile them directly into the kernel (bit late for that though,
+eh?), or add them to your /etc/modules file. If you don't already have a copy
+of the file just create a new one and add each module name (remember, no
+dot-o) on a separate line. You can also try running update-modules which
+should automatically update your /etc/modules.conf configuration file.
+-----------------------------------------------------------------------------
+
+15. Switching from APM to ACPI
+
+Do not let apmd and acpid run at the same time unless you REALLY know what
+you're doing. Debian will not make sure only one is running at a time. You
+will have to check. APM will try to put your system into S3. On the 2.4.x
+(and before) series kernels this will quite probably hang your machine. S3 is
+not supported until at least 2.5.x. Even the patch won't provide support for
+S3 in the 2.4.x series kernels. I personally did an apt-get remove apmd to
+solve the hanging problem.
+
+You should also be aware of another little glitch I discovered. The XFree86
+server has an option for DPMS (Energy Star) features. The DPMS can states can
+be one of standby, suspend, off or on. Since the 2.4.x kernels cannot suspend
+to disk, this can cause problems. I fixed my system by doing two things:
+
+  *   xset -dpms (disables DPMS features)
+   
+  *   In /etc/X11/XF86Config-4 I commented out the line Option "DPMS" under
+    Section "Monitor".
+   
+
+Warning Lost Touchpad and Keyboard Interrupts                                
+        Karl Hegbloom emailed me to say that "keyboard keys sticking,        
+        touchpad pointer jumping suddenly across the screen, lockups under   
+        heavy network I/O [was] caused by polling the battery state via ACPI 
+        and the proc file system." This problem caused, in part, by a delay  
+        between the initial request for information about the battery's      
+        status and the response. In that delay interrupts may be locked out  
+        and synchronization with the keyboard and touch pad may be lost. "The
+        overnight solution is to either turn off the battery applet, or      
+        reduce its polling frequency." Karl also notes that a BIOS update was
+        also able to solve the problem. Thanks Karl!                         
+                                                                             
+        I did not find this to be a problem for me in the 2.4.x kernels,     
+        however, it was a problem when I upgraded to 2.6.5. I use wmacpi to  
+        monitor my battery status. By setting the polling frequency to 1 (the
+        lowest possible number), I seem to have eliminated the touchpad      
+        lockups. In my .xinitrc file I use:                                  
+                                                                             
+        /usr/bin/wmacpi -s 1                                                 
+                                                                             
+        The -s 1 represents the polling frequency (sample rate) of "once per 
+        minute." The default is 20.                                          
+-----------------------------------------------------------------------------
+
+16. Using ACPI
+
+There are a few different applications/daemons you will want to install on
+your system: acpid (the daemon that will control your hardware states), and 
+acpi (the interface to monitor events and states) are the base install. The 
+acpi Debian package is only available in testing and is unstable. If you're
+running stable you won't be able to install it without playing around with
+apt and your list.sources file. You can probably also compile from source. If
+you do get acpi installed you can use it to monitor your system like this: 
+acpi -V. The output will tell you about your system. Mine looks like this:
+     Thermal 1: ok, 47.1 degrees C                                           
+     Thermal 2: ok, 45.1 degrees C                                           
+  AC Adapter 1: off-line <-- running off battery                             
+  AC Adapter 1: on-line <-- running off AC power                             
+
+Unfortunately, the -V "full version" doesn't work for me. Fortunately I can
+still look in each of the acpi files individually for information about my
+system. Check in the /proc/acpi directory for various things of importance.
+If I want to check my battery I read the following file like this: cat /proc/
+acpi/battery/BAT0/state. The output is as follows:
+present:                 yes                                                 
+capacity state:          ok                                                  
+charging state:          discharging <-- running off battery                 
+present rate:            unknown                                             
+remaining capacity:      3920 mAh <-- watch this number                      
+present voltage:         14800 mV                                            
+present:                 yes                                                 
+capacity state:          ok                                                  
+charging state:          discharging                                         
+present rate:            unknown                                             
+remaining capacity:      3840 mAh <-- capacity getting smaller               
+present voltage:         14800 mV                                            
+present:                 yes                                                 
+capacity state:          ok                                                  
+charging state:          charging <-- AC adapter plugged in                  
+present rate:            unknown                                             
+remaining capacity:      3840 mAh                                            
+present voltage:         14800 mV                                            
+
+If I want information about my battery in general I check it out like this: 
+cat /proc/acpi/battery/BAT0/info
+present:                 yes                                                 
+design capacity:         3920 mAh                                            
+last full capacity:      3920 mAh                                            
+battery technology:      rechargeable                                        
+design voltage:          14800 mV                                            
+design capacity warning: 30 mAh                                              
+design capacity low:     20 mAh                                              
+capacity granularity 1:  10 mAh                                              
+capacity granularity 2:  3470 mAh                                            
+model number:            Bat0                                                
+serial number:                                                               
+battery type:            Lion                                                
+OEM info:                Acer                                                
+
+You're smart people. You can probably figure it out from here. :)
+-----------------------------------------------------------------------------
+
+17. References and Resources
+
+The following URLs were incredibly useful in writing this HOWTO and generally
+getting ACPI up and running.
+
+HOWTOs
+
+HOWTO install ACPI under Linux
+        http://sylvestre.ledru.info/howto/howto_acpi.php
+   
+Linux ACPI-HOWTO
+        http://www.columbia.edu/~ariel/acpi/acpi_howto.txt
+   
+Linux on the road, formerly:   Linux Laptop HOWTO
+        http://tuxmobil.org/howtos.html You'll need to scroll a bit, or use
+    the HTML version:   http://tuxmobil.org/Mobile-Guide.db/Mobile-Guide.html
+   
+Hardware in Detail (part of Linux on the road)
+        http://tuxmobil.org/Mobile-Guide.db/
+    mobile-guide-p2c1-hardware-in-detail.html
+   
+Power Management with Linux - APM, ACPI, PMU
+        http://tuxmobil.org/apm_linux.html
+   
+Battery Powered Linux Mini-HOWTO
+        http://www.tldp.org/HOWTO/mini/Battery-Powered/
+   
+Creating custom kernels with Debian's Kernel-Package system
+        http://newbiedoc.sourceforge.net/system/kernel-pkg.html
+   
+
+Hardware-specific Install Reports and Info
+
+Installation Reports
+        http://acpi.sourceforge.net/wiki/index.php/InstallationReports
+   
+Blacklist
+        http://acpi.sourceforge.net/documentation/blacklist.html
+   
+DSDT: Overview
+        http://acpi.sourceforge.net/dsdt/index.php Includes links to patched
+    DSDTs and HOWTOs about patching your own DSDT.
+   
+BIOS Settings for the AcerTM (Phoenix BIOS)
+        http://help.nec-computers.com/au/pri/item_instr_bios_7521N.asp
+   
+
+Software Development Groups
+
+ACPI4Linux
+        http://acpi.sf.net
+   
+ACPI Special Interest Group
+        http://www.acpi.info/
+   
+Intel
+        http://developer.intel.com/technology/iapc/acpi/
+   
+
+ACPI articles
+
+Fan Speed Control Techniques in PCs
+        http://www.analog.com/library/analogDialogue/archives/34-04/fan/
+   
+
+Mailing List Threads
+
+debian-laptop thread: can't restore from suspend
+        http://lists.debian.org/debian-laptop/2003/debian-laptop-200304/
+    msg00367.html
+   
+acpi-support thread: newbie HOWTO and debian patching
+        http://sourceforge.net/mailarchive/forum.php?forum_id=7803&max_rows=
+    25&style=flat&viewmonth=200304&viewday=17
+   
+debian-laptop thread: acer 634 acpi & apm
+        http://lists.debian.org/debian-laptop/2002/debian-laptop-200212/
+    msg00242.html
+   
+
+ACPI packages and related software
+
+The Kernel
+    Remember to choose "F" for full when you download your kernel source.  
+    http://www.kernel.org
+   
+Debian-ized kernel
+    maxx's pre-patched 2.4.20-8 kernel source package. For more information
+    see maxx's notes.   http://people.debian.org/~maxx/kernel-source-2.4.20/
+   
+ACPI kernel patch
+    You'll need to pick the version that exactly matches the kernel you're
+    using.   http://sourceforge.net/project/showfiles.php?group_id=36832
+   
+acpid
+    the daemon   http://sourceforge.net/projects/acpid
+   
+acpi
+    text interface   http://grahame.angrygoats.net/acpi.shtml
+   
+Kacpi
+    graphical interface for KDE   http://www.elektronikschule.de/~genannt/
+    kacpi/download.html
+   
+aKpi
+    another KDE interface   http://akpi.scmd.at/
+   
+wmacpi
+    WindowMaker DockApp (another GUI)   http://www.ne.jp/asahi/linux/timecop/
+   
+wmacpi+clecourt
+    WindowMaker DockApp (another graphical interface). Handles two battery
+    slots.   http://open.iliad.fr/~clecourt/wmacpi/index.html
+   
+
+-----------------------------------------------------------------------------
+18. Thanks
+
+Much thanks goes out to the following:
+
+  *  [http://acpi.sourceforge.net/mailinglists.html] acpi-support (note: the
+    discussion list for ACPI4Linux is now at acpi-devel)
+   
+  *   [http://lists.debian.org/debian-laptop/] debian-laptop
+   
+  *  [http://lists.debian.org/debian-user/] debian-user
+   
+  *  [http://linuxchix.org/] techtalk
+   
+  *  TLDP mailing lists (discuss and docbook)
+   
+  * Sebastian Henschel for reminding me I'd promised to write it all down
+   
+  * Erich Schubert for writing the section on DSDTs
+   
+  * Werner Heuser for suggesting I submit the document to The LDP
+   
+  * Tabatha Marshall for editing and generally being very enthusiastic about
+    learning DocBook
+   
+
+-----------------------------------------------------------------------------
+A. Patching Old Kernels
+
+If you are using a 2.4.x series kernel, the kernel will need to be patched
+before you can add ACPI support. Although ACPI is included in the 2.6.x
+series kernels you should check to see if any patches have been released to
+fix bugs. You can find this information on the ACPI4Linux site.
+-----------------------------------------------------------------------------
+
+A.1. Getting the Source Files
+
+Download a fresh kernel from [http://www.kernel.org] www.kernel.org. You need
+to make sure you get a full kernel. Find the "latest stable version of the
+Linux kernel" and click on F for FULL. Wait patiently. A bzipped kernel is
+about 26M. If you're feeling particularly geeky you could also wget http://
+kernel.org/pub/linux/kernel/v2.4/linux-<version>.tar.bz2.
+
+Tip You may or may not want the latest stable version. For more information  
+    read the Section 7.1 section of this document. If you decide to use a    
+    version of the kernel that is not published on the front page, use the   
+    [http://www.kernel.org/pub/linux/kernel/] /pub/linux/kernel directory on 
+    the [http://www.kernel.org] kernel.org site to find the kernel you'd     
+    like.                                                                    
+
+While you're waiting, grab a copy of the patch as well. For the 2.4.20 kernel
+use the 2.4.20 patch. It's dated 2002.12.12. You'll need to know that number
+later when we check to make sure the patch worked. If you are using a
+different kernel version make sure you take note of the date of your patch.
+Your numbers will differ slightly from the one I use later on.
+
+Once you've got those two files (the kernel and the patch) unpack them and
+patch the kernel.
+-----------------------------------------------------------------------------
+
+A.1.1. Patch
+
+Now we're going to actually patch the kernel. I take one extra step from
+[http://acpi.sourceforge.net/download.html] the instructions at ACPI4Linux.
+Instead of gunzipping and patching in the same line, I use two lines. This is
+purely a matter of preference. When you patch the kernel you want to make
+sure there are no error messages. (There is no "yay" line, instead look for
+the absence of errors.)
+
+  *   cd /usr/src/linux
+   
+  *   cp acpi-20021212-2.4.20.diff.gz /usr/src/linux/. (Your patch filename
+    will be different if you're not using the 2.4.20 kernel.)
+   
+  *   gunzip acpi-20021212-2.4.20.diff.gz
+   
+  *   patch -p1 < acpi-20021212-2.4.20.diff (this is the actual patching
+    part)
+   
+
+Once you've finished patching your kernel, continue reading at Section 10.
+-----------------------------------------------------------------------------
+
+B. ACPI the Non-Debian Way
+
+There is very little difference between The Debian Way and the generic way.
+In fact it's probably only 10 or so lines of difference.
+-----------------------------------------------------------------------------
+
+B.1. Compile the kernel
+
+The "normal" way of compiling a kernel does not use make-kpkg. Instead, it
+uses the following steps:
+
+  *   cd /usr/src/linux which should point to the 2.4.20 kernel (unzipped)
+    files
+   
+  *   make dep
+   
+  *   make clean
+   
+  *   make bzImage
+   
+  *   make modules (remember to unpack your modules first)
+   
+
+-----------------------------------------------------------------------------
+B.2. Install the new kernel
+
+In The Debian Way, you create a deb file which contains information about
+where the kernel is (and makes the kernel and yada-yada). In the "normal"
+way, you put things where they need to be right away. You need to install
+your modules and then configure lilo to point to the new kernel and then run
+lilo. If you are not doing things The Debian Way your "install" will look
+like this:
+
+  *   cd /usr/src/linux
+   
+  *   make modules_install
+   
+  *   cp arch/i386/boot/bzImage /boot/vmlinuz.<date>
+   
+  *   vi /etc/lilo.conf and copy the structure of your existing kernel. Do
+    NOT delete the reference to your existing kernel! You need to point lilo
+    to the "vmlinuz" file that was created when you compiled the kernel above
+   
+  * lilo (yup, just exactly like that.) Lilo will let you know if it's going
+    to have major problems loading the new kernel.
+   
+
+Warning Do NOT forget to run lilo before rebooting. Type lilo. It's that easy
+        (and that easy to forget).                                           
+-----------------------------------------------------------------------------
+
+B.3. Software packages
+
+You can still use all of the software mentioned in this HOWTO even if you're
+not using Debian. Unfortunately it will take a little more effort on your
+part to download and install everything. Fortunately it's really not that
+difficult. Most software packages include a README file when you gunzip them
+which will explain what you need to do to get things working on your system.
+
+Tip Software downloads                                                       
+    For more information about software for ACPI, please use the ACPI        
+    packages and related software.                                           
+-----------------------------------------------------------------------------
+
+C. GNU Free Documentation License
+
+Version 1.1, March 2000
+
+   
+    Copyright (C) 2000 Free Software Foundation, Inc. 59 Temple Place, Suite
+    330, Boston, MA 02111-1307 USA Everyone is permitted to copy and
+    distribute verbatim copies of this license document, but changing it is
+    not allowed.
+   
+-----------------------------------------------------------------------------
+C.1. PREAMBLE
+
+The purpose of this License is to make a manual, textbook, or other written
+document "free" in the sense of freedom: to assure everyone the effective
+freedom to copy and redistribute it, with or without modifying it, either
+commercially or noncommercially. Secondarily, this License preserves for the
+author and publisher a way to get credit for their work, while not being
+considered responsible for modifications made by others.
+
+This License is a kind of "copyleft", which means that derivative works of
+the document must themselves be free in the same sense. It complements the
+GNU General Public License, which is a copyleft license designed for free
+software.
+
+We have designed this License in order to use it for manuals for free
+software, because free software needs free documentation: a free program
+should come with manuals providing the same freedoms that the software does.
+But this License is not limited to software manuals; it can be used for any
+textual work, regardless of subject matter or whether it is published as a
+printed book. We recommend this License principally for works whose purpose
+is instruction or reference.
+-----------------------------------------------------------------------------
+
+C.2. APPLICABILITY AND DEFINITIONS
+
+This License applies to any manual or other work that contains a notice
+placed by the copyright holder saying it can be distributed under the terms
+of this License. The "Document", below, refers to any such manual or work.
+Any member of the public is a licensee, and is addressed as "you".
+
+A "Modified Version" of the Document means any work containing the Document
+or a portion of it, either copied verbatim, or with modifications and/or
+translated into another language.
+
+A "Secondary Section" is a named appendix or a front-matter section of the
+Document that deals exclusively with the relationship of the publishers or
+authors of the Document to the Document's overall subject (or to related
+matters) and contains nothing that could fall directly within that overall
+subject. (For example, if the Document is in part a textbook of mathematics,
+a Secondary Section may not explain any mathematics.) The relationship could
+be a matter of historical connection with the subject or with related
+matters, or of legal, commercial, philosophical, ethical or political
+position regarding them.
+
+The "Invariant Sections" are certain Secondary Sections whose titles are
+designated, as being those of Invariant Sections, in the notice that says
+that the Document is released under this License.
+
+The "Cover Texts" are certain short passages of text that are listed, as
+Front-Cover Texts or Back-Cover Texts, in the notice that says that the
+Document is released under this License.
+
+A "Transparent" copy of the Document means a machine-readable copy,
+represented in a format whose specification is available to the general
+public, whose contents can be viewed and edited directly and
+straightforwardly with generic text editors or (for images composed of
+pixels) generic paint programs or (for drawings) some widely available
+drawing editor, and that is suitable for input to text formatters or for
+automatic translation to a variety of formats suitable for input to text
+formatters. A copy made in an otherwise Transparent file format whose markup
+has been designed to thwart or discourage subsequent modification by readers
+is not Transparent. A copy that is not "Transparent" is called "Opaque".
+
+Examples of suitable formats for Transparent copies include plain ASCII
+without markup, Texinfo input format, LaTeX input format, SGML or XML using a
+publicly available DTD, and standard-conforming simple HTML designed for
+human modification. Opaque formats include PostScript, PDF, proprietary
+formats that can be read and edited only by proprietary word processors, SGML
+or XML for which the DTD and/or processing tools are not generally available,
+and the machine-generated HTML produced by some word processors for output
+purposes only.
+
+The "Title Page" means, for a printed book, the title page itself, plus such
+following pages as are needed to hold, legibly, the material this License
+requires to appear in the title page. For works in formats which do not have
+any title page as such, "Title Page" means the text near the most prominent
+appearance of the work's title, preceding the beginning of the body of the
+text.
+-----------------------------------------------------------------------------
+
+C.3. VERBATIM COPYING
+
+You may copy and distribute the Document in any medium, either commercially
+or noncommercially, provided that this License, the copyright notices, and
+the license notice saying this License applies to the Document are reproduced
+in all copies, and that you add no other conditions whatsoever to those of
+this License. You may not use technical measures to obstruct or control the
+reading or further copying of the copies you make or distribute. However, you
+may accept compensation in exchange for copies. If you distribute a large
+enough number of copies you must also follow the conditions in section 3.
+
+You may also lend copies, under the same conditions stated above, and you may
+publicly display copies.
+-----------------------------------------------------------------------------
+
+C.4. COPYING IN QUANTITY
+
+If you publish printed copies of the Document numbering more than 100, and
+the Document's license notice requires Cover Texts, you must enclose the
+copies in covers that carry, clearly and legibly, all these Cover Texts:
+Front-Cover Texts on the front cover, and Back-Cover Texts on the back cover.
+Both covers must also clearly and legibly identify you as the publisher of
+these copies. The front cover must present the full title with all words of
+the title equally prominent and visible. You may add other material on the
+covers in addition. Copying with changes limited to the covers, as long as
+they preserve the title of the Document and satisfy these conditions, can be
+treated as verbatim copying in other respects.
+
+If the required texts for either cover are too voluminous to fit legibly, you
+should put the first ones listed (as many as fit reasonably) on the actual
+cover, and continue the rest onto adjacent pages.
+
+If you publish or distribute Opaque copies of the Document numbering more
+than 100, you must either include a machine-readable Transparent copy along
+with each Opaque copy, or state in or with each Opaque copy a
+publicly-accessible computer-network location containing a complete
+Transparent copy of the Document, free of added material, which the general
+network-using public has access to download anonymously at no charge using
+public-standard network protocols. If you use the latter option, you must
+take reasonably prudent steps, when you begin distribution of Opaque copies
+in quantity, to ensure that this Transparent copy will remain thus accessible
+at the stated location until at least one year after the last time you
+distribute an Opaque copy (directly or through your agents or retailers) of
+that edition to the public.
+
+It is requested, but not required, that you contact the authors of the
+Document well before redistributing any large number of copies, to give them
+a chance to provide you with an updated version of the Document.
+-----------------------------------------------------------------------------
+
+C.5. MODIFICATIONS
+
+You may copy and distribute a Modified Version of the Document under the
+conditions of sections 2 and 3 above, provided that you release the Modified
+Version under precisely this License, with the Modified Version filling the
+role of the Document, thus licensing distribution and modification of the
+Modified Version to whoever possesses a copy of it. In addition, you must do
+these things in the Modified Version:
+
+ A. Use in the Title Page (and on the covers, if any) a title distinct from
+    that of the Document, and from those of previous versions (which should,
+    if there were any, be listed in the History section of the Document). You
+    may use the same title as a previous version if the original publisher of
+    that version gives permission.
+   
+ B. List on the Title Page, as authors, one or more persons or entities
+    responsible for authorship of the modifications in the Modified Version,
+    together with at least five of the principal authors of the Document (all
+    of its principal authors, if it has less than five).
+   
+ C. State on the Title page the name of the publisher of the Modified
+    Version, as the publisher.
+   
+ D. Preserve all the copyright notices of the Document.
+   
+ E. Add an appropriate copyright notice for your modifications adjacent to
+    the other copyright notices.
+   
+ F. Include, immediately after the copyright notices, a license notice giving
+    the public permission to use the Modified Version under the terms of this
+    License, in the form shown in the Addendum below.
+   
+ G. Preserve in that license notice the full lists of Invariant Sections and
+    required Cover Texts given in the Document's license notice.
+   
+ H. Include an unaltered copy of this License.
+   
+ I. Preserve the section entitled "History", and its title, and add to it an
+    item stating at least the title, year, new authors, and publisher of the
+    Modified Version as given on the Title Page. If there is no section
+    entitled "History" in the Document, create one stating the title, year,
+    authors, and publisher of the Document as given on its Title Page, then
+    add an item describing the Modified Version as stated in the previous
+    sentence.
+   
+ J. Preserve the network location, if any, given in the Document for public
+    access to a Transparent copy of the Document, and likewise the network
+    locations given in the Document for previous versions it was based on.
+    These may be placed in the "History" section. You may omit a network
+    location for a work that was published at least four years before the
+    Document itself, or if the original publisher of the version it refers to
+    gives permission.
+   
+ K. In any section entitled "Acknowledgements" or "Dedications", preserve the
+    section's title, and preserve in the section all the substance and tone
+    of each of the contributor acknowledgements and/or dedications given
+    therein.
+   
+ L. Preserve all the Invariant Sections of the Document, unaltered in their
+    text and in their titles. Section numbers or the equivalent are not
+    considered part of the section titles.
+   
+ M. Delete any section entitled "Endorsements". Such a section may not be
+    included in the Modified Version.
+   
+ N. Do not retitle any existing section as "Endorsements" or to conflict in
+    title with any Invariant Section.
+   
+
+If the Modified Version includes new front-matter sections or appendices that
+qualify as Secondary Sections and contain no material copied from the
+Document, you may at your option designate some or all of these sections as
+invariant. To do this, add their titles to the list of Invariant Sections in
+the Modified Version's license notice. These titles must be distinct from any
+other section titles.
+
+You may add a section entitled "Endorsements", provided it contains nothing
+but endorsements of your Modified Version by various parties--for example,
+statements of peer review or that the text has been approved by an
+organization as the authoritative definition of a standard.
+
+You may add a passage of up to five words as a Front-Cover Text, and a
+passage of up to 25 words as a Back-Cover Text, to the end of the list of
+Cover Texts in the Modified Version. Only one passage of Front-Cover Text and
+one of Back-Cover Text may be added by (or through arrangements made by) any
+one entity. If the Document already includes a cover text for the same cover,
+previously added by you or by arrangement made by the same entity you are
+acting on behalf of, you may not add another; but you may replace the old
+one, on explicit permission from the previous publisher that added the old
+one.
+
+The author(s) and publisher(s) of the Document do not by this License give
+permission to use their names for publicity for or to assert or imply
+endorsement of any Modified Version.
+-----------------------------------------------------------------------------
+
+C.6. COMBINING DOCUMENTS
+
+You may combine the Document with other documents released under this
+License, under the terms defined in section 4 above for modified versions,
+provided that you include in the combination all of the Invariant Sections of
+all of the original documents, unmodified, and list them all as Invariant
+Sections of your combined work in its license notice.
+
+The combined work need only contain one copy of this License, and multiple
+identical Invariant Sections may be replaced with a single copy. If there are
+multiple Invariant Sections with the same name but different contents, make
+the title of each such section unique by adding at the end of it, in
+parentheses, the name of the original author or publisher of that section if
+known, or else a unique number. Make the same adjustment to the section
+titles in the list of Invariant Sections in the license notice of the
+combined work.
+
+In the combination, you must combine any sections entitled "History" in the
+various original documents, forming one section entitled "History"; likewise
+combine any sections entitled "Acknowledgements", and any sections entitled
+"Dedications". You must delete all sections entitled "Endorsements."
+-----------------------------------------------------------------------------
+
+C.7. COLLECTIONS OF DOCUMENTS
+
+You may make a collection consisting of the Document and other documents
+released under this License, and replace the individual copies of this
+License in the various documents with a single copy that is included in the
+collection, provided that you follow the rules of this License for verbatim
+copying of each of the documents in all other respects.
+
+You may extract a single document from such a collection, and distribute it
+individually under this License, provided you insert a copy of this License
+into the extracted document, and follow this License in all other respects
+regarding verbatim copying of that document.
+-----------------------------------------------------------------------------
+
+C.8. AGGREGATION WITH INDEPENDENT WORKS
+
+A compilation of the Document or its derivatives with other separate and
+independent documents or works, in or on a volume of a storage or
+distribution medium, does not as a whole count as a Modified Version of the
+Document, provided no compilation copyright is claimed for the compilation.
+Such a compilation is called an "aggregate", and this License does not apply
+to the other self-contained works thus compiled with the Document, on account
+of their being thus compiled, if they are not themselves derivative works of
+the Document.
+
+If the Cover Text requirement of section 3 is applicable to these copies of
+the Document, then if the Document is less than one quarter of the entire
+aggregate, the Document's Cover Texts may be placed on covers that surround
+only the Document within the aggregate. Otherwise they must appear on covers
+around the whole aggregate.
+-----------------------------------------------------------------------------
+
+C.9. TRANSLATION
+
+Translation is considered a kind of modification, so you may distribute
+translations of the Document under the terms of section 4. Replacing
+Invariant Sections with translations requires special permission from their
+copyright holders, but you may include translations of some or all Invariant
+Sections in addition to the original versions of these Invariant Sections.
+You may include a translation of this License provided that you also include
+the original English version of this License. In case of a disagreement
+between the translation and the original English version of this License, the
+original English version will prevail.
+-----------------------------------------------------------------------------
+
+C.10. TERMINATION
+
+You may not copy, modify, sublicense, or distribute the Document except as
+expressly provided for under this License. Any other attempt to copy, modify,
+sublicense or distribute the Document is void, and will automatically
+terminate your rights under this License. However, parties who have received
+copies, or rights, from you under this License will not have their licenses
+terminated so long as such parties remain in full compliance.
+-----------------------------------------------------------------------------
+
+C.11. FUTURE REVISIONS OF THIS LICENSE
+
+The Free Software Foundation may publish new, revised versions of the GNU
+Free Documentation License from time to time. Such new versions will be
+similar in spirit to the present version, but may differ in detail to address
+new problems or concerns. See [http://www.gnu.org/copyleft/] http://
+www.gnu.org/copyleft/.
+
+Each version of the License is given a distinguishing version number. If the
+Document specifies that a particular numbered version of this License "or any
+later version" applies to it, you have the option of following the terms and
+conditions either of that specified version or of any later version that has
+been published (not as a draft) by the Free Software Foundation. If the
+Document does not specify a version number of this License, you may choose
+any version ever published (not as a draft) by the Free Software Foundation.
+-----------------------------------------------------------------------------
+
+C.12. How to use this License for your documents
+
+To use this License in a document you have written, include a copy of the
+License in the document and put the following copyright and license notices
+just after the title page:
+
+   
+      Copyright (c) YEAR YOUR NAME. Permission is granted to copy, distribute
+    and/or modify this document under the terms of the GNU Free Documentation
+    License, Version 1.1 or any later version published by the Free Software
+    Foundation; with the Invariant Sections being LIST THEIR TITLES, with the
+    Front-Cover Texts being LIST, and with the Back-Cover Texts being LIST. A
+    copy of the license is included in the section entitled "GNU Free
+    Documentation License".
+   
+If you have no Invariant Sections, write "with no Invariant Sections" instead
+of saying which ones are invariant. If you have no Front-Cover Texts, write
+"no Front-Cover Texts" instead of "Front-Cover Texts being LIST"; likewise
+for Back-Cover Texts.
+
+If your document contains nontrivial examples of program code, we recommend
+releasing these examples in parallel under your choice of free software
+license, such as the GNU General Public License, to permit their use in free
+software.

@@ -1,0 +1,1301 @@
+  Linux Netstation  HOWTO
+  Kris Buytaert, kb@ipng.be
+  v1p17, march 15 , 2004
+
+  This document tries to describe how to hook up a IBM Netstation  /
+  Netvista to your local network using a Linux box as server.
+  ______________________________________________________________________
+
+  Table of Contents
+
+
+
+  1. Introduction
+
+     1.1 What's this document
+     1.2 Todo
+     1.3 Latest versions
+     1.4 Copyright
+     1.5 Disclaimer
+
+  2. The Netstation Family
+
+  3. Requirements
+
+     3.1 Hardware
+        3.1.1 Netstation Clients
+        3.1.2 Changes in the new versions.
+        3.1.3 Netvista Clients
+     3.2 Software
+        3.2.1 IBM Software.
+           3.2.1.1 Netstation Software
+           3.2.1.2 Netvista Software
+        3.2.2 NFS Server.
+        3.2.3 X Server.
+        3.2.4 DHCP Server
+
+  4. Setting up the Server side
+
+     4.1 IBM Netstations using the AIX binaries.
+     4.2 Not using the AIX binaries.
+     4.3 The Netvista Linuxversions
+        4.3.1 Upgrade for the IBM Network station Boot Monitor.
+     4.4 The Linux Part
+        4.4.1 Setting up the nfs server
+        4.4.2 Setting up the X server
+     4.5 Setting up Automatic Client configuration
+
+  5. Configuring the Thin Client
+
+     5.1 Auto Config
+     5.2 Netstation Clients
+        5.2.1 Setting up TCP/IP
+        5.2.2 Setting Up the Boot Parameters
+        5.2.3 Setting Up the Monitor
+        5.2.4 Further Configuration
+     5.3 Netvista Clients
+
+  6. Misc Stuff
+
+     6.1 Experiences (NC100)
+     6.2 Connecting through a network into the NC (NC100)
+        6.2.1 Port 5978
+        6.2.2 Port 5999 CONFIGD
+     6.3 Port 161/udp - SNMP Access
+        6.3.1 Some general statement
+        6.3.2 How to configure network management ?
+        6.3.3 How to start managing?
+        6.3.4 What do you manage?
+     6.4 IBM Software Releases
+     6.5 NetworkStation Manager
+     6.6 Configuration file statements
+     6.7 Printing
+     6.8 PCMCIA Memory Cards
+     6.9 Setup
+     6.10 Images
+     6.11 Time Sync
+     6.12 Test Network
+     6.13 BIOS
+     6.14 Features
+
+  7. Other Useful Documentation
+
+     7.1 The IBM Website
+     7.2 Mailing Lists
+     7.3 Linux on the PPC40X
+
+  8. FAQ
+
+  9. Credits
+
+  10. History
+
+
+
+  ______________________________________________________________________
+
+  1.  Introduction
+
+  1.1.  What's this document
+
+  Some unused piece of delicious hardware floating around on my desk.
+  Screaming to be used. 40 MB of ram and a 403 PPC inside.
+
+  So I decided to give it a try and connect it to my local Linux
+  network.
+
+  In this Howto we'll be dealing with an This Howto started out with a
+  IBM Network Station model 8361-100, other models were added afterwards
+
+  We also have some additional info about the other 2 models. The
+  8361-200 (Model 300)  and the 8362-A23 (Model 1000).  More info can be
+  found at http://www.pc.ibm.com/networkstation/products/(choose your
+  region here)
+
+
+  I'm trying to describe how I setup the NC, there are probably lots of
+  other ways to set up this machine, however this one works fine.  Any
+  other remarks you might have from your own experience are welcome.
+  (Hardware is also welcome ;-))
+
+  This Howto is not trying to be the Bible on NC's and Linux, it's
+  trying to get you started.  Contributions to this NC are most welcome.
+
+  During the past year I have received numerous comments on the HOWTO
+  and lots of help from other people (suprisingly a lot from inside
+  IBM).   I've been busy, therefore now is the first time that I'm
+  trying to do a real update of the HOWTO.  Most people are asking me
+  about Linux binaries to extract the AIX distribution file.  I have
+  heard about an internal IBM project that is going on there but I have
+  no accurate info on that matter yet.
+
+
+  1.2.  Todo
+
+  Things we still have to implement in this Howto
+
+  ·  How to export your homedir
+
+  ·  How to run applications
+
+  ·  How to run Java Applets
+
+  Help is appreciated ;-)
+
+  Since version 1.91 this Howto wil also document the more recent units
+  like the Netvista 2200 and the Netvista 2800.
+
+
+
+  1.3.  Latest versions
+
+  Latest versions of this document can be found on the main website
+  <http://howto.ipng.be/>.
+
+
+  1.4.  Copyright
+
+
+  This HOWTO is copyrighted 1998-2001  Kris Buytaert
+
+  Permission is granted to copy, distribute and/or modify this document
+  under the terms of the GNU Free Documentation License, Version 1.1 or
+  any later version published by the Free Software Foundation; with no
+  Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+  Texts. A copy of the license is included in the appendix entitled "GNU
+  Free Documentation License".
+
+
+
+  1.5.  Disclaimer
+
+
+  Use the information in this document at your own risk. I disavow any
+  potential liability for the contents of this document. Use of the
+  concepts, examples, and/or other content of this document is entirely
+  at your own risk.
+
+  All copyrights are owned by their owners, unless specifically noted
+  otherwise.  Use of a term in this document should not be regarded as
+  affecting the validity of any trademark or service mark.
+
+  Naming of particular products or brands should not be seen as
+  endorsements.
+
+  You are strongly recommended to take a backup of your system before
+  major installation and backups at regular intervals.
+
+
+  2.  The Netstation Family
+
+  As far as I know there are currently 3 differerent kinds of situations
+  when talking about Linux and the Netstation famlily.  The first type
+  is the IBM NC 100, 110 and 300 series. (I`m still waiting on
+  confirmation on the fact that the 110 series indeed do boot Linux
+  ;))).  These babies don't run linux as far as I know.  This HOWTO
+  however describes how to ingetrete it into your Linux environment.
+
+
+  The second type is the IBM NC 1000, as of november 2002 these do run
+  Linux , although I haven't had the time to document this clearly you
+  can download the required software from
+
+  http://sourceforge.net/projects/networkstation/
+
+
+
+  All of the above types are PowerPC based devices.
+
+  The third type of Netstations are the 2200 and the 2800 series. These
+  are Intel based devices and have been designed to run Linux by
+  default.  You will find some basic documentation on HOWTO install
+  these machines in the howto.
+
+
+
+  3.  Requirements
+
+  3.1.  Hardware
+
+  3.1.1.  Netstation Clients
+
+
+  An NC, connected to your local Network, most likely by a UTP
+  connection , thus via a cross-cable or HUB connecting to an Server -
+  in this case a Linux Box Basically the NC is Made to work with either
+  AS/400 , Windows NT or AIX Servers. These are all expensive solutions,
+  however working with thin clients doesnt have to cost that much.
+  (Token Ring versions are also available)
+
+  The model I have at my disposal is an IBM Network Station model
+  8361-100, On the inside you can find an 403PPC chip, some S3 vga
+  components, an PCMCIA slot, and normal 72 pin (parity ??) simms.  I
+  found 8+32 Mb in my edition.
+
+  Actually those 40Mb were major overkill.  In full operation modes
+  with lot's of configuration panels a couple of telnet sessions and a X
+  -query open only took up about 4Mb of ram.  )   So taking out the 32Mb
+  showed absolutely no significant loss of speed.
+
+
+  Well, after working more with the Netstation, specially with Navio I
+  found out Navio uses  as much 27-30 Mb.  So those 40 Mb`s really
+  aren`t that much hoverkill
+
+
+
+  We proved it was no problem setting it up on a Linux only network.
+  You'll need a server that can provide you both with about 25Mb of free
+  diskspace for the software, and the capacities to run an X -query.
+  In the setup overhere we used a 486DX50 with 8Mb as a fileserver and I
+  switch between another  486DX266 (PS/2 85) with 32Mb, and my Multia
+  with 48Mb as the X server Of course, the faster machines the better.
+
+
+  3.1.2.  Changes in the new versions.
+
+
+  The new version comes with a new kernel and some changes in the
+  applications.  The kernel  can now be downloaded as a compressed file
+  which speeds up the process.
+
+  Starting with the Network Station 3.0, you need a new Boot Monitor or
+  boot PROM (aka Firmware) with the version 3.0.x or later. Your
+  NetworkStation won't work with a older boot PROM (aka Firmware) and
+  the new Network Station 3.x kernel.  If you buy a new NetworkStation,
+  you always get one of the latest PROMs Older versions can be
+  automatically updated from a boot server, from which the new boot PROM
+  get's downloaded. (Could somebody please confirm me that these devices
+  are the 110 versions with a PPC 403GC(X) in it !!!!)
+
+  There also is a new layout of the Setup Utility where you define you
+  basic network settings of your Network Station.
+
+
+
+  3.1.3.  Netvista Clients
+
+  The Netvista Clients (2200 and 2800) have been designed to run Linux
+  natively, those thin clients are not based on PowerPC Chips but on an
+  Intel Chipset therefore running linux on those devices is quite
+  straightforward
+
+
+
+  3.2.  Software
+
+
+  3.2.1.  IBM Software.
+
+
+  3.2.1.1.  Netstation Software
+
+  NC kernel, fonts etc.
+
+  In order to boot the NC you will need its Kernel and fonts.  About
+  25Mb of files are needed on the server.  They can be found on an AIX
+  4.X with the Netstation modules installed.  Or from the IBM Netstation
+  Download Page
+
+
+
+  3.2.1.2.  Netvista Software
+
+
+
+  3.2.2.  NFS Server.
+
+  A working NFS server, like in every default Linux distribution.
+  Approx 85Mb of diskspace has to be exported to the NC. (this includes
+  a lot of documentation which you don't acutally need)
+
+
+
+  3.2.3.  X Server.
+
+  Any machine running XDM with enough memory, processor power will do.
+  You don't need to have X configured on the machine itselve, it can be
+  a head-less server. Basic X Windows install will provide you with the
+  necessary deamons.
+
+
+
+  There is the possibility to run a local X11 server which may avoid
+  some network traffic.  The new version supports a standard X11  and a
+  Motif X11 server.  Using  a configurable menu or by allowing telnet
+  sessions you may access other computers/servers on the network.
+
+  You may also be able to export applications to your Netstation display
+  withouth actually using XDM . You might want to run an extra window
+  manager.  This can be done by telnetting into the remote box and
+  typing export DISPLAY=nc_ipnr:0 and afterwards running the application
+  you want to use.
+
+
+  Optional
+
+
+  3.2.4.  DHCP Server
+
+  If you have multiple NC's, you may wish to distribute the IP Adresses
+  by using a DHCP Server how to obtain and configure a DHCP server can
+  be read in the DHCP Mini Howto on sunsite
+
+
+
+  4.  Setting up the Server side
+
+  You found all the software you needed.  Now let's install them.
+
+  4.1.  IBM Netstations using the AIX binaries.
+
+  Before making the tarball on the aix machine, make sure you run
+  /usr/netstation/bin/agree in order to make the kernel in a usable
+  format.  Probably you will have to do the same thing with the tarball
+  you get from the IBM website.  So finding the kernel separatly might
+  be another solution.  Find a drive with about 25Mb of free diskspace,
+  I use /usr/netstation/, and unpack the tarbal either from the IBM
+  website or from an AIX machine.  There is no need in using the approx
+  60Mb from /usr/netstation/doc on the disk if you don't have enough
+  diskspace.
+
+  4.2.  Not using the AIX binaries.
+
+  This section has been contributed by Ken Collins and still have to be
+  crosschecked by me.
+
+
+
+  ·  Download nsmsetup.exe from
+
+     ftp://ftp.software.ibm.com/pc/pccbbs/network_station/nsmsetup.exe
+
+  ·  I don't have NT set up, so I moved it over into a Win98 partition
+     and tried executing nsmsetup.exe. It extracted properly, then
+     choked on the install and removed all the install files. Then I
+     tried opening it with WinZip, and that worked. I just extracted
+     everything into my Windows partition under the directory
+     C:/netstation.
+
+  ·  I then copied everything from C:/netstation/prodbase to my linux
+     box. I set everything up in /usr/netstation, which I think was a
+     mistake. I ran strings on parts of the package, and it looks like
+     /netstation/prodbase is compiled into various programs. I'm going
+     to try it again with installing in /netstation/prodbase
+
+
+  ·  Booting the kernel worked fine. I'm not sure how much of the rest
+     of it worked, since I've never seen a working netstation. I'm
+     getting a lot of error messages, but an X server comes up, and I'm
+     able to telnet and start Mwm.  I was able to set up xdm and log
+     into my Linux server, until I botched something. Now I get an IBM
+     login screen that doesn't allow me to log in.
+
+  Some readers have helped out here.  What you need to do is create a
+  file new file that will be included in your standard.nsm or modify
+  that file.
+
+  e.g.
+
+  You can create a file called local.nsm with the following contents
+  (10.1.89.33 is your Linux Box)
+
+  set exec-startup-commands = { {"login 10.1.89.33"} }
+  set xserver-access-control-enabled = false
+  set tcpip-name-server-protocol = dns
+  set tcpip-name-servers = {{ 10.1.89.33 } }
+
+
+  and you add
+
+  read local.nsm
+
+
+  to standard.nsm.
+
+  An alternative is to change a single line in
+  /netstation/prodbase/configs/required.nsm from { actlogin } to { login
+  } to get an xdm chooser or { login xx.xx.xx.xx } to do a direct xdm
+  query to your linux box.  There's a third way but we haven't got
+  confirmation on this.
+
+  { actlogin -authserv xx.xx.xx.xx }
+
+
+
+  Philip Tait wrote to tell us this : "From the directory tree extracted
+  from nsmsetup.exe using WinZIP classic, copy the entire tree  under
+  "Prodbase" to /netstation.  Export /netstation, and proceed as for the
+  following sections.
+
+  Bram Piket  wrote in with even a better version.
+
+  After downloading the nsmsetup.exe file you should run this file.
+  There will be a probe to install the NetworkStation under this win-
+  system.  That does not succeed (in my case?).  Don't click the last
+  error-window away. Then there is left a tempory NetStation-directory:
+  "Ixp000.tmp".  Copy the subdirectories to the linux-dir "/netstation".
+  Rename "x11" to "X11", "en_us" to "EN_US".  Then edit the file
+  "/netstation/prodbase/configs/required.nsm" to reflect
+
+  set exec startup-commands=(
+  ( mcuis )
+  ( login vvv.xxx.yyy.zzz )
+  )
+
+
+  where vvv.xxx.yyy.zzz is the LINUX-server address.
+
+
+
+  4.3.  The Netvista Linuxversions
+
+  Download the NetVistaLTC.tar.gz file from the IBM web pages., untar
+  the file and run rh_install.sh (we are going for the RedHat
+  distribution here)
+
+  (ftp://ftp.software.ibm.com/pc/pccbbs/network_station/netvistaltc.tar.gz)
+
+
+
+  Welcome to the IBM NetVista Thin Client RedHat Linux Installer
+
+
+  After the installation has finished, the install log files will be located
+  in ./tmp.
+  If there are problems, please look at the following files.
+          install.log     - messages from the IBM install
+          rpm.log         - messages generated during install of the rpm's
+          rpm.err         - errors from the rpm install (most of these can
+  be ignored)
+
+  Please select Installation type:
+    1. Local CDROM
+    2. NFS
+  Enter Selection: 1
+  Mount Point for CDROM [/mnt/cdrom] ?
+
+  1) Caldera Open Linux  3) SuSe Linux          5) Other
+  2) RedHat Linux        4) TurboLinux
+  Which Linux distribution are you running on this server? 2
+  Client Installation Directory [/nstation/linux] ? /opt/NetVista
+  Client Installation Directory does not exist. Create /opt/NetVista? y
+  Client Machine Specific Directory [/nstation/machines] ? /opt/NetVista/machines
+  Client Machine Specific Directory does not exist. Create /opt/NetVista/machines? y
+  Machine specific directories based on MAC address or IP address [ MAC ] (IP/MAC) ?
+   1) Thin clients authenticate to server (DEFAULT)
+   2) No authentication to server
+  Select the mode you want for server booted clients? 2
+
+  Please insert the RedHat 6.2 CD
+
+     Press <ENTER> To Continue
+
+  Installation of Server Boot RedHat 6.2 Linux client for IBM NetVista thin
+  clientCurrent selections:
+     Server IP address:  192.168.10.61
+     Client boot directory:  /opt/NetVista
+     Client SPECIFIC directory:  /opt/NetVista/Machines
+     Client SPECIFIC directory type:  MAC
+
+  Do you wish to continue, restart, or exit installation? (c/r/e) c
+
+  When it completes with 100% install it will show you a screen like this
+
+  Create  /opt/NetVista/etc/fstab file
+  Modify /opt/NetVista/etc/inittab to call rc.sysinit.IBM_NS.sboot
+  Rename services not needed for IBM NetVista Thin Clients
+  Add new Common Files
+  Add RedHat 6.2 Specific Files
+  Link files to RAM disk
+  Backup var directory
+  Setup Xserver files - XF86_SVGA and XF86Config
+
+  Added /opt/NetVista to /etc/exports
+  Added /opt/NetVista/Machines to /etc/exports
+  Stripping binaries
+
+
+
+  Client Directory Setup complete
+
+  Installation is Complete
+
+  Starting NFS services:                                     [  OK  ]
+  Starting NFS quotas:                                       [  OK  ]
+  Starting NFS mountd:                                       [  OK  ]
+  Starting NFS daemon:                                       [  OK  ]
+
+  INSTALLATION IS COMPLETE !!!
+
+
+
+  4.3.1.  Upgrade for the IBM Network station Boot Monitor.
+
+  You can download the most recent bflash images from
+  http://service.boulder.ibm.com/dl/nc/priv/netsta-rd_linux Just point
+  the device to boot from the bflash images you downloaded and your
+  firmware will upgrade itselve !.
+
+  4.4.  The Linux Part
+
+
+
+  4.4.1.  Setting up the nfs server
+
+  Edit your /etc/exports, add the line
+
+  /usr/netstation   10.0.0.50(rw)
+
+
+  Where 10.0.0.50 is the IP address you want to give to the NC.  Restart
+  your nfs deamon.
+
+
+
+  [root@velvet sdog]# ps auxf |grep rpc
+  sdog      4145  0.0  5.8   828   384  p1 S   03:55   0:00          \_ grep rpc
+  root      3120  0.0  5.7   944   380  ?  S  Feb 27   0:00 rpc.mountd
+  root      3129  0.0  1.5   880   100  ?  S  Feb 27   0:10 rpc.nfsd
+  [root@velvet sdog]# kill -9 3120 3129 ; /usr/sbin/rpc.mountd ; /usr/sbin/rpc.nfsd
+
+
+
+  or on a RedHat-like system easier (5.X)
+
+
+
+  [root@velvet init.d]# pwd
+  /etc/rc.d/init.d
+  [root@velvet init.d]# ./nfs restart
+  Restarting NFS services: rpc.nfsd rpc.mountd done.
+  [root@velvet init.d]#
+
+
+
+  Your NC should now be able to mount the /usr/netsation by NFS.
+
+  Bascially if you don`t need X-Windows this is as far as it gets.  You
+  can easily telnet from your NC with nothing more installed.  However
+  the beauty of this thing is it`s X capability.
+
+  4.4.2.  Setting up the X server
+
+  Next we have to set up the X server.  Basically I didn't need to set
+  up anything, all of my machines that ran X-Windows were configured to
+  accept connections.  I just started up the NC for the first time and
+  it showed me all the machines that ran an XDM (cfr running an X
+  -indirect).  So any machine that can run xdm can be used as X Server.
+  Just make sure XDM is So any machine that can run xdm can be used as X
+  Server.  Just make sure XDM is started.
+
+
+
+  4.5.  Setting up Automatic Client configuration
+
+  This part has been contributed byJosef Hill
+
+  what I'm including is the line for using the NS1000 with no
+  configuration done on the box.  (defaults.. everything is left blank)
+
+
+  inetd.conf:
+
+  tftp dgram udp wait nobody /usr/sbin/tcpd in.tftpd /QIBM
+
+
+
+  then create a directory /QIBM/ProdData/NetworkStation/
+
+  and copy the contents of the prodbase directory in the winzip sfx
+  nsmsetup.exe which you can download from
+  http://techsupport.services.ibm.com/dl/nc/priv/netsta-rd_nsm (you may
+  need to create an account to access this.. it's free and requires no
+  real information.)  note that this download is 90some MB
+
+  At this point, if you've done the 3 requisite steps, your netstation
+  will boot.
+
+  ·  set up DHCP
+
+  ·  enable TFTP to the QIBM directory
+
+  ·  copy the contents of the prodbase directory to the proper path
+
+     Note: It will probably help an awful lot if you have xdm set up
+     (speciffically for xdmcp sessions).
+
+
+  If you use this approach you can obviously skip the next part ! ;-)
+
+
+
+  Everything on the server side should be setup now.  Lets try the NC
+  side.
+
+
+
+  5.  Configuring the Thin Client
+
+  5.1.  Auto Config
+
+  If you have setup autoconfig as described above you shouldn`t be
+  reading this part unless it doesn`t work
+
+  5.2.  Netstation Clients
+
+  Unplug the network cable from the NC. Then boot it up.
+
+  After checking its Memory, VGA etc, it will boot into the  IBM Network
+  Station Setup Utility.  Basically you can manage everything from this
+  menu system.  The main parts will be described here.
+  5.2.1.  Setting up TCP/IP
+
+  Section 5 (F5) : Your network setup should look something like this :
+
+
+
+  IP Addressed From                                NVRAM
+  Network Station IP Adress                        10.0.0.50
+  First Boot Host IP Adress                        10.0.0.1
+  Second Boot Host IP Adress                       10.0.0.11
+  Third Boot Host IP Adress                        0.0.0.0
+  Gateway IP Adress                                10.0.0.1
+  Subnet Mask                                      255.255.255.0
+  Broadcast IP Adress                              10.0.0.255
+  Ethernet Standard                                Version 2
+
+
+
+  Resembles my setup.  The NC itself has 10.0.0.50 While 10.0.0.1 is the
+  NFS Server, 10.0.0.11 is a secondary NFS server, just in case.
+
+
+
+  5.2.2.  Setting Up the Boot Parameters
+
+  Section 6 (F6): Looks like this in my setup.
+
+
+
+  Boot file                               kernel
+  TFTP Boot Directory                     /usr/netstation/
+  NFS Boot Directory                      /usr/netstation/
+  Configuration File                      /usr/netstation/configs/standard.nsm
+  Configuration Directory                 /usr/netstation/configs
+  TFTP Order                              2
+  NFS Order                               1
+  MOP Order                               Disabled
+  Local Order                             Disabled
+
+
+
+  Where /usr/netstation is the directory export on 10.0.0.1
+
+
+  5.2.3.  Setting Up the Monitor
+
+  Section 7 (F7): You can choose the right resolution / refresh rate
+  from a nice menu.  I have mine running on an old 14" VGA Screen
+  running in 1024x768 @60Hz
+
+
+  Basically that's all you need to install.
+
+  Just plug in your Network cable again. And Reboot the NC.  After
+  testing the  Video / DRAM, the NC will search the Host system and
+  request the startup information, download the Kernel from the NFS and
+  boot up.
+
+  In some cases, the NC might download an updated Firmware from the
+  host.
+  When starting the graphical Console you should get a menu bar and a
+  screen where you can select the X Hosts.  You are now in the CLE
+  (Common Login Environment): it's a desktop from where you can start
+  all sessions, either telnet or X .  It uses a local window manager
+  which is a small window manager based on MWM.
+
+
+  Your NC is  now setup. Congratulations !
+
+
+  5.2.4.  Further Configuration
+
+  Further configuration of the NC can be done e.g. be setting the
+  colors, window sizes, default keymaps etc.  I'm not going to describe
+  these in detail.  If you have troubles finding your way through the
+  menu system. The IBM Network Station Runtime Environment for RS/6000
+  User's Guide  which can be found in either .pdf or .ps at
+  http://www.as400.ibm.com/networkstation/rs6000/ and will provide you
+  with detailed information.
+
+
+
+  5.3.  Netvista Clients
+
+
+
+  Newer versions of the Setup screen might look like this
+
+
+
+  ·  F2 = View Hardware Configuration
+
+  ·  F3 = Set Network Parameters
+
+  ·  F4 = Set Boot Parameters
+
+  ·  F5 = Set Configuration Parameters
+
+  ·  F6 = Set Monitor Parameters
+
+  ·  F7 = Set Language Parameters
+
+  ·  F10 = Set Verbose Diagnostic Message Disabled
+
+  With F3 you get a panel to set the IP adresses of the Station, the
+  boot server and the gateways as well as the subnet mask. With F4 you
+  get a panel to set the boot kernel name and path and method (tftp or
+  NFS). F5 brings you to a panel to set your configuration files and
+  paths.
+
+
+
+  6.  Misc Stuff
+
+
+
+  6.1.  Experiences (NC100)
+
+  Using the NC as a plain terminal with multiple consoles.  The Built-in
+  Motif extensions are a lot easier to use than the default setup ;-)
+  Pressing the Pause/Break key will pop up the NC Menu at any time.
+  6.2.  Connecting through a network into the NC (NC100)
+
+
+  The network station allows configuration access via telnet sessions on
+  several ports. The ones I know are by default configured like this:
+
+
+  ·  port 87,     service SerialSD,  (raw - serial daemon)
+
+  ·  port 5964,   service ParallelD, (raw - parallel daemon)
+
+  ·  port 5976,   service FILED,     (raw - file manager)
+
+  ·  port 5977,   service PREFD,     (raw - user preferences)
+
+  ·  port 5978,   service DIAG,      (raw - diagnostics)
+
+  ·  port 5979,   service CONFIGD,   (raw - configuration)
+
+  ·  port 5996,   service FILED,     (telnet - file manager)
+
+  ·  port 5997,   service PREFD,     (telnet - user preferences)
+
+  ·  port 5998,   service DIAG,      (telnet - diagnostics)
+
+  ·  port 5999,   service CONFIGD,   (telnet - configuration)
+
+  You can easliy access the TCP ports by using a telnet session telnet
+  NC-IPaddr port.  Be careful whether there is a password check enabled.
+  The passphrase 'public' (without quotes) worked for me.
+
+
+  6.2.1.  Port 5978
+
+  Remote Logging It's the same as the messages console in your CLE.
+
+  The format of each entry stretches over 2 lines.
+
+  + DD:HH:MM:SS NSKxxxx: ...
+
+  The first line covers date using the string that counts days, hours,
+  minutes and seconds since boot time. The second line starts with an
+  message identifier and the english plain text message after a
+  separating colon, e.g.:
+
+
+  [...]
+  + 25:17:31:43
+  NSK5641: unable to get current time from 10.10.90.149
+  + 26:03:29:10
+  NSK4708: automatic powerdown to Suspend state after 40 minutes idle time
+  + 26:03:49:10
+  NSK4708: automatic powerdown to Powerdown state after 60 minutes idle time
+  + 26:07:22:38
+  NSK8001: accepting DIAGD connection from 10.10.90.150
+  [...]
+
+
+
+  6.2.2.  Port 5999 CONFIGD
+
+
+
+  Use this port to do remote configuration for the NC by an telnet
+  session (telnet NC-IPaddr 5999).
+
+
+
+  Here are some first commands and hints that seemed to me to be useful.
+  You can apparently configure the NC remotely - online.  The
+  configuration files use the same format, but do allow only an offline
+  configuration.  As an alternative you may use the the setup function
+  from the NC menu window.
+
+  First of all you will need to login if you defined a password.
+  Logging into the NC should show you a sequence like:
+
+  *** NCD X Terminal Configuration ***
+  Password:
+  Invalid Password
+  Password: public
+
+
+
+  Being logged in, you can start configurating.  The configuration
+  syntax is identical to /usr/netstation/configs/  the setup files.  Be
+  aware that the behaviour within this command line interface is the
+  same as using the gui, i.e. when you set (you may omit this keyword)
+  some parameter you need to apply it.  Otherwise you will not see any
+  effect.  There is a /usr/netstation/configs/configd.doc documentation
+  file (- more precisely I would call it a reference script -) delivered
+  with the netstation software.  (The links are configured for the
+  RS/6000 installation.)
+
+
+  You probably want to start straight into the matter.  So for learning
+  it the hard way, I recommend some commands to start with:.
+
+
+  ·  help - shows you all possible commands with some really short
+     explanation.  Some commands concerning locking should be used with
+     care.
+
+  ·  get groups -  tells you which groups of configuration options are
+     available.  These are the subjects in the setup browser of the NC
+     menu.  You may think of them as section headers.  These group names
+     are also the first token in the name of the configurable items
+     within it.
+
+  ·  get boot ... slow in answering and shows you how the boot
+     parameters of the NC are currently set.
+
+  ·  get tftp - again some basic boot parameters.  On my NC all are read
+     only statistics
+
+  ·  get tcpip -  most useful for reading some TCP statistics, less
+     useful for changing the IP setup, i.e. name servers, local DNS
+     cache, ARP configuration.
+
+  ·  get file - again slow response.  A long list of parameters.  Most
+     of them are again self explaining.  Be careful when changing the
+     port parameters, since you might have problems to find them later
+     on. Also some important boot parameters can be found here.
+
+  ·  get nfs - shows NFS configuration.  You most likely will only need
+     it, if you use a memory PCMCIA card.  Otherwise you will have
+     little to import or export.
+
+  ·  info - shows you NAME, ACCESS, and PROTECTION of a given or all
+     variables.  Helpful, if you work with protect
+
+
+  6.3.  Port 161/udp - SNMP Access
+
+
+  You need some network management software to work with it.  Among the
+  most famous commercial ones are (Tivoli) NetView and HP OpenView.
+  They provide an easy-to-use user interfaces.  For linux you usually
+  use cmu-snmp for command line and TCL/TK-based scotty for visual
+  frontend.  (I like command line and that's what I am going to explain)
+
+
+
+  6.3.1.  Some general statement
+
+  The network station is completely configurable as already noted.  In
+  allows examinations and alterations while being used.  The changes
+  take effect either immediately, at session startup, or at boot time
+  (see configd.doc).  All reads from the network station do not unveal
+  the users display contents, and therefore the users' privacy is
+  respected (if the application itself respects it as well).  Only the
+  configuration may be retrieved, but not the window contents (at least
+  not this way).
+
+  6.3.2.  How to configure network management ?
+
+  There is a file in ASN.1 called  snmpmib.txt  in the installation
+  directory of the recent releases that allows your network management
+  console resolve the mib symbols.  Otherwise you see dot-separated
+  sequences of numbers only.  So best is to append this file (comments
+  start with double minus "--") to the  mib.txt file of your SNMP
+  software.  You can use snmpwalk, snmpget, snmpset to browse and modify
+  the symbols you have retrieved.
+
+
+  6.3.3.  How to start managing?
+
+  Simplest way to start managing is to execute the commands
+
+
+  snmpwalk NC-IPaddr public system
+  snmpget NC-IPaddr public system.sysDescr.0
+  snmpset NC-IPaddr public system.sysContact.0 s"MailTo:Kris.Buytaert@advalvas.b$
+  snmpwalk NC-IPaddr public system
+
+
+
+  Sit back and think a little bit about it.  It is easy to work with.
+
+  If you never had experience with SNMP commands you should read some
+  SNMP documentation, take reference to configd.doc.  For more details
+  refer to SNMP-HowTos.
+
+  6.3.4.  What do you manage?
+
+
+
+  It works nearly the same way as the telnet session to the
+  configuration port, except that each command is transferred separately
+  to the NC using UDP.  The advantage is that you do not have to work
+  interactively, you work with UDP instead of TCP, which avoids retries
+  to network stations that are down.  you must have the privileges for
+  being successful - 'public' is a good community for reading...
+
+
+
+  6.4.  IBM Software Releases
+
+  IBM Has a special program for upgrades and documentation about the IBM
+  Netststation releases.  It includes CDs and printed documentation
+
+  It can  be ordered freely from IBM from the following url
+  service.boulder.ibm.com/nc/pcserver/cd_order.shtml.
+
+
+
+  (Thnx to Herman Bos (hermanb@xs4allnl) for this info)
+
+
+
+  6.5.  NetworkStation Manager
+
+
+  The NetworkStation Manager is a piece of software running on the boot
+  server. It has a web interface and allows you to administrate all your
+  NetworkStations from a single point.  You can define users and groups
+  and provide a customised desktop for each of them.
+
+  This is required if you don't use a windowmanager provided by Linux.
+  It basically works by parsing and writing the configuration files.
+  However, Linux is not a supported plattform of this software. So as a
+  workaround you have to change the configuration files by hand or have
+  an OS/390, an AIX or a Windows NT do the job for you. Please be aware,
+  that for the personalisation in users and groups of your
+  NetworkStation Desktop, you need the login daemon running on your boot
+  server. This daemon is not available on Linux. So personalisation has
+  to be done by naming the configuration files according to the user
+  sitting at the Station.
+
+
+  There is an actual Redbook about the Network Station,
+
+  Network Station Manager V2R1
+
+  , IBM PubNumber SG24-5844-00.  For the use with Linux it may be
+  helpful for you to read IBM Network Station - RS/6000 Notebook, IBM
+  PubNumber SG24-2016-01.  It explains the use with the RS/600 AIX
+  System (an interesting flavour of Unix).
+
+  6.6.  Configuration file statements
+
+  Here are some configuration file statements that I found useful:
+
+  set boot-prom-force-update = true With this setting, the Network
+  Station will check for a new boot PROM (aka Firmware) and download it
+  if available.
+
+  set xserver-access-control-enabled = false Will allow all XClients to
+  connect to the XServer running on that Network Station.
+
+
+
+  6.7.  Printing
+
+
+  (contributed by Bram Piket)
+
+  To get printing work you have do two configuration steps.  One on the
+  Netstation and one on the printsystem of the server.
+
+  On the Netstation :
+
+
+  Pop up the IBM Network Station User Services window (standard with
+  Alt-Shift-Home) or reboot the Netstation terminal.
+
+  As stated on page 184 of the named IBM Redbook:
+
+  In Setup -> Changes Setup Parameters, choose Print:
+
+  Add in Lpr-Servers: Server: localhost Queue Name: PARALLEL1 Datastream
+  type: ps (postscript)
+
+
+  Save with Apply and as a file.  Add this file to:
+  /netstation/prodbase/configs/defaults.dft
+
+  On the printer side
+
+  Assumed is a cups printsystem.  You have to be root to administrate
+  cups.  Within a webbrowser open the cups-setup (localhost:631).  In
+  Administration -> Add Printer Name your printer and give the device
+  URI:
+
+
+  lpd://ppp.qqq.rrr.sss/PARALLEL1,
+
+
+  where ppp.qqq.rrr.sss = IP-adress of the Netstation.
+
+  There is a Redbook about printing, 'IBM Network Station Printing
+  Guide', IBM PubNumber SG24-5212-00. Redbooks can be found at
+  http://www.redbooks.ibm.com/
+
+
+
+  6.8.  PCMCIA Memory Cards
+
+  ANeuper@antaris.de the author of this paraphrase.
+
+
+  I have tested memory cards manufactured by Centennial (IBM gives you a
+  more complete list of memory cards that work with the NC).  I
+  recommend a minimum capacity of 20 MB.  If you have less you will have
+  less functionality on the card.  Even 20MB is hardly sufficient.  Once
+  a NC is installed with a memory card it can serve as peer booting host
+  for other NCs in its network vicinity.
+
+  You need to connect to the file manager port 5996.  Keep a eye on your
+  access protections in your configuration files.  If you use the memory
+  card with the network station for the first time, you need to format
+  it.  You should mount it and export it.  once you have exported it
+  (showmount -e NC-IPaddr) you can mount it to your boot server (mount
+  NC-IPaddr:/local /mnt) and transfer  the setup directory( cp -r
+  /usr/netstation/* /mnt).  Be careful not to forget some necessary
+  files, particularily some X11 files are needed.  The full directory
+  will not fit on the card.  Avoid erasing on the chip card, claiming
+  the freed space isn't easy and wastes space.
+  For more detailed information you have place an PRPQ at IBM (whatever
+  this means), contact some IBM representative or contact
+
+
+  6.9.  Setup
+
+  It seems the "user preferences" are stored in NVRAM, while "quick
+  setup" and "setup parameters" are read from the boot server (in NFS,
+  /netstation/prodbase/configs/standard.nsm).
+
+  6.10.  Images
+
+  The screensaver and background reads XBM images, Linux/BSD/*nix users
+  can use XV to export to this format.  The screensaver image shown will
+  be inverted.
+
+  6.11.  Time Sync
+
+  The units don't use NTP, instead inetd's built-in unix time (37/udp)
+  support, I'd personally recommend using xinetd.
+
+  6.12.  Test Network
+
+  This is User Sevices Console version of ping.
+
+  6.13.  BIOS
+
+  Setting a global password will password-protect the "BIOS" setup.
+  According to Matthew Poertner
+
+  You can reset the NVRAM on the netstations (tested on 110 and 300
+  types) using the following commands:
+
+  >From Setup Utility:
+  -CTRL+ALT+SHIFT+F1
+  -NV
+  -R
+  -L
+  -S
+  Are you Sure? Yes
+  -Q
+  Reboot and Reconfig
+
+
+
+  However if this doesn't work yet, you can always try to ...
+
+  1. Power Off
+  2. open it, everything attached
+  3. above the pcmcia slot, right hand there are two blank metal spots,
+  about 1 mm square, connect them (e.g. with a screwdriver) and power on the
+  netstation
+  4. watch the boot sequence, some when it should say sth. like "NVRAM
+  cleared or so"
+  5. Power Off, close it, and everything should be wonderful!
+
+
+
+  If that still doesn't work I don't have a clue ;(
+
+  6.14.  Features
+
+  Most units (8361-110 for sure) features not only support for X (as an
+  Xterminal) and NC (Windows NT Terminal Server) usage, it's built-in
+  console also has support for serial (locally attached and dial-up
+  using PPP/SLIP, also telnet connections.
+
+  7.  Other Useful Documentation
+
+
+  7.1.  The IBM Website
+
+  The IBM Website lots of documentation on the NC, most of it can be
+  found in PDF  format.
+
+  The latest updates can be found at
+  http://www.as4000.ibm.com/networkstation/rs6000/ including
+
+  ·  IBM Network Station Runtime Environment for RS/6000 Users's Guide
+
+  ·  IBM Network Station Runtime Environment for RS/6000 System
+     Administrator's Guide
+
+  ·  IBM Network Station Runtime Environment for RS/6000 System Navio NC
+     Navigator Browser Guide
+
+     Or from http://www.ibm.com/nc/pubs/
+
+  ·  IBM Network Station Setup and Use
+
+  7.2.  Mailing Lists
+
+  There is a mailing list available called The NetVista thin Client
+  Linux Forum it can be found on
+  http://techconnect.ease.lsoft.com/archives/netvista_thin_client_forum/network.htm
+  , the archives can also be found there.
+
+
+  7.3.  Linux on the PPC40X
+
+  There are a lot of new resources online about Linux on the PPC40X.
+  Here is a small list of them.  http://www.borg.umn.edu/~grant/Linux/
+  it seems like some of the Netstations contain a 403GC[X] on this page
+  you can find a Linux kernel for that PPC.  If anybody succeeds please
+  contacte me !  http://www.mvista.com/products/405gp_status/main.html
+  Montavista Software is doing a nice job in porting the Linux kernel to
+  the IBM PowerPC 405GP based Walnut System:
+
+
+
+  More recently we established a Wiki to discuss the development of
+  Linux on the Netstation, you can find it on
+  http://howto.ipng.be/NetstationWiki/ The effort actually worked out
+  and there is a totally new project on SourceForge where you can
+  download the required software to boot Linux on an IBM NC 1000.
+  http://sourceforge.net/projects/networkstation/
+
+
+  8.  FAQ
+
+
+
+  ·  Q: Can you run a Linux kernel on the Netstation A:  Depending on
+     the type you have you can get linux running.  Both 2200 and 2800
+     models are running Linux out of the box.  As of november 2002 we
+     have a succesful boot of a linux kernel on an IBM Netstation 1000.
+
+     I'm waiting for feedback on the 110, 300 types.  The 100 is not
+     running linux at the moment, it has no MMU so therefore the Linux
+     port is a bit more difficult.
+  ·  Q: Are there any mailing lists about the Netstation A: Take a look
+     to the Other Usefull Documentation part in this howto ..
+
+  ·  Q: I have a 2200 or a 2800 and the instructions in your HOWTO don't
+     work QM  The 2200 and 2800 are not based on the PPC architecture
+     anymore , they have a more frequently used chipset which is
+     supported by Linux and these things run Linux natively.
+
+  ·  Q: I have no AIX available how can I unpack the kernel A: There is
+     a new section in the howto that describes how to use another way to
+     do this.
+
+  ·  Q:  I get an Invalid Kernel Type while trying to boot the NC.  A:
+     You didn't run the agree script on your aix machine.
+
+  ·  Q: I log in at the remote host and my keyboard settings are
+     incorrect.  A: I use no  /.Xmodap when working on the NC.  This
+     keeps my keyboardsettings perfect.
+
+
+
+  9.  Credits
+
+
+
+  Lots of thanks must go out to Wouter Cloetens,
+  wcloeten@raleigh.ibm.com for getting me started , additional info from
+  Boas Betzler, Andreas Neuper and Herman Bos.   Thanks for updates in
+  v1.00 must go to Matt Peterson and Ken Collins and Philip Tait for the
+  setup using a Win98 machine instead of an AIX box. Josef Hill for the
+  automatic configuration description.  Niels H Sondergaard , John
+  Kaiser and  Joern Allmers also belong to the crowd of smart people
+  that mailed me with extra info for the HOWTO
+
+
+  and to Bart Geens ,Bart.Geens@advalvas.be for rereading this howto and
+  findin uot lost of splelling errosr
+
+
+  Also thanks to all the different people that wrote me with hints and
+  help although I might have forgotten to include some of their
+  comments,  if you think your part is missing, please mail me ;-)
+
+
+
+  10.  History
+
+
+  ·  v0.98p14 19980222   First Release
+
+  ·  v0.99p15 19990501   Some fixes
+
+
+  ·  v0.99p16 19991004   Major updates including feedback from Boas
+     Betzler,  Andreas Neuper and Herman Bos
+
+  ·  v0.99p18 19991226   Updates after feedback from readers.
+
+  ·  v1.00    20000624   Updates but now also a sollution without AIX,
+     this might be a good time for 1.0 ;-) It Also seems like the howto
+     is not listed under mini anymore
+
+
+  ·  v1.01    20001103         Updates for the not using AIX sollution
+     (Philip Tait)
+
+  ·  v1.02    20010813   Lost bios passwords by Matthew Poertner
+
+  ·  v1.12    20011023         Lots of modifications , Client Auto
+     configuration by Josef Hill
+
+  ·  v1.13    20011207         License Change
+
+  ·  v1.15    20030107   NC 1000 booting Linux
+
+  ·  v.1.16   20030210         Printing explained
+
+  ·  v.1.17   20040315   Changed some links , thnx to David Gilles
+
+
+

@@ -1,0 +1,1074 @@
+Linux Optimized Link State Routing Protocol (OLSR) IPv6 HOWTO
+
+Lars Strand
+
+<lars (at) unik no>
+
+2004-04-23
+Revision History                                                             
+Revision 1.0           2004-04-23            Revised by: EJH                 
+Final review complete. Document published to the LDP collection.             
+Revision 0.6           2004-04-19            Revised by: LKS                 
+Thanks to Thomas Zimmerman <thomas (at) zimres net> for a language review!   
+Updated to latest version number and added a section on plugin-support in    
+OLSRd. Changed lisence back to [http://www.gnu.org/copyleft/fdl.html] GFDL   
+Revision 0.5           2004-03-08            Revised by: LKS                 
+An almost complete rewrite. Adding OLSRd (old uOLSR), updated to RFC3626.    
+Removed NROLSR and CRCOLSR. Converted to XML Docbook. Changed the license    
+from GFDL to [http://www.opencontent.org/openpub/] OPL due to some GFDL      
+[http://people.debian.org/~srivasta/Position_Statement.xhtml] problems.      
+Revision 0.3           2003-08-05            Revised by: LKS                 
+Initial release.                                                             
+
+
+  This document describes the software and procedures to set up and use 
+Optimized Link State Routing Protocol (OLSR) with IPv6 for Linux. OLSR is
+used as a routing protocol for Mobile Ad-Hoc Networks ([http://www.ietf.org/
+rfc/rfc2501.txt] MANET) (also called "spontaneous network").
+
+-----------------------------------------------------------------------------
+Table of Contents
+1. Introduction
+    1.1. Why Ad-Hoc network?
+    1.2. What is a MANET?
+    1.3. What is Optimized Link State Routing (OLSR)?
+    1.4. How does OLSR work?
+    1.5. What about IBSS (IEEE ad-hoc mode)?
+   
+   
+2. IPv6
+3. OLSR for Linux
+    3.1. Installing OLSRd
+    3.2. Using OLSRd
+    3.3. What about HNA messages?
+    3.4. Plugin support
+    3.5. Optional GUI
+    3.6. Other OLSR implementations
+   
+   
+4. FAQ
+5. Useful Resources
+6. Copyright, acknowledgments and miscellaneous
+    6.1. Copyright and License
+    6.2. How this document was produced
+    6.3. Feedback
+    6.4. Acknowledgments
+   
+   
+A. GNU Free Documentation License
+    A.1. PREAMBLE
+    A.2. APPLICABILITY AND DEFINITIONS
+    A.3. VERBATIM COPYING
+    A.4. COPYING IN QUANTITY
+    A.5. MODIFICATIONS
+    A.6. COMBINING DOCUMENTS
+    A.7. COLLECTIONS OF DOCUMENTS
+    A.8. AGGREGATION WITH INDEPENDENT WORKS
+    A.9. TRANSLATION
+    A.10. TERMINATION
+    A.11. FUTURE REVISIONS OF THIS LICENSE
+    A.12. ADDENDUM: How to use this License for your documents
+   
+   
+
+1. Introduction
+
+  This document describes the software and procedures to set up and use
+Optimized Link State Routing Protocol (OLSR) with IPv6 for Linux.
+-----------------------------------------------------------------------------
+
+1.1. Why Ad-Hoc network?
+
+  An English translation of ad-hoc is "For a particular purpose (improvised,
+made up in an instant)" (source: [http://en.wikipedia.org/wiki/
+List_of_Latin_phrases#A] Wikipedia). An Ad-hoc network, or "spontaneous
+network", is especially useful when dealing with wireless devices in which
+some of the devices are part of the network only for the duration of a
+communications session and the need for a dynamic network topology is
+eminent. A "Mobile Ad hoc Network" is usually called a MANET.
+-----------------------------------------------------------------------------
+
+1.2. What is a MANET?
+
+" A MANET consists of mobile platforms (e.g., a router with multiple hosts
+and wireless communications devices)--herein simply referred to as 'nodes'
+--which are free to move about arbitrarily. The nodes may be located in or on
+airplanes, ships, trucks, cars, perhaps even on people or very small devices,
+and there may be multiple hosts per router. A MANET is an autonomous system
+of mobile nodes. The system may operate in isolation, or may have gateways to
+and interface with a fixed network." --- RFC2501: Mobile Ad hoc Networking
+(MANET), section 3 (page 3).
+-----------------------------------------------------------------------------
+
+1.3. What is Optimized Link State Routing (OLSR)?
+
+  "OLSR is a proactive routing protocol for mobile ad hoc networks. The
+protocol inherits the stability of a link state algorithm and has the
+advantage of having routes immediately available when needed due to its
+proactive nature. OLSR is an optimization over the classical link state
+protocol, tailored for mobile ad hoc networks."
+
+  "OLSR is designed to work in a completely distributed manner and does not
+depend on any central entity. The protocol does NOT REQUIRE reliable
+transmission of control messages: each node sends control messages
+periodically, and can therefore sustain a reasonable loss of some such
+messages. Such losses occur frequently in radio networks due to collisions or
+other transmission problems." --- RFC3626: OLSR, section 1.3 (page 8)
+-----------------------------------------------------------------------------
+
+1.4. How does OLSR work?
+
+"The Optimized Link State Routing Protocol (OLSR) is developed for mobile ad
+hoc networks. It operates as a table driven, proactive protocol, i.e.,
+exchanges topology information with other nodes of the network regularly.
+Each node selects a set of its neighbor nodes as 'multi-point relays' (MPR).
+In OLSR, only nodes, selected as such MPRs, are responsible for forwarding
+control traffic, intended for diffusion into the entire network. MPRs provide
+an efficient mechanism for flooding control traffic by reducing the number of
+transmissions required." --- RFC3626: OLSR, section 1 (page 4)
+-----------------------------------------------------------------------------
+
+1.5. What about IBSS (IEEE ad-hoc mode)?
+
+The IEEE 802.11 standard defines two modes:
+
+[802-11]
+
+IEEE 802.11 standard
+
+ 1. Infrastructure mode: The wireless network consist of at least one access
+    point (AP) connected to the wired network and a set of wireless nodes
+    (WN). This configuration is called a Basic Service Set (BSS). Extended
+    Service Set (ESS) is a set of two or more BSSs (multiple cells).
+   
+ 2. Ad hoc mode: Also called "IEEE ad-hoc mode" or "peer-to-peer mode". This
+    configuration is called Independent Basic Service Set (IBSS) and is
+    useful for establishing a network where wireless infrastructure does not
+    exist or where services are not required.
+   
+
+  So why use OLSR when we can use "IEEE ad-hoc mode"? IEEE ad-hoc mode does
+NOT support multi-hop. See figure below
+
+[multihop]
+
+"IEEE 8102.11 Ad hoc" mode has no support for multihop, something OLSR does
+have.
+-----------------------------------------------------------------------------
+
+2. IPv6
+
+IP version 6 (IPv6) is a new version of the Internet Protocol, designed as
+the successor to IP version 4 (IPv4) [http://www.ietf.org/rfc/rfc791.txt]
+[RFC-791]. The changes from IPv4 to IPv6 fall primarily into the following
+categories:
+
+  * Expanded addressing capabilities
+   
+  * Header format simplification
+   
+  * Improved support for extensions and options
+   
+  * Flow labeling capability
+   
+  * Authentication and privacy capabilities
+   
+
+For more information on IPv6 in general, visit the IETF's IPv6 Working Group.
+-----------------------------------------------------------------------------
+
+3. OLSR for Linux
+
+  There are several OLSR implementation for Linux, but not all of them
+support IPv6. You should know how to enable and use IPv6 on Linux. Peter
+Bieringer has written an excellent Linux IPv6 HOWTO.
+
+  There is one OLSR implementation that is becoming the "standard" and most
+widely used. It goes by the descriptive name "OLSRd" (old Unik-OLSR).
+
+  OLSRd is an implementation based on the INRA C code, but has been almost
+completely rewritten, so there is not much left of the original INRA code
+(that mean it almost GPL). OLSRd also is under very rapid development, and if
+you report in a bug, it is usually fixed in a matter of hours.
+
+  OLSRd [http://www.olsr.org/index.cgi?action=comp] fully comply to the OLSR
+RFC, support for plugins, and it has an optional GUI interface (to see what's
+going on). The implementation also has a informative "up-to-date" [http://
+www.olsr.org] web-page with links to mailing lists and papers.
+-----------------------------------------------------------------------------
+
+3.1. Installing OLSRd
+
+There are up-to multiple new releases of OLSRd each month, so check the OLSRd
+[http://www.olsr.org] web-site for the newest release.
+
+ 
+
+ 1. The latest release as of this writing is 0.4.3, but by the time you read
+    this there is almost certain a new release. Fetch the latest release from
+    [http://www.olsr.org/index.cgi?action=download]   http://www.olsr.org/
+    index.cgi?action=download.
+   
+ 2. Unpack, compile and install the source code:
+          # tar jxvf uolsrd-x.y.z                                            
+          # cd unik-olsrd-x.y.z                                              
+          # make                                                             
+          # make install                                                     
+                                                                             
+   
+ 3. The olsrd gets installed to /usr/bin/ and a default config file,
+    olsrd.conf can be found under /etc
+   
+
+Check out the /etc/olsrd.conf config file, and change values to fit your
+system. All values in this file can be overridden with command line options
+to olsrd. The main options to change are:
+
+ 
+    # Debug level(0-9)                                                       
+    # If set to 0 the daemon runs in the background                          
+    DEBUG           1                                                        
+    # IP version to use (4 or 6)                                             
+    IPVERSION       6                                                        
+    # A list of whitespace separated interface names                         
+    INTERFACES      eth1                                                     
+                                                                             
+
+  Later on, when you know OLSRd is configured correctly, you may set "DEBUG"
+to 0 to make it run in the background. You may then also add it to your init
+scripts. But to test that everything first, set this to at least 1 (setting
+this higher will produce a lot more info messages on APM, forwarding, parsing
+of the config file etc.)
+-----------------------------------------------------------------------------
+
+3.2. Using OLSRd
+
+3.2.1. On one host
+
+When OLSRd is installed and configured, it can be started as root with:
+      # olsrd                                                                
+                                                                             
+
+All the settings in /etc/olsrd.conf can be overridden by command line
+options:
+      # olsrd -i eth1 -ipv6 -d 1                                             
+                                                                             
+
+Would start olsrd listening on interface eth1 using IPv6 and with debug
+messages.
+
+We start olsrd:
+    # olsrd -i eth1 -d 1 -ipv6                                               
+                                                                             
+       *** UniK olsrd-0.4.3 ***                                              
+                                                                             
+    hello interval = 2.00       hello int nonwireless: = 4.00 (1)            
+    tc interval = 5.00          polling interval = 0.10                      
+    neighbor_hold_time = 6.00   neighbor_hold_time_nw = 12.00                
+    topology_hold_time = 15.00  tos setting = 16                             
+    hna_interval = 15.00         mid_interval = 5.00                         
+    Willingness set to 3 - next update in 20.000000 secs                     
+    Using IP version 6                                                       
+    Using multicast address ff05::15                                         
+                                                                             
+     ---- Interface configuration ----                                       
+                                                                             
+     eth1:                                          (2)                      
+            Address: fec0:106:2700::10                                       
+            Multicast: ff05::15                                              
+            Interface eth1 set up for use with index 0                       
+                                                                             
+                                                                             
+     Main address: fec0:106:2700::10                (3)                      
+                                                                             
+     NEIGHBORS: l=linkstate, m=MPR, w=willingness                            
+                                                                             
+     Thread created - polling every 0.10 seconds    (4)                      
+     neighbor list: 11:43:17.214807                                          
+     neighbor list: 11:43:19.194967                                          
+     neighbor list: 11:43:21.395046                                          
+     neighbor list: 11:43:23.604800                                          
+     neighbor list: 11:43:25.694875                                          
+                                                                             
+
+(1) This shows all the settings OLSRd is using. You may override these by
+    either specifying it in the config file (/etc/olsrd.conf) or specify it
+    at the command line. Read the [http://www.ietf.org/rfc/rfc3626.txt] OLSR
+    RFC for a description on what all these settings means.
+(2) OLSRd found our interface. If you are using OLSRd with multiple
+    interfaces, "Multiple Interface Declaration" (MID) messages will be
+    generated.
+(3) If you are using OLSRd with multiple interfaces, it will pick the first
+    interface specified as the "main" address.
+(4) Since no other hosts are running OLSRd, this list is empty.
+
+Another thing worth noticing, is that an entry is added to our routing table:
+    # route -A inet6                                                         
+    Destination:   Next Hop   Flags  Metric  Ref  Use Iface                  
+    ...                                                                      
+    ff05::15/128   ff05::15   UAC    0       1    1   eth1                   
+    ...                                                                      
+                                                                             
+
+This is the IPv6 multicast address OLSR is using to talk to other nodes
+running OLSR.
+-----------------------------------------------------------------------------
+
+3.2.2. Adding other hosts
+
+There is no point in using OLSRd on only one node, so we add some nodes. You
+will then see the "neighbor list" gets updated:
+  neighbor list: 12:55:14.733586                                             
+  neighbor list: 12:55:18.803585                                             
+  Willingness for fec0:106:2700::11 changed from 0 to 3 - UPDATING  (1)      
+  neighbor list: 12:55:22.763585                                             
+  fec0:106:2700::11:l=0:m=0:w=3[2hlist:]                            (2)      
+  neighbor list: 12:55:26.833589                                             
+  fec0:106:2700::11:l=1:m=0:w=3[2hlist:]                                     
+  Willingness for fec0:106:2700::12 changed from 0 to 2 - UPDATING  (3)      
+  neighbor list: 12:55:30.903585                                             
+  fec0:106:2700::12:l=0:m=0:w=2[2hlist:]                                     
+  fec0:106:2700::11:l=1:m=0:w=3[2hlist:]                                     
+  neighbor list: 12:55:34.863585                                             
+  fec0:106:2700::12:l=0:m=0:w=2[2hlist:]                                     
+  fec0:106:2700::11:l=1:m=0:w=3[2hlist:]                                     
+  neighbor list: 12:55:39.153586                                             
+  fec0:106:2700::12:l=1:m=0:w=2[2hlist:fec0:106:2700::11:]          (4)      
+  fec0:106:2700::11:l=1:m=0:w=3[2hlist:fec0:106:2700::12:]          (5)      
+  neighbor list: 12:55:43.443605                                             
+  fec0:106:2700::12:l=1:m=0:w=2[2hlist:fec0:106:2700::11:]                   
+  fec0:106:2700::11:l=1:m=0:w=3[2hlist:fec0:106:2700::12:]                   
+                                                                             
+
+(1)   Another node detected (node B). This specifies the willingness of a
+    node to carry and forward traffic for other nodes. Here the new node 
+    fec0:106:2700::11 is willing to forward traffic. A host with low battery
+    may not be willing to forward large amount of traffic, - so it will
+    proclaim a lower willingness value (routing based on powerstatus is
+    available as a plugin).
+(2)   The node has been added to our routing table. We can not (yet) reach
+    any other node by way of this node, since the 2-hop neighbor list (
+    [2hlist:]) is empty. A 2-hop neighbor is a node heard by a neighbor.
+(3)   Here is a third node (node C) running OLSRd.
+(4)   After a short time, when all nodes have been updated and routes
+    calculated, we may also reach any of the other nodes via the other. The
+    2-hop neighbor list ([2hlist:]) is populated: We can reach node B via C.
+(5)   Here we can reach node C via B.
+
+You will also see the routing table is updated with the new hosts:
+    # route -A inet6                                                         
+    Destination:           Next Hop   Flags  Metric  Ref  Use Iface          
+    ...                                                                      
+    fec0:106:2700::11/128  ::         UH     1       0    0   eth1           
+    fec0:106:2700::12/128  ::         UH     1       0    0   eth1           
+    ...                                                                      
+                                                                             
+
+  The real beauty of OLSR is when you add a bunch of nodes and move them
+around. You can still reach each one of them either directly (if they are
+close), or through other nodes.
+-----------------------------------------------------------------------------
+
+3.2.3. Movement
+
+  When every node can reach every other node, it's no fun. Let's start moving
+the nodes, so that node "A" and "B" are out of (radio) range of each other.
+So when we move node "A" far enough away so that it can't hear node "C", all
+traffic must go through node "B":
+
+[movement]
+
+We move our three nodes so that node A and C must speak through node B to
+reach each other.
+
+  Tip: Instead of physically moving the nodes around, you can use ip6tables.
+You can drop all packet using the MAC-address. You just need to block on one
+node:
+   # ip6tables -A INPUT -m mac --mac-source XX:XX:XX:XX:XX:XX -j DROP        
+                                                                             
+
+  The output from OLSRd on host A is then:
+  neighbor list: 13:22:35.693587                                             
+  fec0:106:2700::11:l=1:m=1:w=3[2hlist:fec0:106:2700::12:]  (1)              
+  neighbor list: 13:22:40.093588                                             
+  fec0:106:2700::11:l=1:m=1:w=3[2hlist:fec0:106:2700::12:]                   
+  neighbor list: 13:22:44.053594                                             
+  fec0:106:2700::11:l=1:m=1:w=3[2hlist:fec0:106:2700::12:]                   
+  neighbor list: 13:22:48.233594                                             
+  fec0:106:2700::11:l=1:m=1:w=3[2hlist:fec0:106:2700::12:]                   
+  neighbor list: 13:22:52.193605                                             
+  fec0:106:2700::11:l=1:m=1:w=3[2hlist:fec0:106:2700::12:]                   
+                                                                             
+
+(1)   We can reach node B directly, and via node B we can reach node C.
+
+  The routing table also gets updated. For node A to reach node C it must go
+through node B:
+    # route -A inet6                                                          
+    Destination:             Next Hop           Flags  Metric  Ref  Use Iface 
+    ...                                                                       
+    fec0:106:2700::11/128    ::                 UH      1      1    0   eth1  
+    fec0:106:2700::12/128    fec0:106:2700::11  UGH     2      0    0   eth1  
+    ...                                                                       
+                                                                              
+-----------------------------------------------------------------------------
+
+3.3. What about HNA messages?
+
+" In order to provide this capability of injecting external routing
+information into an OLSR MANET, a node with such non-MANET interfaces
+periodically issues a Host and Network Association (HNA) message, containing
+sufficient information for the recipients to construct an appropriate routing
+table."
+
+" An example of such a situation could be where a node is equipped with a
+fixed network (e.g., an Ethernet) connecting to a larger network as well as a
+wireless network interface running OLSR." --- RFC3626: OLSR, section 12 (page
+51).
+
+[HNA]
+
+OLSR with a gateway (GW), that sends out HNA messages. All the other nodes
+may then be accessing the "Internet"
+
+  To have one node, act as a gateway and send out HNA messages, you must
+change the HNA6 in /etc/olsrd.conf:
+    # HNA IPv6 routes                                                        
+    # syntax: netaddr prefix                                                 
+    # Example Internet gateway                                               
+    HNA6 :: 0                                                                
+                                                                             
+
+  When you start OLSRd, you will see the node is sending out HNA messages
+periodically:
+    ...                                                                      
+    Sending HNA (48 bytes)...                                                
+    ...                                                                      
+                                                                             
+
+  When the other nodes receives a HNA message, they update their routing
+table:
+      # route -A inet6                                                          
+      Destination:             Next Hop           Flags  Metric  Ref  Use Iface 
+      ...                                                                       
+      ::/0                     fec0:106:2700::1   UG     1       0    0   eth1  
+      ...                                                                       
+                                                                                
+
+  You may also have multiple nodes in a MANET to act as gateways (sending out
+HNA messages). Each mobile node then use the nearest gateway.
+-----------------------------------------------------------------------------
+
+3.4. Plugin support
+
+As of version 0.4.3 OLSRd also support plugins. Plugins may be used to add
+extended functionality in a MANET. If only a subset of the nodes knows how to
+interpret the messagetype, it will be forwarded by all the nodes by the 
+"default forwarding algorithm" (see section 3.4.1 in the [http://ietf.org/rfc
+/rfc3626.txt] OLSR RFC). This way certain nodes may add special functionlity
+into OLSR.
+
+As of this writing, two example plugins is included in the OLSRd release. One
+of these plugins add routing based on powerstatus. If one node has low
+battery, it can set its willingness lower and traffic may be routed through
+other nodes.
+-----------------------------------------------------------------------------
+
+3.5. Optional GUI
+
+  OLSRd also has an optional GUI, which can show a list of available nodes
+and grab packets. To compile the GUI front end, you must have GTK2. In
+unik-olsrd-x.y.z directory do:
+     # cd front-end                                                          
+     # make                                                                  
+     # make install                                                          
+                                                                             
+
+Note Remember to start OLSRd with the -ipc switch or set IPC-CONNECT yes in /
+     etc/olsrd.conf to enable the GUI to chat with OLSRd.                    
+
+  To see some examples of the use of GUI, check out [http://www.olsr.org/
+index.cgi?action=gui]   http://www.olsr.org/index.cgi?action=gui
+-----------------------------------------------------------------------------
+
+3.6. Other OLSR implementations
+
+There is also other OLSR implementations, none have gained as much popularity
+as OLSRd, and none of them (except [http://qolsr.lri.fr/] QOLSR?) are fully
+RFC compliant.
+-----------------------------------------------------------------------------
+
+3.6.1. INRIA
+
+INRIA was one of the first(?) implementation of OLSR [http://
+hipercom.inria.fr/olsr/#code] http://hipercom.inria.fr/olsr/#code. Their
+web-site has not been updated for quite a while, and the OLSR code you can
+download only complies to draft-ietf-manet-olsr-03.txt (it's now an RFC).
+There is suppose to be another more up-to-date version of INRIA olsr, but I
+have not found it. INRIA OLSR does not support IPv6.
+-----------------------------------------------------------------------------
+
+3.6.2. NROLSR
+
+The "US Naval Research Laboratory" (NRL) also has an OLSR implementation. It
+is written in C++, and has IPv6 support. [http://pf.itd.nrl.navy.mil/projects
+/olsr/]   http://pf.itd.nrl.navy.mil/projects/olsr/
+-----------------------------------------------------------------------------
+
+3.6.3. CRCOLSR
+
+CRCOLSR is a implementation based on the French INRIA code. It is is supposed
+to be maintained by "Communication Research Center" (CRC) in Canada. But as
+of this writing, there have been no new releases since April 3, 2003. [http:/
+/pf.itd.nrl.navy.mil/projects/olsr/]   http://pf.itd.nrl.navy.mil/projects/
+olsr/
+-----------------------------------------------------------------------------
+
+3.6.4. QOLSR
+
+QOLSR is aiming to provide "Quality of Service" routing in wireless mobile ad
+hoc networks. There is no QoS support at the time of this writing, and
+support for ipv4/ipv6 is triggered at compile time. Written in C++.
+-----------------------------------------------------------------------------
+
+4. FAQ
+
+Some of these question/answers are from the [http://www.olsr.org] OLSRd site.
+
+4.1. If OLSRd fully RFC3626 compliant?
+4.2. Can I mix site-local and global IPv6 addresses?
+4.3. The GUI front-end failed to compile...why?
+4.4. If there is multiply gateways present, how does the mobile node conclude
+    to use the nearest one?
+4.5. I get OLSRd up and running - but the nodes don't seem to "hear" each
+    other!
+
+4.1. If OLSRd fully RFC3626 compliant?
+
+Yes. It even has implemented some of the extra functionality mentioned in the
+RFC. See the [http://www.olsr.org/index.cgi?action=comp]   RFC Compliance
+section for complete list.
+
+4.2. Can I mix site-local and global IPv6 addresses?
+
+Yes. But keep in mind that they intentionally were not designed to be used at
+the same time. The network topology can be quite "messy" if you start using
+these two.
+
+4.3. The GUI front-end failed to compile...why?
+
+You probably don't have the GTK2.0 development libraries installed.
+
+4.4. If there is multiply gateways present, how does the mobile node conclude
+to use the nearest one?
+
+When a new gateway is detected, the Mobile Node checks the distance (number
+of hops) to this newly discovered gateway compared to the current gateway. If
+there is a shorter distance, this new gateway becomes the current (default)
+gateway. See section 12.6.2 in the OLSR RFC ([http://www.ietf.org/rfc/
+rfc3626.txt] RFC3626)
+
+4.5. I get OLSRd up and running - but the nodes don't seem to "hear" each
+other!
+
+Most of the time this is a configuration error: Check the following:
+
+  *   If using WLAN interfaces make sure the ESSID/key match.
+   
+  *   Make sure the cards are set in "ad-hoc" mode and not "managed".
+   
+  *   Make sure you are not blocking UDP/698. If using netfilter run 
+    ip6tables -L as root to see what rules are set. ip6tables -F flushes all
+    rules.
+   
+
+-----------------------------------------------------------------------------
+5. Useful Resources
+
+ 
+
+ 1. OLSRd (old uOLSR)[http://www.olsr.org]   http://www.olsr.org
+   
+ 2. Optimized Link State Routing Protocol (OLSR) RFC3626[http://www.ietf.org/
+    rfc/rfc3626.txt]   http://www.ietf.org/rfc/rfc3626.txt
+   
+ 3. Mobile Ad hoc Networking (MANET) RFC2501[http://www.ietf.org/rfc/
+    rfc2501.txt]   http://www.ietf.org/rfc/rfc3626.txt
+   
+ 4. Mobile Ad-hoc Networks (manet) Working Group (IETF)[http://www.ietf.org/
+    html.charters/manet-charter.html]   http://www.ietf.org/html.charters/
+    manet-charter.html
+   
+ 5. Open Shortest Path First IGP (ospf)[http://www.ietf.org/html.charters/
+    ospf-charter.html]   http://www.ietf.org/html.charters/ospf-charter.html
+   
+ 6. Protean Forge - OLSR software (CRC and NRL) [http://pf.itd.nrl.navy.mil/
+    projects/olsr/]   http://pf.itd.nrl.navy.mil/projects/olsr/
+   
+ 7. INRIA OLSR [http://hipercom.inria.fr/olsr/]   http://hipercom.inria.fr/
+    olsr/
+   
+ 8. QOLSR [http://qolsr.lri.fr/]   http://qolsr.lri.fr/
+   
+ 9. IPv6 Working Group (IETF) [http://www.ietf.org/html.charters/
+    ipv6-charter.html]   http://www.ietf.org/html.charters/ipv6-charter.html
+   
+10. RFC2460 Internet Protocol, Version 6 (IPv6) Specification [http://
+    www.ietf.org/rfc/rfc2460.txt]   http://www.ietf.org/rfc/rfc2460.txt
+   
+11. Peter Bieringer's Linux IPv6 HOWTO (en) [http://ldp.linux.no/HOWTO/
+    Linux+IPv6-HOWTO/]   http://ldp.linux.no/HOWTO/Linux+IPv6-HOWTO/
+   
+12. Current Status of IPv6 Support for Networking Applications [http://
+    www.deepspace6.net/docs/ipv6_status_page_apps.html]   http://
+    www.deepspace6.net/docs/ipv6_status_page_apps.html
+   
+
+-----------------------------------------------------------------------------
+6. Copyright, acknowledgments and miscellaneous
+
+6.1. Copyright and License
+
+Copyright (c) 2003, 2004 Lars Strand.
+
+  Permission is granted to copy, distribute and/or modify this document under
+the terms of the GNU Free Documentation License, Version 1.2 or any later
+version published by the Free Software Foundation; with no Invariant
+Sections, no Front-Cover Texts, and no Back-Cover Texts. A copy of the
+license is included in the section entitled "GNU Free Documentation License".
+-----------------------------------------------------------------------------
+
+6.2. How this document was produced
+
+This document was originally written in LaTeX using Emacs. HTML version
+created with latex2html. Later it was converted to DocBook XML.
+
+An up-to-date version of this document can be found at:
+
+HTML: [http://www.tldp.org/HOWTO/OLSR-IPv6-HOWTO/index.html]   http://
+www.tldp.org/HOWTO/OLSR-IPv6-HOWTO/index.html
+-----------------------------------------------------------------------------
+
+6.3. Feedback
+
+Suggestions, corrections, additions wanted. Contributors wanted and
+acknowledged. Flames not wanted.
+
+I can always be reached at <lars at unik no>
+
+Homepage: [http://www.gnist.org/~lars/]   http://www.gnist.org/~lars/
+-----------------------------------------------------------------------------
+
+6.4. Acknowledgments
+
+This document was produced as a part of Interoperable Networks for Secure
+Communications [http://insc.nodeca.mil.no/] (INSC task 6)
+
+Thanks to Andreas Hafslund (andreha [at] unik no) for initial support. Also
+thanks to UniK (University Graduate Center) [http://www.unik.no] http://
+www.unik.no and FFI (Norwegian Defence Research Establishment) [http://
+www.ffi.mil.no] http://www.ffi.mil.no for hardware support.
+
+Also thanks to Andreas Tønnesen (andreto [at] unik no) for technical help
+updating this howto
+
+Thanks also to the other HOWTO authors whose works I have referenced:
+
+Linux IPv6 HOWTO (en) by Peter Bieringer
+-----------------------------------------------------------------------------
+
+A. GNU Free Documentation License
+
+Version 1.2, November 2002
+
+   
+    Copyright (C) 2000,2001,2002 Free Software Foundation, Inc. 59 Temple
+    Place, Suite 330, Boston, MA 02111-1307 USA Everyone is permitted to copy
+    and distribute verbatim copies of this license document, but changing it
+    is not allowed.
+   
+-----------------------------------------------------------------------------
+A.1. PREAMBLE
+
+The purpose of this License is to make a manual, textbook, or other
+functional and useful document "free" in the sense of freedom: to assure
+everyone the effective freedom to copy and redistribute it, with or without
+modifying it, either commercially or noncommercially. Secondarily, this
+License preserves for the author and publisher a way to get credit for their
+work, while not being considered responsible for modifications made by
+others.
+
+This License is a kind of "copyleft", which means that derivative works of
+the document must themselves be free in the same sense. It complements the
+GNU General Public License, which is a copyleft license designed for free
+software.
+
+We have designed this License in order to use it for manuals for free
+software, because free software needs free documentation: a free program
+should come with manuals providing the same freedoms that the software does.
+But this License is not limited to software manuals; it can be used for any
+textual work, regardless of subject matter or whether it is published as a
+printed book. We recommend this License principally for works whose purpose
+is instruction or reference.
+-----------------------------------------------------------------------------
+
+A.2. APPLICABILITY AND DEFINITIONS
+
+This License applies to any manual or other work, in any medium, that
+contains a notice placed by the copyright holder saying it can be distributed
+under the terms of this License. Such a notice grants a world-wide,
+royalty-free license, unlimited in duration, to use that work under the
+conditions stated herein. The "Document", below, refers to any such manual or
+work. Any member of the public is a licensee, and is addressed as "you". You
+accept the license if you copy, modify or distribute the work in a way
+requiring permission under copyright law.
+
+A "Modified Version" of the Document means any work containing the Document
+or a portion of it, either copied verbatim, or with modifications and/or
+translated into another language.
+
+A "Secondary Section" is a named appendix or a front-matter section of the
+Document that deals exclusively with the relationship of the publishers or
+authors of the Document to the Document's overall subject (or to related
+matters) and contains nothing that could fall directly within that overall
+subject. (Thus, if the Document is in part a textbook of mathematics, a
+Secondary Section may not explain any mathematics.) The relationship could be
+a matter of historical connection with the subject or with related matters,
+or of legal, commercial, philosophical, ethical or political position
+regarding them.
+
+The "Invariant Sections" are certain Secondary Sections whose titles are
+designated, as being those of Invariant Sections, in the notice that says
+that the Document is released under this License. If a section does not fit
+the above definition of Secondary then it is not allowed to be designated as
+Invariant. The Document may contain zero Invariant Sections. If the Document
+does not identify any Invariant Sections then there are none.
+
+The "Cover Texts" are certain short passages of text that are listed, as
+Front-Cover Texts or Back-Cover Texts, in the notice that says that the
+Document is released under this License. A Front-Cover Text may be at most 5
+words, and a Back-Cover Text may be at most 25 words.
+
+A "Transparent" copy of the Document means a machine-readable copy,
+represented in a format whose specification is available to the general
+public, that is suitable for revising the document straightforwardly with
+generic text editors or (for images composed of pixels) generic paint
+programs or (for drawings) some widely available drawing editor, and that is
+suitable for input to text formatters or for automatic translation to a
+variety of formats suitable for input to text formatters. A copy made in an
+otherwise Transparent file format whose markup, or absence of markup, has
+been arranged to thwart or discourage subsequent modification by readers is
+not Transparent. An image format is not Transparent if used for any
+substantial amount of text. A copy that is not "Transparent" is called
+"Opaque".
+
+Examples of suitable formats for Transparent copies include plain ASCII
+without markup, Texinfo input format, LaTeX input format, SGML or XML using a
+publicly available DTD, and standard-conforming simple HTML, PostScript or
+PDF designed for human modification. Examples of transparent image formats
+include PNG, XCF and JPG. Opaque formats include proprietary formats that can
+be read and edited only by proprietary word processors, SGML or XML for which
+the DTD and/or processing tools are not generally available, and the
+machine-generated HTML, PostScript or PDF produced by some word processors
+for output purposes only.
+
+The "Title Page" means, for a printed book, the title page itself, plus such
+following pages as are needed to hold, legibly, the material this License
+requires to appear in the title page. For works in formats which do not have
+any title page as such, "Title Page" means the text near the most prominent
+appearance of the work's title, preceding the beginning of the body of the
+text.
+
+A section "Entitled XYZ" means a named subunit of the Document whose title
+either is precisely XYZ or contains XYZ in parentheses following text that
+translates XYZ in another language. (Here XYZ stands for a specific section
+name mentioned below, such as "Acknowledgements", "Dedications",
+"Endorsements", or "History".) To "Preserve the Title" of such a section when
+you modify the Document means that it remains a section "Entitled XYZ"
+according to this definition.
+
+The Document may include Warranty Disclaimers next to the notice which states
+that this License applies to the Document. These Warranty Disclaimers are
+considered to be included by reference in this License, but only as regards
+disclaiming warranties: any other implication that these Warranty Disclaimers
+may have is void and has no effect on the meaning of this License.
+-----------------------------------------------------------------------------
+
+A.3. VERBATIM COPYING
+
+You may copy and distribute the Document in any medium, either commercially
+or noncommercially, provided that this License, the copyright notices, and
+the license notice saying this License applies to the Document are reproduced
+in all copies, and that you add no other conditions whatsoever to those of
+this License. You may not use technical measures to obstruct or control the
+reading or further copying of the copies you make or distribute. However, you
+may accept compensation in exchange for copies. If you distribute a large
+enough number of copies you must also follow the conditions in section 3.
+
+You may also lend copies, under the same conditions stated above, and you may
+publicly display copies.
+-----------------------------------------------------------------------------
+
+A.4. COPYING IN QUANTITY
+
+If you publish printed copies (or copies in media that commonly have printed
+covers) of the Document, numbering more than 100, and the Document's license
+notice requires Cover Texts, you must enclose the copies in covers that
+carry, clearly and legibly, all these Cover Texts: Front-Cover Texts on the
+front cover, and Back-Cover Texts on the back cover. Both covers must also
+clearly and legibly identify you as the publisher of these copies. The front
+cover must present the full title with all words of the title equally
+prominent and visible. You may add other material on the covers in addition.
+Copying with changes limited to the covers, as long as they preserve the
+title of the Document and satisfy these conditions, can be treated as
+verbatim copying in other respects.
+
+If the required texts for either cover are too voluminous to fit legibly, you
+should put the first ones listed (as many as fit reasonably) on the actual
+cover, and continue the rest onto adjacent pages.
+
+If you publish or distribute Opaque copies of the Document numbering more
+than 100, you must either include a machine-readable Transparent copy along
+with each Opaque copy, or state in or with each Opaque copy a
+computer-network location from which the general network-using public has
+access to download using public-standard network protocols a complete
+Transparent copy of the Document, free of added material. If you use the
+latter option, you must take reasonably prudent steps, when you begin
+distribution of Opaque copies in quantity, to ensure that this Transparent
+copy will remain thus accessible at the stated location until at least one
+year after the last time you distribute an Opaque copy (directly or through
+your agents or retailers) of that edition to the public.
+
+It is requested, but not required, that you contact the authors of the
+Document well before redistributing any large number of copies, to give them
+a chance to provide you with an updated version of the Document.
+-----------------------------------------------------------------------------
+
+A.5. MODIFICATIONS
+
+You may copy and distribute a Modified Version of the Document under the
+conditions of sections 2 and 3 above, provided that you release the Modified
+Version under precisely this License, with the Modified Version filling the
+role of the Document, thus licensing distribution and modification of the
+Modified Version to whoever possesses a copy of it. In addition, you must do
+these things in the Modified Version:
+
+ A. Use in the Title Page (and on the covers, if any) a title distinct from
+    that of the Document, and from those of previous versions (which should,
+    if there were any, be listed in the History section of the Document). You
+    may use the same title as a previous version if the original publisher of
+    that version gives permission.
+   
+ B. List on the Title Page, as authors, one or more persons or entities
+    responsible for authorship of the modifications in the Modified Version,
+    together with at least five of the principal authors of the Document (all
+    of its principal authors, if it has fewer than five), unless they release
+    you from this requirement.
+   
+ C. State on the Title page the name of the publisher of the Modified
+    Version, as the publisher.
+   
+ D. Preserve all the copyright notices of the Document.
+   
+ E. Add an appropriate copyright notice for your modifications adjacent to
+    the other copyright notices.
+   
+ F. Include, immediately after the copyright notices, a license notice giving
+    the public permission to use the Modified Version under the terms of this
+    License, in the form shown in the Addendum below.
+   
+ G. Preserve in that license notice the full lists of Invariant Sections and
+    required Cover Texts given in the Document's license notice.
+   
+ H. Include an unaltered copy of this License.
+   
+ I. Preserve the section Entitled "History", Preserve its Title, and add to
+    it an item stating at least the title, year, new authors, and publisher
+    of the Modified Version as given on the Title Page. If there is no
+    section Entitled "History" in the Document, create one stating the title,
+    year, authors, and publisher of the Document as given on its Title Page,
+    then add an item describing the Modified Version as stated in the
+    previous sentence.
+   
+ J. Preserve the network location, if any, given in the Document for public
+    access to a Transparent copy of the Document, and likewise the network
+    locations given in the Document for previous versions it was based on.
+    These may be placed in the "History" section. You may omit a network
+    location for a work that was published at least four years before the
+    Document itself, or if the original publisher of the version it refers to
+    gives permission.
+   
+ K. For any section Entitled "Acknowledgements" or "Dedications", Preserve
+    the Title of the section, and preserve in the section all the substance
+    and tone of each of the contributor acknowledgements and/or dedications
+    given therein.
+   
+ L. Preserve all the Invariant Sections of the Document, unaltered in their
+    text and in their titles. Section numbers or the equivalent are not
+    considered part of the section titles.
+   
+ M. Delete any section Entitled "Endorsements". Such a section may not be
+    included in the Modified Version.
+   
+ N. Do not retitle any existing section to be Entitled "Endorsements" or to
+    conflict in title with any Invariant Section.
+   
+ O. Preserve any Warranty Disclaimers.
+   
+
+If the Modified Version includes new front-matter sections or appendices that
+qualify as Secondary Sections and contain no material copied from the
+Document, you may at your option designate some or all of these sections as
+invariant. To do this, add their titles to the list of Invariant Sections in
+the Modified Version's license notice. These titles must be distinct from any
+other section titles.
+
+You may add a section Entitled "Endorsements", provided it contains nothing
+but endorsements of your Modified Version by various parties--for example,
+statements of peer review or that the text has been approved by an
+organization as the authoritative definition of a standard.
+
+You may add a passage of up to five words as a Front-Cover Text, and a
+passage of up to 25 words as a Back-Cover Text, to the end of the list of
+Cover Texts in the Modified Version. Only one passage of Front-Cover Text and
+one of Back-Cover Text may be added by (or through arrangements made by) any
+one entity. If the Document already includes a cover text for the same cover,
+previously added by you or by arrangement made by the same entity you are
+acting on behalf of, you may not add another; but you may replace the old
+one, on explicit permission from the previous publisher that added the old
+one.
+
+The author(s) and publisher(s) of the Document do not by this License give
+permission to use their names for publicity for or to assert or imply
+endorsement of any Modified Version.
+-----------------------------------------------------------------------------
+
+A.6. COMBINING DOCUMENTS
+
+You may combine the Document with other documents released under this
+License, under the terms defined in section 4 above for modified versions,
+provided that you include in the combination all of the Invariant Sections of
+all of the original documents, unmodified, and list them all as Invariant
+Sections of your combined work in its license notice, and that you preserve
+all their Warranty Disclaimers.
+
+The combined work need only contain one copy of this License, and multiple
+identical Invariant Sections may be replaced with a single copy. If there are
+multiple Invariant Sections with the same name but different contents, make
+the title of each such section unique by adding at the end of it, in
+parentheses, the name of the original author or publisher of that section if
+known, or else a unique number. Make the same adjustment to the section
+titles in the list of Invariant Sections in the license notice of the
+combined work.
+
+In the combination, you must combine any sections Entitled "History" in the
+various original documents, forming one section Entitled "History"; likewise
+combine any sections Entitled "Acknowledgements", and any sections Entitled
+"Dedications". You must delete all sections Entitled "Endorsements".
+-----------------------------------------------------------------------------
+
+A.7. COLLECTIONS OF DOCUMENTS
+
+You may make a collection consisting of the Document and other documents
+released under this License, and replace the individual copies of this
+License in the various documents with a single copy that is included in the
+collection, provided that you follow the rules of this License for verbatim
+copying of each of the documents in all other respects.
+
+You may extract a single document from such a collection, and distribute it
+individually under this License, provided you insert a copy of this License
+into the extracted document, and follow this License in all other respects
+regarding verbatim copying of that document.
+-----------------------------------------------------------------------------
+
+A.8. AGGREGATION WITH INDEPENDENT WORKS
+
+A compilation of the Document or its derivatives with other separate and
+independent documents or works, in or on a volume of a storage or
+distribution medium, is called an "aggregate" if the copyright resulting from
+the compilation is not used to limit the legal rights of the compilation's
+users beyond what the individual works permit. When the Document is included
+in an aggregate, this License does not apply to the other works in the
+aggregate which are not themselves derivative works of the Document.
+
+If the Cover Text requirement of section 3 is applicable to these copies of
+the Document, then if the Document is less than one half of the entire
+aggregate, the Document's Cover Texts may be placed on covers that bracket
+the Document within the aggregate, or the electronic equivalent of covers if
+the Document is in electronic form. Otherwise they must appear on printed
+covers that bracket the whole aggregate.
+-----------------------------------------------------------------------------
+
+A.9. TRANSLATION
+
+Translation is considered a kind of modification, so you may distribute
+translations of the Document under the terms of section 4. Replacing
+Invariant Sections with translations requires special permission from their
+copyright holders, but you may include translations of some or all Invariant
+Sections in addition to the original versions of these Invariant Sections.
+You may include a translation of this License, and all the license notices in
+the Document, and any Warranty Disclaimers, provided that you also include
+the original English version of this License and the original versions of
+those notices and disclaimers. In case of a disagreement between the
+translation and the original version of this License or a notice or
+disclaimer, the original version will prevail.
+
+If a section in the Document is Entitled "Acknowledgements", "Dedications",
+or "History", the requirement (section 4) to Preserve its Title (section 1)
+will typically require changing the actual title.
+-----------------------------------------------------------------------------
+
+A.10. TERMINATION
+
+You may not copy, modify, sublicense, or distribute the Document except as
+expressly provided for under this License. Any other attempt to copy, modify,
+sublicense or distribute the Document is void, and will automatically
+terminate your rights under this License. However, parties who have received
+copies, or rights, from you under this License will not have their licenses
+terminated so long as such parties remain in full compliance.
+-----------------------------------------------------------------------------
+
+A.11. FUTURE REVISIONS OF THIS LICENSE
+
+The Free Software Foundation may publish new, revised versions of the GNU
+Free Documentation License from time to time. Such new versions will be
+similar in spirit to the present version, but may differ in detail to address
+new problems or concerns. See http://www.gnu.org/copyleft/.
+
+Each version of the License is given a distinguishing version number. If the
+Document specifies that a particular numbered version of this License "or any
+later version" applies to it, you have the option of following the terms and
+conditions either of that specified version or of any later version that has
+been published (not as a draft) by the Free Software Foundation. If the
+Document does not specify a version number of this License, you may choose
+any version ever published (not as a draft) by the Free Software Foundation.
+-----------------------------------------------------------------------------
+
+A.12. ADDENDUM: How to use this License for your documents
+
+To use this License in a document you have written, include a copy of the
+License in the document and put the following copyright and license notices
+just after the title page:
+
+   
+      Copyright (c) YEAR YOUR NAME. Permission is granted to copy, distribute
+    and/or modify this document under the terms of the GNU Free Documentation
+    License, Version 1.2 or any later version published by the Free Software
+    Foundation; with no Invariant Sections, no Front-Cover Texts, and no
+    Back-Cover Texts. A copy of the license is included in the section
+    entitled "GNU Free Documentation License".
+   
+If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts,
+replace the "with...Texts." line with this:
+
+   
+      with the Invariant Sections being LIST THEIR TITLES, with the
+    Front-Cover Texts being LIST, and with the Back-Cover Texts being LIST.
+   
+If you have Invariant Sections without Cover Texts, or some other combination
+of the three, merge those two alternatives to suit the situation.
+
+If your document contains nontrivial examples of program code, we recommend
+releasing these examples in parallel under your choice of free software
+license, such as the GNU General Public License, to permit their use in free
+software.
