@@ -1,0 +1,924 @@
+Palm OS Desktop HOWTO
+
+Sean Buckley
+
+sean@redbug.uklinux.net
+
+David H. Silber palm@orbits.com - Original version
+
+v2.0.1, 03 March 2002
+
+
+This HOWTO describes the use of Palm OS devices with Linux. Most of the
+advice is applicable to any version of the Palm PDA, and also to other
+devices that use the Palm OS, such as the Handspring Visor and Sony Clie.
+Many of the tools described here will also work with other types of Unix,
+such as FreeBSD.
+
+NOTE: this is a work in progress. There's a lot more I want to write, and
+I've noted areas that need work (look for TODO in the text). This version is
+very much an early draft to get the ball rolling. I would especially
+appreciate feedback from users of other combinations of PDA and Linux
+distribution (I currently use an m505 with Mandrake 8.1).
+
+-----------------------------------------------------------------------------
+Table of Contents
+1. Introduction
+    1.1. DISCLAIMER
+    1.2. New versions of this document
+    1.3. Major Changes
+    1.4. Copyright and Licensing
+   
+   
+2. Connecting to the PC
+    2.1. Serial Connection
+    2.2. Devfs device naming
+    2.3. USB Connection
+    2.4. IR Connection
+    2.5. Network Connection
+   
+   
+3. The pilot-link suite
+    3.1. Installing the pilot-link software
+    3.2. Using the pilot-link software
+   
+   
+4. Coldsync
+    4.1. Installing coldsync
+    4.2. Using coldsync
+   
+   
+5. Desktop Applications.
+    5.1. JPilot
+    5.2. Gnome-pilot
+    5.3. Evolution
+    5.4. KPilot
+    5.5. XNotesPlus
+    5.6. WMSync
+   
+   
+6. Other Software
+    6.1. The Pyrite Project
+    6.2. MalSync
+    6.3. PalmPix Decoder
+   
+   
+A. Appendix
+    A.1. Resources
+    A.2. Devices that use the Palm OS
+    A.3. A History of Palm OS devices.
+   
+   
+
+1. Introduction
+
+This document describes how to connect your PalmOS PDA to a computer running
+Linux, and synchronise the PDA data with local applications.
+-----------------------------------------------------------------------------
+
+1.1. DISCLAIMER
+
+As always with information you read on the net, proceed with caution. Most of
+the information in this HOWTO has been tested with the devices to which I
+have access; an original Palm Pilot Pro and a new Palm m505. I have tried to
+indicate instances where I have not been able to test the information.
+
+If you have access to Windows or a Mac, I would recommend backing up your PDA
+with the provided software before testing it under Linux. Otherwise, take a
+backup with the Linux software before attempting to synchronise.
+-----------------------------------------------------------------------------
+
+1.2. New versions of this document
+
+The latest "work in progress" version of this document can be found at [http:
+//www.redbug.uklinux.net/palm/index.html] http://www.redbug.uklinux.net/palm/
+index.html.
+-----------------------------------------------------------------------------
+
+1.3. Major Changes
+
+This document was originally called the Palm Howto. Major changes are
+detailed below.
+
+Revision History                                                             
+Revision 2.0.1                             2002-03-03                        
+Added info about various software that I hadn't even heard of before I got   
+feedback from 2.0.0.                                                         
+Revision 2.0.0                             2002-01-06                        
+Major rewrite to include USB connections and recent PalmOS devices           
+Revision 1.1.1                             1999-02-28                        
+Last version maintained by David Silber.                                     
+-----------------------------------------------------------------------------
+
+1.4. Copyright and Licensing
+
+This document is copyright © 2001 Sean Buckley and copyright © 1997, 1998 &
+1999 David H. Silber.
+
+Permission is granted to copy, distribute and/or modify this document under
+the terms of the GNU Free Documentation License, Version 1.1 or any later
+version published by the Free Software Foundation; with no Invariant
+Sections, with no Front-Cover Texts, and with no Back-Cover Texts. The full
+text of the license can be found at [http://www.gnu.org/copyleft/fdl.html]
+http://www.gnu.org/copyleft/fdl.html
+-----------------------------------------------------------------------------
+
+2. Connecting to the PC
+
+The first step to getting your PDA running under Linux is to connect it to
+your PC. Until recently, all PalmOS devices connected via a serial cable. The
+latest devices use USB, and some can also connect via infrared.
+
+Another development allows the PDA to physically connect to one machine on
+the network and synchronise remotely with another machine.
+-----------------------------------------------------------------------------
+
+2.1. Serial Connection
+
+The serial connection is currently the easiest way to connect your PDA to
+your PC. Simply connect the cradle to a serial port, then refer to that port
+when using coldsync or the pilot-link suite. The serial connection is slow,
+but has the advantage of being tried and tested. It should work with any Palm
+OS device for which a serial cable is available. Serial cradles and cables
+are available as accessories for the Palm PDAs, including those which come
+with USB cradles as standard.
+
+For convenience, you may wish to create a device called /dev/pilot as a link
+to the serial port. The pilot-link suite uses this device by default, so if
+the link exists it will save you having to specify it each time you call one
+of the programs.
+
+To create the link, log on as root and enter the following command:
+
+ln -s /dev/ttyS0 /dev/pilot                                                  
+
+Replace /dev/ttyS0 with the serial port to which you have connected the your
+PDA. The device name /dev/ttyS0 corresponds to COM1 in DOS/Windows
+terminology, /dev/ttyS1 is COM2, and so on.
+
+You also need to ensure that you have permission to write to the serial port.
+On a standalone workstation you can change the permissions to allow global
+access to the port. As root, enter the following command:
+
+chmod a+rw /dev/ttyS0                                                        
+
+Greater security can be achieved using the group permissions. Set the
+permissions to read/write for the group and add the required users to the
+user list for the group (see man group). (TODO: More detail).
+-----------------------------------------------------------------------------
+
+2.2. Devfs device naming
+
+Recent Linux distributions may use devfs for device naming. In this case /dev
+/ttyS0 may not exist, or may be a symbolic link to /dev/tts/0. This is a new
+naming scheme brought in with the 2.4 kernel. Simply replace all references
+to /dev/ttyS0 with /dev/tts/0.
+
+If you use symbolic links with devfs, you may find that the links do not
+persist correctly after you reboot. The /etc/devfsd.conf file controls the
+creation of symbolic links to dynamically created devices.
+
+As always, the operation seems to be set up differently under different
+distributions.
+
+  * Manrake 8.1 creates a link from /dev/usb/tts/1 to /dev/pilot when the
+    hotsync button is pressed on the cradle.
+   
+  * RedHat 7.2 requires the link to be created manually. The link is then
+    persistent across boots (thanks to Jim Mueller for this information).
+   
+
+-----------------------------------------------------------------------------
+2.3. USB Connection
+
+USB access to Palm devices is relatively new. The Handspring Visor seems to
+be well supported, and works with the pilot-link suite. Currently, the Palm
+m500 series only works with coldsync, although pilot-link support is in
+active development. Update: the current development version of pilot-link,
+0.10.x, has support for USB devices. See the pilot-link section for more
+about this release.
+
+To use any USB device under Linux, you need to have USB support in your
+kernel. You will also need the relevant modules available. Most (TODO: Check
+which distros work out of the box) recent Linux distributions have USB
+support enabled by default. To check your system, try the following command
+as root:
+
+modprobe visor                                                               
+
+If you get no output from this command, then the module is available and you
+do not need to recompile your kernel. If this does not work, try the
+alternative usbserial module:
+modprobe usbserial                                                           
+
+This is used by some distributions, such as Redhat 7.0.
+
+If you need to set up USB support in your kernel, the Handspring Visor with
+Linux mini-HOWTO provides instructions. (TODO: Incorporate into this HOWTO?)
+
+Once USB support is set up, you should use device /dev/ttyUSB1 to communicate
+with your PDA. Note that this device name only exists after you have pressed
+the hotsync button on the cradle. You must press the button before running
+the connection software.
+
+If you have problems synchronising via USB, try an updated kernel. There may
+be some timing issues with the USB driver. For example, I found that stock
+Mandrake 8.1 did not work on one PC, but worked first time on a faster PC.
+Upgrading to a stock 2.4.17 kernel solved the problem and worked fine on both
+PCs.
+-----------------------------------------------------------------------------
+
+2.4. IR Connection
+
+The latest Palm devices have infrared (IrDA) ports. If you have one of these,
+and a PC with an infrared port, you can synchronise over IrDA and do away
+with the cables altogether. 
+
+David A. Desrosiers has written a comprehensive [http://www.pilot-link.org/
+howto/irhsync/] HOWTO on the subject. (TODO: Include this inline?)
+-----------------------------------------------------------------------------
+
+2.5. Network Connection
+
+It is possible to physically connect your PDA to one PC, and synchronise it
+with another PC elsewhere on the network. This might be a useful feature if
+you need to synchronise with a PC to which you cannot physically connect your
+PDA.
+
+Once again David A. Desrosiers has written a (less comprehensive) [http://
+www.pilot-link.org/howto/nhsync] HOWTO on the subject. (TODO: Include this
+inline? Not convinced of the value of this method - anyone care to comment?)
+-----------------------------------------------------------------------------
+
+3. The pilot-link suite
+
+The pilot-link suite provides the tools for communicating with your PDA. The
+pilot-link programs provide the background functionality for many higher
+level programs, but can also be used on their own as command line tools.
+
+Most distributions come with the pilot-link suite available as an optional
+package. The package will be available on the installation media or from the
+ftp site of the distribution. Install the package in the usual way for your
+distribution. You may also need development versions of the packages if you
+wish to compile any software that uses pilot-link.
+
+Note: Unless otherwise specified, the details below refer to the 0.9.x
+release of pilot-link. The version in development is 0.10.x. This version
+contains support for USB devices, and has been updated to ensure greater
+consistency between the various utilities. Once 0.10.x is officially
+released, this document will be updated for the new version.
+
+If you upgrade to 0.10.x, you will also need to update applications which use
+pilot-link. In particular, J-Pilot and gnome-pilot need modifications to work
+with 0.10.x. J-Pilot 0.99.2 should work with the latest version of
+pilot-link.
+-----------------------------------------------------------------------------
+
+3.1. Installing the pilot-link software
+
+The pilot-link suite comes with most major Linux distributions, including
+RedHat, Mandrake, SUSE and Debian. If you intend to compile applications
+which rely on pilot-link, you may need to install development packages as
+well.
+
+If you use a distribution that does not come with pilot-link, or you need a
+more recent version, you can find the latest release at [http://
+www.pilot-link.org/] www.pilot-link.org. As well as the current version, you
+will find a link to the latest CVS snapshot.
+
+Once you have the downloaded the source, unpack and compile it as follows:
+
+tar -zxvf pilot-link.0.9.5.tar.gz cd pilot-link.0.9.5                        
+./configure                                                                  
+make                                                                         
+make install                                                                 
+
+The programs can be run directly from the directory in which they were
+compiled. You may wish to test them before running make install. For more
+information, see the README file that comes with pilot-link.
+-----------------------------------------------------------------------------
+
+3.2. Using the pilot-link software
+
+Most of the programs in the pilot-link suite are conduits, that is they
+transfer data into or out of your Palm OS device.
+
+Each time you use of one of the programs, press the HotSync button on your
+PDA's cradle. This will initiate the PDA side of the data transfer. Note that
+not all of these programs prompt you to press the `HotSync' button, so you
+may have to remember to do it yourself.
+
+For more details, view the corresponding manual page. There is an overview
+manual page under the name pilot-link.
+
+The pilot-link programs all use the same method of determining the location
+of your PDA:
+
+  * If a device is specified on the command line, that device will be used
+    regardless of the other settings.
+   
+  * If the environment variable $PILOTPORT is set, that will be used unless a
+    port is specified on the command line.
+   
+  * If no port is specified on the command line, and the $PILOTPORT variable
+    is not set, /dev/pilot will be used.
+   
+
+-----------------------------------------------------------------------------
+3.2.1. pilot-xfer
+
+Possibly the most useful program in the pilot-link suite, pilot-xfer allows
+you to install programs on your Palm OS device, make a backup, and restore
+that backup.
+
+To install a program:
+
+pilot-xfer /dev/pilot -i program.prc                                         
+
+To backup your Palm OS device:
+
+pilot-xfer /dev/pilot -b backup-directory                                    
+
+This will copy all of the databases on your Palm OS device, (including
+programs?) to a directory called ``backup-directory'', creating it if it does
+not already exist.
+
+To restore data to Palm OS device:
+
+pilot-xfer /dev/pilot -r backup-directory                                    
+
+Generally, you will only need to do this if your Palm OS device loses power
+or if you have to do a hard reset.
+
+To list the programs on your Palm OS device:
+
+pilot-xfer /dev/pilot -l                                                     
+-----------------------------------------------------------------------------
+
+3.2.2. install-memo
+
+To install a memo into your (already existing) project category:
+
+install-memo /dev/pilot -c project project.memo                              
+
+The name of the file will be inserted into the memo as its first line and
+will appear in the directory of memos on your Palm OS device.
+-----------------------------------------------------------------------------
+
+3.2.3. memos
+
+This program grabs each memo from the Palm OS device and prints it out in
+standard mailbox format.
+
+To view your memos:
+
+memos /dev/pilot                                                             
+ 
+-----------------------------------------------------------------------------
+
+3.2.4. pilot-addresses
+
+Transfer the address database to or from your PDA.
+
+To write your address data to a Linux file from your PDA:
+
+pilot-addresses /dev/pilot -w storage.file                                   
+
+To read your address data from a Linux file onto your PDA:
+
+pilot-addresses /dev/pilot -r file                                           
+-----------------------------------------------------------------------------
+
+4. Coldsync
+
+Coldsync is an alternative to the pilot-link suite for transferring data to
+and from your PalmOS device. Like pilot-link, it can synchronise, backup and
+restore Palm databases.
+
+There are fewer applications available which use coldsync as their backend.
+That may change, but it seems to reflect a difference in philosophy between
+coldsync and pilot-link. Applications that sync using pilot-link tend to
+build in the functionality for synchronisation. It is therefore the author of
+the application that decides to include pilot-link support.
+
+Coldsync takes a different approach. Conduits can be written to use coldsync
+with almost any application. The synchronisation process can be entirely
+transparent to the application. If the application author is not interested
+in adding PDA support, it does not matter. As long as the data format of the
+application is available, someone else can write the conduit.
+-----------------------------------------------------------------------------
+
+4.1. Installing coldsync
+
+Some Linux distributions are carrying coldsync, but it is not yet as widely
+available as pilot-link. It is also a younger application, so you are more
+likely to need to compile from source.
+
+You can find the latest release of coldsync at [http://www.ooblick.com/
+software/coldsync/] www.ooblick.com/software/coldsync. As well as the current
+version, you will find a link to the latest CVS snapshot.
+
+Once you have the downloaded the source, compile it as follows:
+
+tar -xvzf                                                                    
+colsync-2.2.5.tar.gz                                                         
+cd coldsync-2.2.5                                                            
+./configure                                                                  
+make                                                                         
+make install                                                                 
+
+You can run coldsync directly from the src directory. For more information,
+see the README file that comes with coldsync.
+-----------------------------------------------------------------------------
+
+4.2. Using coldsync
+
+4.2.1. The .coldsyncrc file
+
+By default, coldsync reads configuration parameters from a file called
+.coldsyncrc in your home directory. The -f flag overrides the default if you
+need to use an alternative configuration file. In addition, some of the
+parameters in the configuration file can be set or overridden on the command
+line.
+
+The following is an example of a .coldsyncrc file:
+
+listen serial {                                                              
+        device: "/dev/palm";                                                 
+        protocol: default;                                                   
+        transient;                                                           
+}                                                                            
+                                                                             
+pda "My Palm" {                                                              
+        snum: "L0PK17C13832-M";                                              
+        username: "Sean";                                                    
+        userid: 1234;                                                        
+        directory:                                                           
+        "/home/sean/m505";                                                   
+        default;                                                             
+}                                                                            
+
+This example tells coldsync to look for a serial port connection on /dev/
+palm. The transient keyword tells coldsync that the device may not exist
+until the user presses the Hotsync button. The pda section tells coldsync the
+serial number of the device, the username and id of the user and the
+directory to which the device will be backed up.
+
+The coldsync configuration file is well documented in the man page (man
+coldsync), but it is worth repeating some points:
+
+  * Do not use a userid of 0 in your PDA section. This can lead to a loss of
+    data if you need to perform a hard reset of your Palm.
+   
+  * If you have a Palm m505 with a USB cradle under Linux, you should not use
+    listen usb. Instead use listen serial with protocol: simple;
+   
+
+-----------------------------------------------------------------------------
+4.2.2. The p5-Palm Perl modules
+
+P5-Palm is a set of Perl modules for communicating with a Palm device via
+coldsync, and can be downloaded from the coldsync site. The purpose of the
+p5-Palm modules is to simplify and speed up the creation of conduits.
+
+You should install p5-Palm if you want to use any of the coldsync conduits.
+You do not need p5-Palm if you will only be using coldsync for simple
+backups.
+
+To install the modules:
+
+tar -zxvf p5-Palm-1.2.4.tar.gz                                               
+cd p5-Palm-1.2.4                                                             
+perl Makefile.PL                                                             
+make                                                                         
+make install                                                                 
+-----------------------------------------------------------------------------
+
+4.2.3. Coldsync conduits
+
+A number of conduits are available for coldsync. These conduits use coldsync
+to synchronise other applications with your PDA. The conduits generally
+require the p5-Palm Perl modules described above.
+
+The list of conduits is available at [http://www.ooblick.com/software/
+coldsync/conduits/] http://www.ooblick.com/software/coldsync/conduits/.
+
+The conduits require an entry in your .coldsyncrc configuration file. To find
+out what should be entered, run /path/conduit -config, where path is the
+location of the conduit. 
+-----------------------------------------------------------------------------
+
+5. Desktop Applications.
+
+This section describes applications which can synchronise their data with
+your PDA. The applications generally use pilot-link to provide communication
+with the PDA. Coldsync provides conduit capabilities to application that are
+not specifically written with PDAs in mind.
+-----------------------------------------------------------------------------
+
+5.1. JPilot
+
+JPilot is a Personal Information Manager (PIM) that provides a replacement
+for the Palm Desktop software provided for Windows and the Mac. JPilot
+provides desktop versions of the Palm address book, todo list, calendar and
+memopad. JPilot can also be used to install applications onto the PDA.
+
+JPilot is available with most Linux distributions. You can also download
+JPilot from [http://www.jpilot.org/] http://www.jpilot.org. To use JPilot you
+must have pilot-link installed. As JPilot is a gtk+ application, you will
+also need gtk+.
+-----------------------------------------------------------------------------
+
+5.2. Gnome-pilot
+
+Gnome-pilot aims to provide PDA connectivity for the Gnome desktop.
+Gnome-pilot provides conduits for the Gnome PIM applications, a control
+centre applet for configuring the link, and a panel applet for dislaying the
+hotsync status.
+
+Gnome-pilot uses a daemon process to communicate with the PDA via pilot-link.
+Client applications use the daemon, rather than call pilot-link directly. The
+daemon must be running in order to use the client applications such as the
+conduits.
+
+Gnome-pilot should be available as part of Gnome. The home page for the
+project is at [http://www.gnome.org/projects/gnome-pilot/] http://
+www.gnome.org/projects/gnome-pilot/.
+
+Gnome-pilot configuration is done through the Gnome control centre. If you
+have gnome-pilot installed, you should have a "Pilot Link" section under the
+peripherals section of the control centre.
+-----------------------------------------------------------------------------
+
+5.2.1. The Pilot Link Applet
+
+The Gnome control panel Pilot Link applet allows you to configure your PDA
+for use with Gnome. You must set up your PDA before you can use any of the
+Gnome conduits.
+
+The first step is to add a device. Start the Gnome control centre, and click
+on "Pilot Link" in the left hand pane. The right hand pane should show the
+pilot link applet.
+
+  * Click on the devices tab, then click "Add". You should see the "Device
+    Settings" dialog box.
+   
+  * The "Name" field can contain anything to help you identify the port that
+    you create.
+   
+  * The "Port" field should contain the port to which you attach your PDA.
+    The port should be the same as you use for pilot-link.
+   
+  * The speed and timeout values will depend on your device. Try the
+    defaults, and change them if you have problems synchronising.
+   
+  * The "Type" should be set to your device type.
+   
+
+Once you have configured the device, you can configure the actual PDA:
+
+  * Click on the "Pilots" tab, then click on "Add...". You should then see
+    the "Pilot Settings" dialog box.
+   
+  * If you already have a user name set up on the PDA, click "Get from pilot"
+    to download the username and ID. Otherwise, click "Send to pilot" to set
+    up your username on the PDA.
+   
+  * The "Pilot Attributes" allow you to name your PDA and set a local
+    directory to use for the conduits.
+   
+  * The "Sync action" determines what happens when you press the hotsync
+    button on your PDA. The default is "Use conduit settings". This allows
+    you to customise set different sync actions for each conduit.
+   
+
+Once you have configured your PDA, you need to configure the conduits.
+-----------------------------------------------------------------------------
+
+5.2.2. The Pilot Conduits Applet
+
+Start the Gnome control centre, then click on "Pilot Conduits" in the left
+hand pane. If you have a PDA configured in the pilot link applet, you will
+see a list of available conduits. If you have more than one PDA, you can use
+the drop down list to select the one that you wish to configure.
+
+Each available conduit starts out disabled. To enable a conduit, select it in
+the list and click on "Enable". You will then be given a choice of methods
+for synchronisation.
+-----------------------------------------------------------------------------
+
+5.3. Evolution
+
+Evolution is a Microsoft Outlook clone for Gnome from Ximian. Evolution comes
+with a conduit for gnome-pilot. The conduit can be configured through the
+gnome-pilot conduits control centre applet described above.
+
+Warning: Mandrake 8.1 comes with a beta version of Evolution. This version
+seems to have a bug whereby it does not correctly identify records when
+synching. This can lead to records being duplicated on the PDA.
+
+The latest version of Evolution can be downloaded from [http://www.ximian.com
+/] http://www.ximian.com. Evolution is designed mainly for use with Ximian
+Gnome, and installing it independently involves resolving a number of
+dependencies.
+-----------------------------------------------------------------------------
+
+5.4. KPilot
+
+KPilot is the KDE equivalent of Gnome-pilot. KPilot provides basic PIM
+functionality, as well as conduits to KDE applications such as KOrganizer.
+
+As with gnome-pilot, kpilot uses a pilot-link via a daemon process.
+
+KPilot is available from [http://www.slac.com/pilone/kpilot_home/] http://
+www.slac.com/pilone/kpilot_home
+
+TODO: Again, I don't really use KDE, but will give it a spin.
+-----------------------------------------------------------------------------
+
+5.5. XNotesPlus
+
+XNotesPlus provides a means to post small notes on your X-Windows desktop.
+These notes can be shared as memos with your PalmOS device.
+
+In addition to the notes, XNotesPlus provides PIM features, and integrates
+the notes feature with the todo list and addressbook. Note that XNotesPlus
+does not perform a true synchronisation, but simply replaces changed
+databases.
+
+The XNotesPlus web page at [http://www.graphics-muse.org/xnotes/xnotes.html]
+http://www.graphics-muse.org/xnotes/xnotes.html contains full installation
+and use instructions.
+
+XNotes is shareware, and not freely distributable.
+-----------------------------------------------------------------------------
+
+5.6. WMSync
+
+If you use WindowMaker, this might be useful. From the website:
+
+Wmsync is a WindowMaker dockapp that starts your favourite sync program for
+your Palm(TM) PDA. It displays a small animation when syncing. It is
+controlled by a small perl script via SIGUSR1 and SIGUSR2 so it is highly
+customizable. That´s all.
+
+Wmsync is available from [http://home.t-online.de/home/db7ne/wmsync.html]
+http://home.t-online.de/home/db7ne/wmsync.html
+-----------------------------------------------------------------------------
+
+6. Other Software
+
+6.1. The Pyrite Project
+
+Pyrite Publisher is a tool to convert documents to and from the Doc format
+used by electronic books for the Palm PDA. Compressed zTXT files are also
+supported. Pyrite Publisher is written in Python, with an optional module in
+C for enhanced data compression performance.
+
+The library used to communicate with the Palm is available separately, as
+python-libpisock. The library is a python binding for the pilot-unix
+libpisock library.
+
+Pyrite is available from [http://www.pyrite.org/] http://www.pyrite.org 
+-----------------------------------------------------------------------------
+
+6.2. MalSync
+
+Malsync is a command line tool for synchronising Palm PDAs with the AvantGo
+server. AvantGo is a - well, you'll know what it is if you use it.
+Unfortunately the website is a masterpiece of marketspeak.
+
+Malsync is available from [http://www.tomw.org/malsync/] http://www.tomw.org/
+malsync
+-----------------------------------------------------------------------------
+
+6.3. PalmPix Decoder
+
+The PalmPix decoder extracts pictures from a PalmPix database. The PalmPix is
+a digital camera attachment for Palm PDAs.
+
+The PalmPix decoder is available from [http://www.geocities.com/aa_soft/
+PalmPix.html] http://www.geocities.com/aa_soft/PalmPix.html
+-----------------------------------------------------------------------------
+
+A. Appendix
+
+A.1. Resources
+
+Information resources for Linux/Palm applications
+-----------------------------------------------------------------------------
+
+A.1.1. Pilot-link
+
+  * Website [http://www.pilot-link.org/] http://www.pilot-link.org
+   
+  * General mailing list [http://www.pilot-link.org/mailman/listinfo/
+    pilot-link-general/] http://www.pilot-link.org/mailman/listinfo/
+    pilot-link-general/ .General discussions about pilot-link, conduit ideas,
+    wish list items and anything else.
+   
+  * General mailing list archive [http://www.pilot-link.org/pipermail/
+    pilot-link-general/] http://www.pilot-link.org/pipermail/
+    pilot-link-general/
+   
+  * Announcement mailing list [http://www.pilot-link.org/mailman/listinfo/
+    pilot-link-announce/] http://www.pilot-link.org/mailman/listinfo/
+    pilot-link-announce/ . Announcements for pilot-link releases, conduits,
+    third-party tools and applications.
+   
+  * Announcement mailing list archive [http://www.pilot-link.org/pipermail/
+    pilot-link-announce/] http://www.pilot-link.org/pipermail/
+    pilot-link-announce/
+   
+  * Development mailing list [http://www.pilot-link.org/mailman/listinfo/
+    pilot-link-devel/] http://www.pilot-link.org/mailman/listinfo/
+    pilot-link-devel/ . Development list for pilot-link code, releases,
+    patches, conduits, bugs, testing.
+   
+  * Development mailing list archive [http://www.pilot-link.org/pipermail/
+    pilot-link-devel/] http://www.pilot-link.org/pipermail/pilot-link-devel/
+   
+  * "Next Generation" pilot-unix mailing list [http://www.pilot-link.org/
+    mailman/listinfo/pilot-unix-ng/] http://www.pilot-link.org/mailman/
+    listinfo/pilot-unix-ng/ . Development list for pilot-link code, releases,
+    patches, conduits, bugs, testing.
+   
+  * "Next Generation" pilot-unix mailing list archive [http://
+    www.pilot-link.org/pipermail/pilot-unix-ng/] http://www.pilot-link.org/
+    pipermail/pilot-unix-ng/ . Replaces the old pilot-unix list that is now
+    offline.
+   
+
+-----------------------------------------------------------------------------
+A.1.2. Coldsync
+
+ 
+
+  * Website: [http://www.ooblick.com/software/coldsync/] http://
+    www.ooblick.com/software/coldsync
+   
+  * Mailing list: send an email to [mailto:
+    coldsync-hackers-request@lusars.net?body=subscribe]
+    coldsync-hackers-request@lusars.net with the word subscribe in the body.
+   
+  * Mailing list archive: [http://www.thedotin.net/maillists/coldsync-hackers
+    /] http://www.thedotin.net/maillists/coldsync-hackers
+   
+
+-----------------------------------------------------------------------------
+A.1.3. JPilot
+
+ 
+
+  * Website: [http://www.jpilot.org/] http://www.jpilot.org
+   
+  * Mailing list: send an email to [mailto:listar@moongroup.com?subject=
+    subscribe] listar@moongroup.com with the word subscribe in the subject.
+   
+  * Mailing list archive: [http://www.moongroup.com/archives/jpilot/] http://
+    www.moongroup.com/archives/jpilot
+   
+
+-----------------------------------------------------------------------------
+A.1.4. Gnome-pilot
+
+  * Website: [http://www.gnome.org/projects/gnome-pilot/] http://
+    www.gnome.org/projects/gnome-pilot
+   
+  * Mailing list: [http://mail.gnome.org/mailman/listinfo/gnome-pilot-list]
+    http://mail.gnome.org/mailman/listinfo/gnome-pilot-list 
+   
+  * Mailing list archive: [http://mail.gnome.org/archives/gnome-pilot-list/]
+    http://mail.gnome.org/archives/gnome-pilot-list/
+   
+
+-----------------------------------------------------------------------------
+A.1.5. KPilot
+
+ 
+
+  * Website: [http://www.slac.com/pilone/kpilot_home/] http://www.slac.com/
+    pilone/kpilot_home
+   
+  * Mailing list: There is no specific KPilot list, but you can use the
+    kde-pim list. To subscribe, send an email to [mailto:
+    kde-pim-request@kde.org] kde-pim-request@kde.org with subscribe followed
+    by your email address in the subject.
+   
+  * Mailing list archive: [http://lists.kde.org/?l=kde-pim&r=1&w=2] http://
+    lists.kde.org/?l=kde-pim&r=1&w=2
+   
+
+-----------------------------------------------------------------------------
+A.1.6. Other resources
+
+ 
+
+  * XNotesPlus website: [http://www.graphics-muse.org/xnotes/xnotes.html]
+    http://www.graphics-muse.org/xnotes/xnotes.html
+   
+  * WMSync website: [http://home.t-online.de/home/db7ne/wmsync.html] http://
+    home.t-online.de/home/db7ne/wmsync.html
+   
+  * The Pyrite Project website: [http://www.pyrite.org/] http://
+    www.pyrite.org/
+   
+  * Malsync website: [http://www.tomw.org/malsync/] http://www.tomw.org/
+    malsync/
+   
+  * PalmPix decoder website: [http://www.geocities.com/aa_soft/PalmPix.html]
+    http://www.geocities.com/aa_soft/PalmPix.html
+   
+
+ 
+-----------------------------------------------------------------------------
+
+A.2. Devices that use the Palm OS
+
+This is an overview of the range of devices that work with the software
+detailed in this HOWTO.
+-----------------------------------------------------------------------------
+
+A.2.1. Palm
+
+  * Pilot 1000, 5000, PalmPilot Personal, PalmPilot Pro. The original Palm
+    PDAs, no longer in production. These should work over a serial port
+    connection.
+   
+  * Palm IIIe, IIIx, IIIxe, IIIc. The III series, again no longer in
+    production. These should work over a serial port connection. The first
+    colour Palm, the IIIc, had an optional USB connection, but the serial
+    interface is required for Linux.
+   
+  * Palm V, Vx. The V series, again no longer in production. These introduced
+    the IR interface, and it should be possible to synch them via an IR port
+    on a suitably equipped PC. They also work over the serial port
+    connection.
+   
+  * Palm VII, VIIx. The VII series, again no longer in production. These
+    introduced the built in wireless connection. They feature an optional USB
+    connection, but the serial interface is required for Linux.
+   
+  * Palm VII, VIIx. The VII series, again no longer in production. These
+    introduced the built in wireless connection. They feature an optional USB
+    connection, but the serial interface is required for Linux.
+   
+  * Palm m100, m105. The current entry level Palm PDAs. These should work
+    over a serial port connection.
+   
+  * Palm m500, m505. The latest version of the IR connection enabled Palm.
+    They come with USB cradles as standard, and should synch over USB. An
+    optional serial cable is available if USB synchronisation is not
+    possible,
+   
+  * Palm i705. The latest Palm with wireless network connection capability.
+    It synchronises via USB. No reports yet on whether it works with Linux
+    over USB.
+   
+
+-----------------------------------------------------------------------------
+A.2.2. Handspring
+
+  * Visor. The Handspring Visor series of PDAs come with USB cradles. Serial
+    cables are also available. USB is better supported under Linux for the
+    Visor than for Palm PDAs, so USB should work with few problems.
+   
+
+-----------------------------------------------------------------------------
+A.2.3. Sony
+
+  * Clie. Sony's higher resolution version of the Palm PDA.
+   
+
+-----------------------------------------------------------------------------
+A.3. A History of Palm OS devices.
+
+This section is included unchanged from the original document. It's clearly
+out of date, and I'm not sure if it's worth keeping in. It's a bit offtopic
+for a Linux howto, and the effort of keeping it current seems a bit
+pointless. Instead I've added a section detailing devices that use the Palm
+operating system, and which therefore should work with the instructions in
+this HOWTO.
+
+There are two versions of the Pilot. They are the 1000 and the 5000 and have
+128k and 512k of RAM, respectively. They come with Palm OS 1.0 in ROM.
+
+Then came two devices with the name PalmPilot. They are the PalmPilot
+Personal and the PalmPilot Professional and have 512k and 1 Meg of RAM,
+respectively. They also have a backlighting feature for the LCD panel and
+version 2.0 of the operating system. The Professional also comes with a TCP/
+IP stack and a few extra programs built-in.
+
+IBM has released a rebadged version of the PalmPilot Professional, which they
+call a WorkPad.
+
+Now we have the Palm III, which has a redesigned case and an infrared port,
+not to mention the 2 Meg of RAM and Palm OS 3.0.
+
+There is an announced product from Qualcomm, called the pdQ smartphone, which
+is a cell phone that incorporates a Palm OS PDA. Don't get all excited about
+it yet, it will not be released until sometime in 1999.
+
+It is possible to upgrade any Pilot by swapping out the memory card, which
+includes both RAM & ROM. Of course, this doesn't get you backlighting for the
+original Pilot series.

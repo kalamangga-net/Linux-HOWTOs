@@ -1,0 +1,811 @@
+  The 3 Button Serial Mouse mini-HOWTO
+  Geoff Short, geoff@kipper.york.ac.uk
+  v1.33, 31 May 1998
+
+  How to get a 3 button serial mouse working properly under Linux.
+  ______________________________________________________________________
+
+  Table of Contents
+
+
+  1. Disclaimer
+
+  2. Introduction
+
+  3. Serial Ports
+
+  4. Switched Mice
+
+  5. Normal Mice
+
+  6. Switching a Mouse to 3-Button Mode
+
+  7. Wheeled mice
+
+  8. Using gpm to Switch Mouse Modes
+
+  9. Using two mice
+
+  10. XF86Config and Xconfig file examples
+
+  11. Cables, extensions and adaptors
+
+  12. Miscellaneous Problems and Setups
+
+  13. Models Tested
+
+  14. Further Information
+
+  15. Mouse Tail
+
+
+
+  ______________________________________________________________________
+
+  1.  Disclaimer
+
+  The following document is offered in good faith as comprising only
+  safe programming and procedures. No responsibility is accepted by the
+  author for any loss or damage caused in any way to any person or
+  equipment, as a direct or indirect consequence of following these
+  instructions.
+
+
+  2.  Introduction
+
+  The most recent version of this document can always be found at
+  http://kipper.york.ac.uk/mouse.html
+
+  There is a Japanese translation at http://jf.gee.kyoto-u.ac.jp/JF/JF-
+  ftp/euc/3-Button-Mouse.euc; and a French one at
+  http://www.freenix.fr/linux/HOWTO/mini/3-Button-Mouse.html.  Other
+  translations may be available - check your local LDP mirrors.
+
+
+  Most X applications are written with the assumption that the user will
+  be working with a 3 button mouse.  Serial mice are commonly used on
+  computers and are cheap to buy.  Many of these mice have 3 buttons and
+  claim to use the Microsoft protocol, which in theory means they are
+  ideal for the X windows setup.  (The record for the cheapest working 3
+  button mouse currently stands at $1.14!)
+
+
+  Most dual-protocol mice will work in two modes:
+
+  ·  2-button Microsoft mode.
+
+  ·  3-button MouseSystems mode.
+
+     This document leads you through the different steps needed to
+     configure your mouse in these two different modes, especially the
+     steps needed to use the more useful 3-button mode.
+
+
+  As distributions become easier to set up, some of the problems ought
+  to go away.  For instance, RedHat have a mouseconfig program to set
+  things up for you.  However, some versions of RH5.0 had a bug in
+  mouseconfig, so make sure you check for patches.
+
+
+  3.  Serial Ports
+
+  The first thing to do is to make sure the software can find the mouse.
+  Work out which serial port your mouse is connected to - usually this
+  will be /dev/ttyS0 (COM1 under DOS) or /dev/ttyS1 (COM2). (ttyS0 is
+  usually the 9 pin socket, ttyS1 the 25 pin socket, but of course there
+  is no hard and fast rule about these things.)  There are also an
+  equivalent number of /dev/cua devices, which are almost the same as
+  the ttyS ones, but their use is now discouraged.  For convenience make
+  a new link /dev/mouse pointing at this port.  For instance, for ttyS0:
+
+
+       ln -s /dev/ttyS0 /dev/mouse
+
+
+
+  4.  Switched Mice
+
+  Some mice, not usually the cheapest ones, have a switch on the bottom
+  marked `2/3'. Sometimes this may be `PC/MS'. In this case the `2'
+  setting is for 2 button Microsoft mode, and the `3' for 3 button
+  MouseSystems mode. The `PC/MS' switch is a bit more complicated.  You
+  will probably find the `MS' setting is for Microsoft, and the `PC' is
+  for MouseSystems. You may find the `PC' setting described as ps/2
+  mode, but it should do MouseSystems as well.  If you have such a
+  mouse, you can switch the switch to `3' or `PC', put the MouseSystems
+  settings in your XConfigs (see below) and the mouse should work
+  perfectly in 3-button mode.
+
+
+
+  5.  Normal Mice
+
+  If you don't have any switches, and no instructions, then a little bit
+  of experimentation is needed.  The first thing to try is to assume the
+  mouse maker is telling the truth, and the mouse is full Microsoft. Set
+  up your Xconfigs to expect a Microsoft mouse (see the Xconfig section)
+  and give it a try.
+
+
+  If the mouse didn't work at all, then you don't have a Microsoft
+  mouse, or there is some other problem. Try the other protocols in the
+  configs, the man page for the config file is the best place to start
+  looking. Also look in the Miscellaneous Problems section below.
+
+
+  What you will probably find is that when you run X, the mouse works
+  fine but only the outer two buttons do anything.  You can of course
+  accept this, and emulate the third button (press both buttons at once
+  to click the middle one) like you do with a two button mouse. To do
+  this, change your Xconfig file as shown in the Xconfig example section
+  below.  This may mean you have bought a 3 button mouse for no good
+  reason, and you are certainly no further forward. So, now you need to
+  look at your hardware.
+
+
+
+  6.  Switching a Mouse to 3-Button Mode
+
+  Even cheap mice can also work under the Mouse Systems protocol, with
+  all three buttons working.  The trick is to get the mouse to think
+  it's a Mouse Systems one, something you rarely see in your
+  instructions.
+
+
+  ·  Before you power up your computer, hold down the left mouse button
+     (and keep it held down until it has booted to be on the safe side).
+
+  When the mouse first gets power, if the left button is held down it
+  switches into Mouse Systems mode. A simple fact, but not always
+  publicised. Note that a soft reboot of your computer may not cut the
+  mouse power and therefore may not work. There are a number of other
+  ways of switching the mode, which may or may not work with your
+  particular mouse. Some of these are less drastic than rebooting your
+  computer, two are more so!
+
+
+  ·  If your computer is get-at-able you can unplug the mouse and plug
+     it back in with the button held down (although you shouldn't
+     normally plug things in to a live computer, the RS232 spec says it
+     is OK).
+
+  ·  You may be able to reset the mouse by typing echo "*n" >
+     /dev/mouse, which should have the same effect as unplugging it.
+     Hold the left button down for Mouse Systems mode, not for
+     Microsoft. You could put this in whatever script you use to start X
+     up.
+
+  ·  Bob Nichols (rnichols@interaccess.com) has written a small c
+     program to do the same thing, which may work if echo "*n" does not
+     (and vice versa). You can find a copy of his source code at
+     http://kipper.york.ac.uk/src/fix-mouse.c
+
+  ·  Someone has reported that the `ClearDTR' line in the Xconfig is
+     enough to switch their mouse into Mouse Systems mode.
+
+  ·  If you are brave enough, open the mouse up (remember that this will
+     invalidate your warranty) and have a look inside. In some cases,
+     the mouse may have a switch inside, for some strange reason known
+     only to the manufacturer. More likely on the cheap mice is a jumper
+     which you can move. The switch or jumper may have the same effect
+     as a `MS/PC' switch described in the ``Switched Mice section''
+     above.  You may find that the circuit board is designed for a
+     switch between 2 & 3 buttons, but it hasn't been fitted. It will
+     look something like:
+
+
+
+           -----------
+          | o | o | o |  SW1
+           -----------
+            1   2   3
+
+
+
+  Try linking pins 1-2 or 2-3, and see if it changes the behaviour of
+  the mouse.  If it does, you can either fit a small switch, or solder
+  across the contacts for a quick and permanent solution.
+
+  ·  Another soldering solution which might be a last-resort for mice
+     which don't understand MouseSystems at all, from Peter Benie
+     (pjb1008@chiark.chu.cam.ac.uk).  If the middle button's switch is
+     double-pole, connect one side of the switch to the left button's
+     switch, and the other side to right button's switch.  If it's not a
+     double pole switch then use diodes rather than wire.  Now, the
+     middle button pushes the left and right buttons down together.
+     Select ChordMiddle in the XF86Config and you have a working middle
+     button.
+
+  ·  The ultimate recourse with the soldering iron was first described
+     to me by Brian Craft (bcboy@pyramid.bio.brandeis.edu). Two common
+     generic mouse chips are the 16 pin Z8350, and the 18 pin HM8350A.
+     On each of these chips, one pin controls the mode of the chip, as
+     follows.
+
+
+       Pin 3   Mode
+       -----   ----
+       Open    Default Microsoft. Mouse Systems if a button is held on power-up.
+       GND     Always Mouse Systems.
+       Vdd     Always Microsoft.
+
+
+
+  (Pins are numbered as follows:)
+
+
+               ____
+       pin1  -| \/ |-
+       pin2  -|    |-
+       pin3  -|    |-
+             -|    |-
+             -|    |-
+             -|    |-
+             -|    |-
+       pin8  -|____|-
+
+
+
+  (This info comes courtesy of Hans-Christoph Wirth, and Juergen Exner,
+  who posted it to de.comp.os.linux.hardware)  You can solder a link
+  between pin 3 and gnd, which will fix the mouse into MouseSystems
+  mode.
+
+
+
+  ·  Peter Fredriksson (peterf@lysator.liu.se) has tried the SYSGRATION
+     SYS2005 chip, and found that linking Pin 3 to Gnd forced Mouse
+     System mode.
+
+
+  ·  Uli Drescher (ud@digi.ruhr.de) confirms it works on an HN8348A
+     chip; Ben Ketcham (bketcham@anvilite.murkworks.net) confirms the
+     HM8348A (Pin 9 is Gnd).
+
+  ·  Urban Widmark (ubbe@ts.umu.se) says the same applies to the
+     EC3567A1 chip, where Pin 8 is ground.  I've tried it as well and it
+     works fine.
+
+  ·  Timo T Metsala (metsala@cc.helsinki.fi) has found that on the
+     HT6510A chip pin 3 is mode select, pin 9 is Gnd.  The same works
+     for the HT6513A chip.  Holtek also make HT6513B and HT6513F chips -
+     on these, pin 8 is Gnd.
+
+  ·  Robert Romanowski (robin@cs.tu-berlin.de) says pin 3 - pin 8 (Gnd)
+     works on an EM83701BP chip too.
+
+  ·  Robert Kaiser (rkaiser@sysgo.de) confirms that pin 3 - Gnd works on
+     a EC3576A1 chip too.
+
+  ·  Sean Cross (secross@whidbey.com) found it was pin 2 - pin 7 (Gnd)
+     on a HM8370GP chip.
+
+  ·  Peter Fox (fox@roestock.demon.co.uk) used pin 3 - pin 8 on a
+     HM8348A chip.
+
+  ·  Jon Klein (jbklein@mindspring.com) found pin 3 - pin 9 did the
+     trick for a UA5212S chip.
+
+  ·  As an alternative to the above soldering methods, you can get the
+     mouse to hold it's own button down when booting:  this circuit from
+     Mathias Katzer.
+
+
+                -----
+             ---  R  ---------O------ + Supply
+            |   -----   |        |                     C = 100nF capacitor
+            |           | E      |                     R = 100kOhm
+            |       __ /         |                     T = BC557 transistor
+            |      /  \          O
+            |   B | #V | T         /
+            |-----|-#  |          /   Left button switch of the mouse
+            |     | #\ |         O
+            |      \__/          |
+           ---         \  C      |
+           --- C        ------O----------> (to somewhere deep inside the mouse)
+            |
+           ###  Ground
+
+
+
+  The test mouse was a no-name model MUS2S - whether this works in other
+  mice depends on the circuit of the mouse; if the switch is connected
+  to ground and not to +Supply, an npn-transistor like the BC547 should
+  work; R and C have to be swapped then, too.
+
+  So there you have it, the choice is yours. Stick with the default
+  Microsoft two buttons, or work out how to switch the mode and set X up
+  to take advantage of this.
+
+
+  7.  Wheeled mice
+
+  Mice with wheels have emerged in the last few years, starting with the
+  Microsoft Intellimouse and spreading to other manufacturers.  The
+  wheel can be clicked like a button, or rolled up and down.  Far and
+  away the best reference for information is
+  http://www.inria.fr/koala/colas/mouse-wheel-scroll/ which describes
+  how to get lots of X applications to recognise the scrolling action.
+
+
+  In general, you'll need a fairly new Xserver to use the scrolling
+  action, but some older servers will recognise the clicking actions.
+  For instance, the Intellimouse is supported by XFree 3.3.1 and later.
+
+
+  8.  Using gpm to Switch Mouse Modes
+
+  gpm is the program that lets you use the mouse in console mode.  It is
+  usually included in linux distributions, and can be started from the
+  command line or in the startup script /etc/rc.d/rc.local.  Note that
+  distributions don't always have the most recent version (1.13 at time
+  of writing) which can be found on mirrors of sunsite.unc.edu.
+
+
+  The main modes for serial mice under gpm are:
+
+
+       gpm -t ms
+       gpm -t msc
+       gpm -t help
+
+
+
+  for Microsoft or MouseSystems modes, or to probe the mouse for you and
+  tell you what it found.  To run gpm in MouseSystems mode, you may need
+  a -3 flag, and possibly a DTR option, using the -o dtr flag:
+
+
+       gpm -3 -o dtr -t msc
+
+
+  gpm is often able to recognise all three buttons of the mouse even in
+  Microsoft mode.  And newer versions (Version 1.0 and later (?))  can
+  then make this information available to other programs.  For this to
+  work, you need to run gpm with the -R tag, like this:
+
+       gpm -R -t ms
+
+
+  This will make gpm re-export the mouse data to a new device, called
+  /dev/gpmdata, which looks like a mouse to any other program.  Note
+  that this device always uses the MouseSystems protocol.  You can then
+  set your Xconfig to use this instead of /dev/mouse as shown below, but
+  of course you must ensure gpm is always running when you use X.  Some
+  people have reported that some middle-button events are not correctly
+  interpreted by X using this technique, this may be down to an individ­
+  ual mouse setup.
+
+
+
+  Changing button mapping for gpm and X (gustafso@math.utah.edu)
+
+
+
+  You may find that gpm uses different default button mappings to X, so
+  using both systems on the same machine can be confusing.  To make X
+  use the same buttons for select and paste operations as gpm, use the X
+  command
+
+
+       xmodmap -e "pointer = 1 3 2"
+
+
+  which causes the left button to select and the right button to paste,
+  for either 2-button or 3-button mice.  To force gpm to use the X stan­
+  dard button mapping, start it with a -B command, eg:
+
+       gpm -t msc -B 132
+
+
+
+  9.  Using two mice
+
+  In some cases, for instance a laptop with a built-in pointing device,
+  you may wish to use a serial mouse as a second device.  In most cases
+  the built-in device uses the PS/2 protocol, and can be ignored if you
+  don't wish to use it.  Simply configure gpm or X to use /dev/ttyS0 (or
+  whatever) as usual.
+
+
+  To use both at once, you can use gpm -M to re-export the devices.
+  More details in the gpm man page.  Also, XFree 3.3.1 and later support
+  muliple input devices, using the XInput mechanism.  Auto-generated
+  XF86Config files should have the necessary comments in them.
+
+
+
+  10.  XF86Config and Xconfig file examples
+
+  The location of your configuration file for X depends on the
+  particular release and distribution you have. It will probably be
+  either /etc/Xconfig, /etc/XF86Config or /usr/X11/lib/X11/XF86Config.
+  You should see which one it is when you start X - it will be echoed to
+  the screen before all the options are displayed. The syntax is
+  slightly different between the XF86Config and Xconfig files, so both
+  are given.
+
+
+  Microsoft Serial Mouse
+
+
+  ·  XF86config:
+
+
+       Section "Pointer"
+           Protocol "microsoft"
+           Device "/dev/mouse"
+       EndSection
+
+
+
+  ·  Xconfig:
+
+
+       #
+       # Mouse definition and related parameters
+       #
+       Microsoft      "/dev/mouse"
+
+
+
+  Microsoft Serial Mouse with Three Button Emulation
+
+
+  ·  XF86config:
+
+
+       Section "Pointer"
+           Protocol "microsoft"
+           Device "/dev/mouse"
+           Emulate3Buttons
+       EndSection
+
+
+
+  ·  Xconfig:
+
+
+       #
+       # Mouse definition and related parameters
+       #
+       Microsoft      "/dev/mouse"
+       Emulate3Buttons
+
+
+
+  MouseSystems Three Button Serial Mouse
+
+
+  ·  XF86config:
+
+
+       Section "Pointer"
+           Protocol "mousesystems"
+           Device "/dev/mouse"
+           ClearDTR            #  These two lines probably won't be needed,
+           ClearRTS            #  try without first and then just the DTR
+       EndSection
+
+
+
+  ·  Xconfig:
+
+
+       #
+       # Mouse definition and related parameters
+       #
+       MouseSystems    "/dev/mouse"
+       ClearDTR                #  These two lines probably won't be needed,
+       ClearRTS                #  try without first and then just the DTR
+
+
+
+  Microsoft Serial Mouse with gpm -R
+
+
+  ·  XF86config:
+
+
+
+  Section "Pointer"
+      Protocol "MouseSystems"
+      Device "/dev/gpmdata"
+  EndSection
+
+
+
+  ·  Xconfig:
+
+
+       #
+       # Mouse definition and related parameters
+       #
+       MouseSystems      "/dev/gpmdata"
+
+
+
+  11.  Cables, extensions and adaptors
+
+  The only wires needed in a mouse cable are as follows: TxD and RxD for
+  data transfer, RTS and/or DTR for power sources, and ground.
+  Translated into pin numbers, they are:
+
+
+                   9-pin port     25-pin port
+               TxD     3                2
+               RxD     2                3
+               RTS     7                4
+               DTR     4               20
+               Gnd     5                7
+
+
+
+  The above table may be of use if you wish to make adaptors between 9-
+  and 25-pin plugs, or extension cables.
+
+
+
+  12.  Miscellaneous Problems and Setups
+
+
+  ·  If you have trouble with your mouse in X or console mode, check you
+     are not running a getty on the serial line, or anything else such
+     as a modem for that matter. Also check for IRQ conflicts.
+
+  ·  It is possible that you need to hold down the left button when
+     booting X windows.  Some systems may send some sort of signal or
+     spike to the mouse when X starts.
+
+  ·  Problems with serial devices may be due to the serial port not
+     being initialised correctly at boot. This is done by the setserial
+     command, run from the start-up script /etc/rc.d/rc.serial. Check
+     the man page for setserial and the Serial-HOWTO for more details.
+     It may be worth a little experimentation with types, for instance
+     try setserial /dev/mouse uart 16550 or 16550a regardless of what
+     port you actually have.  (For instance, mice don't like the
+     16c550AF).
+
+  ·  The ClearDTR flag may not work properly on some systems, unless you
+     disable the RTS/CTS handshaking with the command:
+
+
+  stty -crtscts < /dev/mouse
+
+
+  (Tested on UART 16450/Pentium by Vladimir Geogjaev geog­
+  jaev@wave.sio.rssi.ru)
+
+  ·  Logitech mice may require the line ChordMiddle to enable the middle
+     of the three buttons to work. This line replaces Emulate3Buttons or
+     goes after the /dev/mouse line in the config file. You may well
+     need the ClearDTR and ClearRTS lines in your Xconfig.  Some
+     Logitech mice positively do not need the ChordMiddle line - one
+     symptom of this problem is that menus seem to move with the mouse
+     instead of scrolling down. (From: chang@platform.com)
+
+  ·  Swapping buttons: use the xmodmap command to change which physical
+     button registers as each mouse click. eg:  xmodmap -e "pointer = 3
+     2 1"  will turn round the buttons for use in the left hand. If you
+     only have a two-button mouse then it's just numbers 1 & 2.
+
+  ·  Acceleration: use the xset m command to change the mouse settings.
+     eg xset m 2  will set the acceleration to 2. Look at the manpage
+     for full details.
+
+  ·  Pointer offset: If the click action appears to be coming from the
+     left or right of where the cursor is, it may be that your screen is
+     not aligned. This is a problem with the S3 driver, which you may be
+     able to fix using xvidtune. Try Invert_VCLK/InvertVCLK, or EarlySC.
+     This info from Bill Lavender (lavender@MCS.COM) and Simon Hargrave.
+     In the XF86Config, it might look like this:
+
+
+
+       Subsection "Display"
+           Modes       "1024x768" "800x600" "640x480" "1280x1024"
+           Invert_VCLK "*" 1
+           ...
+
+
+
+  ·  If you are getting `bouncing' of the mouse buttons, ie two clicks
+     when you only wanted one, there may be something wrong with the
+     mouse.  This problem has been solved for Logitech mice by Bob
+     Nichols (rnichols@interaccess.com) and involves soldering some
+     resistors and a chip in the mouse to debounce the microswitches.
+
+  ·  If some users cannot get the mouse to work but some (eg root) can,
+     it is possible that the users are not running exactly the same
+     thing - for instance a different version of X or a different
+     Xconfig.  Check the X start-up messages carefully to make sure.
+
+  ·  If you find the mouse pointer is erasing things from your screen,
+     you have a server config problem.  Try adding the option linear, or
+     maybe nolinear to the graphics card section, or if it is a PCI
+     board, the options tgui_pci_write_off and tgui_pci_read_off.  (This
+     seems to be a Trident Card problem.)
+
+  ·  If the mouse cursor doesn't show up on the screen, but otherwise
+     seems to be working, try the option "sw_cursor" in the Device
+     section of the config file.
+
+  ·  If your mouse stops working when its sunny or when you turn a light
+     on, it may be that the sensors are being swamped by light getting
+     through the case.  You could try painting the inside of the case
+     black, or putting some card in the top.
+
+  ·  Microsoft Brand mice are often a cause of problems. The newest
+     ``Microsoft Serial Mouse 2.1A'' has been reported not to work on
+     many systems, although unplugging it and plugging it in again may
+     help.  gpm version 1.13 and higher should also support 2.1A mice,
+     using the pnp mouse type.  (See the gpm section for how to re-
+     export this.)  The ``Microsoft Intellimouse'' also causes problems,
+     although it should now be supported by XFree version 3.3 and later.
+
+
+  13.  Models Tested
+
+  There are a lot of different mice out there, and I cannot honestly say
+  that you should go out and buy one rather than the other. What I can
+  do is give a list of what I think these mice do, based on experience
+  and heresay.  Even with this information you should be a little
+  cautious - we had two identical mice in our office on two computers,
+  some things worked on one and not t'other!  Any additions to this list
+  would be welcome.
+
+
+  Mouse Systems optical mouse, serial version
+  Works well (as you might expect from the name!) without ClearDTR or
+  ClearRTS in the config.
+  WiN mouse, as sold by Office World for eight quid.
+  Standard dual-mode Microsoft/MouseSystems.
+  Agiler Mouse 2900
+  Standard dual-mode Microsoft/MouseSystems. SYSGRATION SYS2005 chip is
+  solderable.
+  Sicos mouse,
+  Works ok, needs ClearDTR & Clear RTS in config.
+  Index sell a mouse for 10 quid,
+  Doesn't work in 3 button mode, but does have nice instructions :-)
+  Artec mouse
+  Usual dual-protocol mouse, needs `ClearDTR' set in config, NOT
+  `ClearRTS'
+  DynaPoint 3 button serial mouse.
+  Usual dual-protocol mouse, needs `ClearDTR' AND `ClearRTS' in Xconfig.
+  Genius Easymouse 3 button mouse
+  Works fine with Mouseman protocol without the ChordMiddle parameter
+  set.  From Roderick Johnstone (rmj@ast.cam.ac.uk)
+  Truemouse, made in Taiwan
+  Works OK, needs `ClearDTR' in config. (From Tim MacEachern)
+  Champ brand mouse
+  Needs to have switch in PC mode, which enables MouseSystems protocol
+  also. (From tnugent@gucis.cit.gu.edu.au)
+  MicroSpeed mouse
+  Usual dual-protocol mouse.
+  Venus brand ($7)
+  Has a jumper inside to switch between 2 and 3 button mode.  (From
+  mhoward@mth.com )
+  Saturn
+  Switched mouse, works OK as MouseSystems in 3-button position.  (From
+  grant@oj.rsmas.miami.edu .)
+  Manhattan mouse.
+  Switch for `MS AM' / `PC AT' modes, MS mode works fine with the gpm -R
+  method. (From komanec@umel.fee.vutbr.cz).
+  Inland mouse.
+  Switch for `PC/MS' modes, works fine. (From
+  http://ptsg.eecs.berkeley.edu/~venkates).
+  qMouse (3-button), FCC ID E6qmouse X31.
+  Sells in the USA for about $10. Works with `gpm -t msc -r 20'.  No
+  jumpers or switches for MouseSystems 3-button mode. Unreliable in X.
+  Does not respond to echo "*n" > /dev/mouse.
+  Mitsumi Mouse (2-button), FCC ID EW4ECM-S3101.
+  Sells in the USA for about $12. Reliable in X and under gpm, smooth
+  double-button. (These two from gustafso@math.utah.edu)
+  PC Accessories mouse that i got from CompUSA for under $10.
+  Has PC/MS switch on bottom.  Works OK. (From steveb@communique.net)
+  First Mouse - seriously cheap at 7.79 pounds at Tempo.
+  Dual Microsoft/MouseSystems, mode set by button depress at power-up.
+  No switches, no links.  Four wire connection, echo '*n' doesn't work.
+  `gpm -R' works a treat. (From peterk@henhouse.demon.co.uk)
+  Trust 3-button mouse.
+  Dual-mode with switch, works OK as MouseSystems in `PC' mode.  gpm
+  doesn't like the Microsoft mode.
+  Chic 410
+  Works perfectly when kept in ms mode and used with the gpm -R command.
+  From Stephen M. Weiss (steve@esc.ie.lehigh.edu)
+  KeyMouse 3-button mouse.
+  Works OK with ClearDTR and ClearRTS in Xconfig; `-o dtr' needed with
+  gpm. (From EZ4PHIL@aol.com)
+  Qtronix keyboard `Scorpio 60'
+  All three buttons work in MouseSystems protocol.  (From
+  hwe@uebemc.siemens.de)
+  Tecra 720 laptop
+  The glidepoint is on /dev/cua0; the stick is on /dev/psaux.  (From
+  apollo@anl.gov)
+  Anubis mouse
+  Works fine, need to hold down left button whenever switching to the X
+  virtual console.  (From Joel Crisp)
+  Yakumo No.1900 mouse
+  Works with gpm -R -t ms exporting to X.  (From Oliver Schwank)
+  Genius `Easy Trak' Trackball
+  Is not Microsoft compatible, use Mouseman in the Xconfig and it will
+  work fine.  (From VTanger@aol.com.)
+  Highscreen Mouse Pro
+  `Works fine' says alfonso@univaq.it.
+  Logitech CA series
+  Works in X using MMseries protocol, at 2400 Baud, 150 SampleRate.
+  (Should also apply to Logitech CC, CE, C7 & C9 mice).  (From
+  vkochend@nyx.net.)
+  A4-Tech mouse
+  Works OK, needs DTR line under both X and gpm.  (From
+  deane@gooroos.com)
+  Vertech mouse
+  Normal Microsoft/Mousesystems behaviour, can be soldered for a
+  permenant fix.  (From duncan@fs3.ph.man.ac.uk.)
+  Boeder M-7 ``Bit Star'' (and other M series apart from M13)
+  Switches to Mousesystems protocol by holding any button down at power-
+  on.  (From mailto:sjt@tappin.force9.co.uk.)
+  Mouse Systems ``Scroll'' Mouse (four buttons and a roller/button)
+  Has a 2/3 switch - in mode 3 functions as a three button MouseSystems
+  mouse, ignoring extra button & wheel.  Doesn't need ClearRTS/DTR.
+  (From parker1@airmail.net.)
+  Radio Shack 3-button Serial Mouse
+  Model 26-8432, available in Tandy for about 20 quid. Works as
+  Mousesystems with ClearDTR. (From Sherilyn@sidaway.demon.co.uk.)
+  Dexxa serial mouse
+  Works fine using Microsoft protocol in Xconfig, no ChordMiddle or
+  anything needed.  (From mailto:slevy@ncsa.uiuc.edu.)
+  Belkin 3 button mouse
+  As purchased from Sears (\$10), needs -o rts under gpm (and probably
+  ClearRTS under X) when in PC mode.  (From mailto:mmicek@csz.com.)
+
+  14.  Further Information
+
+
+  ·  Mouse Systems has a web site at http://www.mousesystems.com/.  They
+     have a Windows driver if you need one.
+
+  ·  The Linux Serial HOWTO is available from mirrors of sunsite around
+     the world.  If you don't know where your nearest mirror is, start
+     at http://sunsite.unc.edu/mdw/linux.html
+
+  ·  There is a very good explanation of how mice work at
+     http://www.4QD.co.uk/faq/meece.html.
+
+  ·  Fuller details of the Xconfig and XF86Config files are found on the
+     relevant man pages, and in the documentation about installing X
+     windows such as the Xfree86 HOWTO. Also, see the XFree86 FAQ at a
+     mirror of http://www.XFree86.org/.
+
+  ·  Information about gpm can be found on the man page, also try the
+     web page of Darin Ernst at http://www.castle.net/X-
+     notebook/mouse.txt.
+
+  ·  Lots of information on mice hardware and software can be found at
+     http://www.hut.fi/Misc/Electronics/pc/interface.html#mouse
+
+
+  15.  Mouse Tail
+
+  Much of the information for this document has been trawled from the
+  various linux newsgroups. I am sorry I did not keep a record of
+  everyone who has indirectly contributed by this route, thank you all
+  very much.
+
+
+  So, to sum up:
+
+
+  ·  Even cheap 3 button Microsoft mice can be made to work.
+
+  ·  Configure your copy of X to expect a Mouse Systems mouse.
+
+  ·  Hold down the left button at power-on to switch the mouse to
+     MouseSystems mode.
+
+  ·  You might need to hold the left button down when starting X.
+
+  ·  Mice are more intelligent than you think.
+
+
+

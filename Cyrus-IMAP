@@ -1,0 +1,538 @@
+  Cyrus IMAP HOWTO
+  Aurora Skarra-Gallagher (Community Vision)
+  v1.3, 11 October 2000
+
+  A comprehensive guide to installing, configuring, and running Cyrus
+  Imap and Cyrus Sasl
+  ______________________________________________________________________
+
+  Table of Contents
+
+
+
+  1. About this HOWTO
+
+     1.1 Copyrights and Trademarks
+     1.2 Feedback
+     1.3 CHANGES
+     1.4 Document Conventions
+
+  2. Introduction to IMAP
+
+     2.1 What is IMAP?
+     2.2 IMAP vs. POP
+     2.3 Cyrus IMAP vs. Washington IMAP
+
+  3. Obtaining the Files
+
+     3.1 Cyrus Imap Homepage
+     3.2 Downloading the files
+
+  4. Different SASL Authentication Methods
+
+     4.1 sasldb
+     4.2 LDAP
+     4.3 PAM
+     4.4 kerberos_v4
+
+  5. Cyrus SASL
+
+     5.1 Uncompress
+     5.2 Building the files
+
+  6. Cyrus IMAP Installation
+
+     6.1 Uncompress
+     6.2 A note on com_err.h
+     6.3 Configure
+     6.4 Adding the default user
+     6.5 Building the files
+
+  7. Cyrus IMAP Configuration
+
+     7.1 Editing conf files
+     7.2 Creating the necessary directories
+     7.3 More configuration file editing
+     7.4 If you use postfix instead of sendmail
+
+  8. Cyrus IMAP Implementation
+
+     8.1 Add the cyrus administrator
+     8.2 Testing Cyrus IMAP
+     8.3 Setting up users
+     8.4 Delivery database pruning
+     8.5 Finishing up
+
+  9. Troubleshooting
+
+
+
+  ______________________________________________________________________
+
+  1.  About this HOWTO
+
+  1.1.  Copyrights and Trademarks
+
+  (c) 2000 Aurora Skarra-Gallagher
+
+
+  This section was copied from the HOWTO-HOWTO:
+
+  This manual may be reproduced in whole or in part, without fee,
+  subject to the following restrictions:
+
+
+  ·  The copyright notice above and this permission notice must be
+     preserved complete on all complete or partial copies
+
+  ·  Any translation or derived work must be approved by the author in
+     writing before distribution.
+
+  ·  If you distribute this work in part, instructions for obtaining the
+     complete version of this manual must be included, and a means for
+     obtaining a complete version provided.
+
+  ·  Small portions may be reproduced as illustrations for reviews or
+     quotes in other works without this permission notice if proper
+     citation is given. Exceptions to these rules may be granted for
+     academic purposes: Write to the author and ask. These restrictions
+     are here to protect us as authors, not to restrict you as learners
+     and educators. Any source code (aside from the SGML this document
+     was written in) in this document is placed under the GNU General
+     Public License, available via anonymous FTP from the GNU archive.
+
+  1.2.  Feedback
+
+  Comments (especially corrections) can be sent to
+  asg@CommunityVision.com <mailto:asg@CommunityVision.com>
+
+  1.3.  CHANGES
+
+
+  ·  v1.3: inetd.conf error fix, authentication information added, more
+     troubleshooting info
+
+  ·  v1.2: SASL Config error fix, new postfix configuration, and
+     database pruning (thanks, Jernej)
+
+  ·  v1.1: Fixed sendmail.mc configuration file error and added IMAP
+     information to the introduction.
+
+  1.4.  Document Conventions
+
+
+  ·  Italics signifies a  directory
+
+  ·  This font signifies instructions to be ran at the command line
+
+  2.  Introduction to IMAP
+
+  2.1.  What is IMAP?
+
+  This definition is from the ComputerUser.com High-Tech Dictionary
+  <http://www.computeruser.com/resources/dictionary/dictionary.html>:
+
+  Internet Message Access Protocol. A protocol that allows a user to
+  perform certain electronic mail functions on a remote server rather
+  than on a local computer. Through IMAP the user can create, delete, or
+  rename mailboxes; get new messages; delete messages; and perform
+  search functions on mail. A separate protocol is required for sending
+  mail. Also called Internet Mail Access Protocol.
+
+
+
+  2.2.  IMAP vs. POP
+
+  IMAP allows the user to read email from many different locations and
+  accounts because email folders are stored on the server, locally, at
+  the home or the office, for instance. Even saved and read messages are
+  stored on the IMAP server. POP only stores new unread messages on the
+  server, and the read and saved messages are stored locally. To force
+  POP to not delete email once it has been read can create many copies
+  of the same email, creating a waste of space and confusion. However,
+  IMAP is usually more complicated to set up. If you only have one email
+  account, POP is most likely your best choice. If you want to access
+  more than one account, from different locations, IMAP will probably
+  serve you most efficiently.
+
+  2.3.  Cyrus IMAP vs. Washington IMAP
+
+  Cyrus has its own mailbox database which is standalone and increases
+  performance, whereas Washington uses the stanard UNIX mailbox format,
+  which was designed for a smaller set of users. Washington is portable
+  to more UNIX and non-UNIX systems than Cyrus. The main difference is
+  that with Cyrus, you don't have to add new users to your linux box
+  (i.e. in /etc/passwd) to add new mail users, and with Washington, you
+  do.
+
+  3.  Obtaining the Files
+
+  3.1.  Cyrus Imap Homepage
+
+  The homepage is currently located at:
+
+  http://asg.web.cmu.edu/cyrus/imapd
+  <http://asg.web.cmu.edu/cyrus/imapd>
+
+  3.2.  Downloading the files
+
+  You will need both IMAP and SASL. Download the latest files here:
+
+  ftp://ftp.andrew.cmu.edu/pub/cyrus-mail
+  <ftp://ftp.andrew.cmu.edu/pub/cyrus-mail>
+
+  Download cyrus-imapd-X.X.X.tar.gz and cyrus-sasl-X.X.X.tar.gz (where
+  X.X.X is the latest release) into your temporary directory.
+
+  I will use /temp as the directory I've uncompressed the files under
+  for the rest of the examples.
+
+  4.  Different SASL Authentication Methods
+
+  4.1.  sasldb
+
+  This is the default method of authentication. It stores usernames and
+  passwords in the SASL secrets file sasldb. In this HOWTO, I assume you
+  are using the sasldb method of authentication.
+
+  4.2.  LDAP
+
+  The following definition came from the OpenLDAP website. Lightweight
+  Directory Access Protocol (LDAP) is an open-standard protocol for
+  accessing information services. The protocol runs over Internet
+  transport protocols, such as TCP, and can be used to access stand-
+  alone directory servers or X.500 directories. This method isn't
+  discussed in this HOWTO, but here is a link to a page with patches and
+  info:
+
+  http://www.openldap.org/faq/data/cache/428.html
+  <http://www.openldap.org/faq/data/cache/428.html>
+  4.3.  PAM
+
+  Not enough info to document. Email me if you have some.
+
+  4.4.  kerberos_v4
+
+  Not enough info to document. Email me if you have some.
+
+  5.  Cyrus SASL
+
+  5.1.  Uncompress
+
+  Here we untar and gunzip the file in a single step.
+
+
+  1.  cd /temp
+
+  2.  tar -zxvf cyrus-sasl-X.X.X.tar.gz
+
+  3.  cd cyrus-sasl-X.X.X
+
+  5.2.  Building the files
+
+  For most purposes, the following set of instructions works fine. If
+  you would like to examine the other configuration options, type
+  ./configure --help | more
+
+
+  1.  ./configure
+
+  2.  make
+
+  3.  make install
+
+  If you don't want your password check to be the default sasldb, you
+  must specify which one of PAM, kerberos_v4, passwd, shadow you wish to
+  use. If PAM is the authentication you desire for example, you would
+  type:
+
+  ./configure --with-pwcheck_method=PAM
+
+  instead of the ./configure line above
+
+  6.  Cyrus IMAP Installation
+
+  6.1.  Uncompress
+
+  The following commands will tar and gunzip cyrus IMAP under /temp.
+
+
+  1. cd /temp
+
+  2. tar -zxvf tar/cyrus-imapd-1.6.24.tar.gz
+
+  3. cd cyrus-imapd-1.6.24
+
+  6.2.  A note on com_err.h
+
+  When I tried to install cyrus IMAP, I got errors regarding the file
+  com_err.h. My com_err.h was located in /usr/include/et. It needs to
+  reside in /usr/include.  Run the following command to make sure it is
+  in the correct location:
+
+  locate com_err.h
+
+
+  This will show you where the file is. If it is under /usr/include, you
+  can skip to the next section. If it is in another directory, just copy
+  it to /usr/include. If it doesn't exist, download it here:
+  http://www.ludd.luth.se/~jnilsson/cvsweb/cvsweb.cgi/src/contrib/com_err
+  <http://www.ludd.luth.se/~jnilsson/cvsweb/cvsweb.cgi/src/contrib/com_err>.
+
+  6.3.  Configure
+
+   ./configure --with-auth=unix
+
+  6.4.  Adding the default user
+
+  Cyrus requires a user to own its files. The default user is cyrus. The
+  following command adds a user cyrus with the group of "mail"
+
+  useradd -g mail cyrus
+
+  You'll want to set the password for user cyrus.
+
+  passwd cyrus
+
+  Type in the password you desire cyrus to have each time you are
+  prompted
+
+  6.5.  Building the files
+
+
+  1.  make depend
+
+  2.  make all CFLAGS=-O
+
+  3.  make install
+
+  That's it! You're ready to configure Cyrus IMAP.
+
+  7.  Cyrus IMAP Configuration
+
+  7.1.  Editing conf files
+
+
+  1. Edit /etc/syslog.conf and add the following lines at the bottom:
+
+             local6.debug    /var/adm/imapd.log
+             auth.debug      /var/adm/auth.log
+
+
+
+  2. Edit a new file /etc/imapd.conf and place in it the following
+     lines:
+
+             configdirectory: /var/imap
+             partition-default: /var/spool/imap
+             admins: cyrus root
+             srvtab: /var/imap/srvtab
+             allowanonymouslogin: no
+             sasl_passwd_check: shadow
+
+
+
+  If you don't want your password check to be the default sasldb, you
+  must specify which one of PAM, kerberos_v4, passwd, shadow you wish to
+  use. If PAM is the authentication you desire for example, you would
+  type:
+
+  sasl_passwd_check: pam
+
+  instead of the line above
+
+  7.2.  Creating the necessary directories
+
+  This list of instructions will set up all the directories necessary
+  for imap.
+
+
+  1. mkdir /var/adm
+
+  2. touch /var/adm/imapd.log /var/adm/auth.log
+
+  3. mkdir /var/imap /var/spool/imap /var/imap/srvtab
+
+  4. chown cyrus /var/imap /var/spool/imap /var/imap/srvtab
+
+  5. chgrp mail /var/imap /var/spool/imap /var/imap/srvtab
+
+  6. chmod 750 /var/imap /var/spool/imap /var/imap/srvtab
+
+  7. su cyrus
+
+  You are now the user cyrus. This is necessary for the files to have
+  the correct owner and group.  Continue:
+
+
+  1. tools/mkimap
+
+  2. cd /var/imap
+
+  3. chattr +S . user quota user/* quota/*
+
+  4. chattr +S /var/spool/imap
+
+  5. exit
+
+  You are now root again. The last command:
+
+  chattr +S /var/spool/mqueue
+
+  7.3.  More configuration file editing
+
+
+  1. Edit /etc/services and check for the following lines. If they do
+     not exist, add them:
+
+             pop3    110/tcp
+             imap    143/tcp
+             imsp    406/tcp
+             kpop    1109/tcp
+             sieve   2000/tcp
+
+
+
+  2. Edit /etc/inetd.conf and comment out any imap and pop3 lines and
+     add the following:
+
+             imap    stream  tcp     nowait  cyrus   /usr/cyrus/bin/imapd    imapd
+             pop3    stream  tcp     nowait  cyrus   /usr/cyrus/bin/pop3d    pop3d
+
+
+
+  3. Edit /etc/sendmail.mc with care not to add extra spaces and add the
+     following lines(do not copy and paste directly from this text as
+     the tabs won't be added correctly):
+
+       MAILER(local)
+       MAILER(cyrus)
+       define(`confLOCAL_MAILER',`cyrus')
+       LOCAL_RULE_0
+       R$=N                   $: $#local $: $1
+       R$=N < @ $=w . >       $: $#local $: $1
+       Rbb + $+ < @ $=w . >   $#cyrusbb $: $1
+
+
+  Use tabs to separate the data (i.e. R$=N has three tabs between it and
+  $: $#local $: $1) Then run: m4 sendmail.mc > sendmail.cf
+
+  4. Edit /etc/group and add the user daemon to the mail group.
+
+  7.4.  If you use postfix instead of sendmail
+
+  Postfix is a mail-deliver alternative to sendmail. Most linux
+  installations use sendmail by default. If you use postfix, ignore
+  configuration #3 from the last section and uncomment or add the
+  following line in /etc/postfix/master.cf
+
+
+  cyrus   unix    -       n       n       -       -       pipe    flags=R user=cyrus      argv=/usr/sbin/cyrdeliver -e -m ${extension} ${user}
+
+
+
+  Also add or uncomment this line in /etc/postfix/main.cf
+
+  local_transport = cyrus
+
+  8.  Cyrus IMAP Implementation
+
+  8.1.  Add the cyrus administrator
+
+  Run the following command to set up a user for cyrus
+
+  /usr/local/sbin/saslpasswd cyrus
+
+  8.2.  Testing Cyrus IMAP
+
+
+  1. killall -HUP inetd
+
+  2. su cyrus
+
+  3. imtest -m login -p imap localhost
+
+  Enter your password. If you see something like:
+
+
+          (L01 OK User logged in means you're in)
+
+
+
+  Then the setup has been successful. Type
+
+
+          . logout
+
+
+
+  to log out.
+
+
+
+  8.3.  Setting up users
+
+  Still as the user cyrus, type the following commands. They will set up
+  the mailbox(es) for each user. Fill in the username where you see the
+  (username).
+
+
+  1. cyradm localhost
+
+  2. cm user.joebob  (for all the user joebob)
+
+  3. quit
+
+  4. exit (back as root)
+
+  Now as root, enter a password for each username
+
+  saslpasswd (username)
+
+  8.4.  Delivery database pruning
+
+  If you don't periodically prune the database of deliveries, you can
+  fill up your file system. Adding a cron job which will run once a day
+  is one way to do this. That involves going to /etc/cron.daily and
+  creating a file named cyrus-imapd. Inside that file, put the following
+  two lines of code:
+
+
+  #!/bin/bash
+  su cyrus -s /bin/bash -c '/usr/cyrus/bin/deliver -E 3'
+
+
+
+  Make this script executable by running: chmod 755 cyrus-imapd
+
+  You should also create the deliverdb directory to store database files
+  in:
+
+  mkdir /var/imap/deliverdb
+
+  8.5.  Finishing up
+
+  Reboot the machine to make sure that everything has been restarted
+  under the new configuration
+
+  9.  Troubleshooting
+
+  If you encounter any errors, you can do the following to view error
+  messages:
+
+
+  1. tail /var/log/messages
+
+  2. tail /var/adm/imapd.log
+
+  3. killall sendmail && sendmail -bd -X /root/error.log (then read
+     /root/error.log)
+
+  If you are having "virtual memory exhausted errors" when compiling,
+  running
+
+  ulimit -d unlimited
+
+  as root has been reported to work.
+
+

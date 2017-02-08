@@ -1,0 +1,989 @@
+The Cable Modem HOWTO
+
+Howard Shane
+
+<hshane[AT]austin.rr.com>
+Revision History                                                             
+Revision 0.9           2004-07-30            Revised by: jhs                 
+Completed draft.                                                             
+
+
+This document was written to assist the Linux user in configuring a cable
+modem for internet access using a cable network.
+
+-----------------------------------------------------------------------------
+Table of Contents
+1. Introduction
+    1.1. Copyright Information
+    1.2. Disclaimer
+    1.3. New Versions
+    1.4. Credits
+    1.5. Feedback
+    1.6. Conventions Used in this Document
+   
+   
+2. Prerequisites
+    2.1. Networking and Ethernet Support
+    2.2. Ethernet Support
+    2.3. USB Interface Support
+    2.4. The Modem Device
+    2.5. The DHCP Client
+   
+   
+3. Configuration
+    3.1. Ready to Start With an Ethernet-Modem connection
+    3.2. Grabbing A Specific Interface
+    3.3. Using the USB interface instead of an Ethernet card
+   
+   
+4. Notes on Specific Hardware
+    4.1. Ambit Modems
+    4.2. Broadcom Cable Modems
+    4.3. Ericson PipeRider Modems
+    4.4. Motorola SurfBoard Modems
+    4.5. RCA (Tompson) Modems
+    4.6. Terayon Modems
+    4.7. Toshiba PCX-XXXX Cable Modems
+    4.8. Webstar Modems
+   
+   
+5. Troubleshooting
+A. Gnu Free Documentation License
+
+1. Introduction
+
+This document was written to assist the Linux user in setting up their cable
+modem, and includes information on configuring a DHCP client, enabling the
+device with or without USB support and troubleshooting. I have successfully
+configured Motorola and Toshiba brand cable modems with the methods herein,
+and others have informed me that the configuration methods of other
+manufacturers' hardware is almost identical. A mostly-complete laundry list
+of hardware specific tidbits is addressed in Section 4; if you have a model
+working that is not listing or have some specific informtion that you think
+will be helpful, please send it along via the address in Section 1.5
+-----------------------------------------------------------------------------
+
+1.1. Copyright Information
+
+This document is Copyright 2004 by Howard Shane.
+
+Permission is granted to copy, distribute and/or modify this document under
+the terms of the GNU Free Documentation License, Version 1.2 or any later
+version published by the Free Software Foundation with no Invariant Sections,
+no Front-Cover Texts, and no Back-Cover Texts. A copy of the license can be
+found in Appendix A.
+-----------------------------------------------------------------------------
+
+1.2. Disclaimer
+
+No liability for the contents of this document can be accepted. Use the
+concepts, examples and other content entirely at your own risk. As this is a
+new edition, there may be technical or other inaccuracies that may result in
+the loss of irreplaceable data. In any case, proceed with caution, and
+realize that although errors are highly unlikely, the author can accept no
+responsibility for them.
+
+All copyrights are held by their by their respective owners, unless
+specifically noted otherwise. Use of a term in this document should not be
+regarded as affecting the validity of any trademark or service mark.
+
+Naming of particular products or brands should not be seen as endorsements.
+-----------------------------------------------------------------------------
+
+1.3. New Versions
+
+This is the initial release.
+
+The latest version number of this document can be found [http://
+www.hshanemd.net/docs/HOWTOS/Cable-Modem/] here.
+-----------------------------------------------------------------------------
+
+1.4. Credits
+
+I would like to thank Brad Hards, the primary author of the Linux CDCEther
+kernel driver for graciously volunteering several useful bits of information,
+as well as Rob McGee and Jess Portnoy for encouraging me to morph this
+document into the new Cable-Modem HOWTO and contributing useful suggestions.
+
+Also, I would like to thank Marla, who has stood by me confidently even when
+the outlook was dimmest and others unforgiving. I'm yours forever.
+-----------------------------------------------------------------------------
+
+1.5. Feedback
+
+Please send any additions or comments pertaining to this document to the
+following email address: <hshane[AT]austin.rr.com>.
+-----------------------------------------------------------------------------
+
+1.6. Conventions Used in this Document
+
+The following conventions are used in this document and are outlined here for
+those who may not yet have a complete understanding of how to access and
+control the underlying operating system in Linux, which is almost always the
+bash shell.
+
+First, filenames are referenced in a paragraph like so: /path/file
+
+Commands in Linux are executed (or 'called') at the command prompt, otherwise
+known as the 'command line.' If you are in the non-graphical (text-based)
+environment you will usually be presented the bash shell prompt which is a
+dollar sign:
++---------------------------------------------------------------------------+
+|$                                                                          |
++---------------------------------------------------------------------------+
+...or the hash mark:
++---------------------------------------------------------------------------+
+|#                                                                          |
++---------------------------------------------------------------------------+
+...if you have logged in as root or have acquired root, or 'superuser'
+privileges. You can also access the bash shell in the X window system,
+otherwise known as X or X11, with an [http://invisible-island.net/xterm/]
+xterm or similar X-terminal-emulator. Commands to be performed at the bash
+prompt, but referenced in a paragraph of this document, usually look like
+this: do this now
+
+Commands and/or the resulting output of commands may also be outlined with
+screen output in their own paragraph or heading:
+
++---------------------------------------------------------------------------+
+|$                                                                          |
+|date Sun Jul 27 22:37:11 CDT 2003                                          |
++---------------------------------------------------------------------------+
+
+When a command is written in front of the bash prompt (e.g. $ date above), it
+is assumed the [Return] or [Enter] key has been depressed after the command,
+possibly followed by the output (e.g., the date).
+-----------------------------------------------------------------------------
+
+2. Prerequisites
+
+2.1. Networking and Ethernet Support
+
+Most, if not all, cable modems are easily configured for use with Linux. Most
+cable modems have two possible interfaces for connection to your computer:
+Ethernet or USB. If your version of Linux is like most, there is very little
+you will need to do to to get your cable modem working with an Ethernet
+interface as long as you have support for networking and the driver for your
+specific networking hardware installed.
+-----------------------------------------------------------------------------
+
+2.2. Ethernet Support
+
+An open Ethernet interface is the most likely means that a cable provider
+will use or recommend when setting up your cable internet service. Your ISP
+may even deliver and/or install a new NIC card to access the modem if you
+have no open Ethernet cards available.The cable connects to the modem, which
+then connects to your NIC using ordinary 10BaseT/100BaseT Ethernet cable. If
+you are uncertain about any of the above, and your modem and/or NIC are not
+already physically installed for you, read the [http://www.tldp.org/HOWTO/
+Ethernet-HOWTO.html] Ethernet HOWTO and your cable modem's instruction manual
+before proceeding any further.
+
+Warning Do not try to install an NIC by yourself unless you are already      
+        familiar with the process or are assisted by someone who is.         
+
+For software support, most base installs of Linux distributions come enabled
+for TCP/IP networking and common Ethernet hardware drivers 'out of the box,'
+so if you are using a preconfigured kernel from a boxed or downloaded version
+of a Linux distribution you can probably skip to Section 2.4. If you don't
+know what a kernel is and/or are curious about it, see the [http://
+www.tldp.org/HOWTO/Kernel-HOWTO.html] Kernel HOWTO for more information.
+
+The (Linux kernel) networking support requirements for use of a cable modem
+include the following, and which you will need to select using whatever
+kernel configuration front-end application (whether make config, make
+menuconfig or make xconfig) prior to compiling a custom kernel. For 2.4.x and
+earlier kernels under the heading 'Networking options' you will require 'TCP/
+IP Networking' along with 'Network Device Support,' go to 'Ethernet (10 or
+100Mbit) Support' and enable your specific NIC driver. If you use the 2.6.x
+series, the heading 'Drivers' has a sub-heading 'Networking Support,' where
+you should enable 'Network Device Support' and 'Ethernet Connection Support/
+Ethernet (10 or 100Mbit), as well as your specific NIC hardware driver.
+
+If you are interested in how to configure the USB interface go to Section 2.3
+; otherwise you can go to Section 2.4.
+-----------------------------------------------------------------------------
+
+2.3. USB Interface Support
+
+There seems to be no reliable data regarding testing bandwidth or performance
+of an Ethernet connection vs. the USB port of cable modems. In theory they
+should be equivalent, though some believe there is poorer performance (at
+least in Linux) using USB. Unless you have no way to use an Ethernet
+interface, have no ability to add a cheap NIC, or are just plain determined,
+there is probably no advantage to using USB. If so, you will need the
+following, in addition to Networking support outlined above: 1) USB Subsystem
+support 2) your host controller driver (UHCI, OHCI or EHCI) and one of the
+following:
+
+Kernel Version 2.4.x
+
+  * CDC Ethernet Support
+   
+
+For kernel 2.6.x you will need
+
+  * Multi-purpose USB Networking Framework (CONFIG_USB_USBNET) with
+   
+  * CDC Ethernet support (CONFIG_USB_CDCETHER)
+   
+
+See Section 3.3 for instructions on how to load modules when time to test the
+modem.
+-----------------------------------------------------------------------------
+
+2.4. The Modem Device
+
+First, plug in and turn on the cable modem. Connect your Ethernet card to the
+modem with 10BaseT/100BaseT cable into the non-USB interface if this was not
+already done for you. Be sure the modem isn't on standby mode or turned off;
+this should be obvious looking at the LEDs. The standby button is on the top
+of the device on most models. Note that your cable internet provider should
+be able to tell remotely whether your modem is connected and functioning
+properly, which is helpful to differentiate hardware from configuration
+problems on your end. They will also need the MAC (Media Access Control)
+hardware address of your modem to allow the device access to their network.
+If at any time you substitute one modem for another you will need to inform
+them so the MAC address can be updated and your access to the cable network
+restored.
+
+Your modem will be assigned an IP address once connected for the first time
+that may remain the same or may change periodically depending on the IP
+address turnover of your ISP's DHCP server and how long you remain offline if
+you disconnect.
+-----------------------------------------------------------------------------
+
+2.5. The DHCP Client
+
+2.5.1. Installation on a Debian System
+
+Debian requires you have a DHCP client package installed and running. As of
+this writing there are two user-space programs for this. In Woody (stable),
+there is the dhcp-client package, automatically installed as a part of the
+base packages as /sbin/dhclient. For Sarge (testing) and up, this has been
+replaced by the dhcpcd package. The latter has its configuration files under
+/etc/dhcpc, but nothing really needs to be modified if you have only one
+Ethernet card you will be using for the cable internet service. The dhcpcd
+daemon is easily installed for those using testing branch as root with 
+apt-get install dhcpcd .
+-----------------------------------------------------------------------------
+
+2.5.2. Installing on .rpm- or .tgz-Based Systems
+
+For .rpm- or .tgz-based distributions, I offer the following link that walks
+you through the setup of a DHCP client, in the [http://www.tldp.org/HOWTO/
+mini/DHCP/x74.html] DHCP mini-HOWTO.
+
+Just run /sbin/dhclient or whichever client you use to get a dynamic IP
+address.
+-----------------------------------------------------------------------------
+
+3. Configuration
+
+-----------------------------------------------------------------------------
+3.1. Ready to Start With an Ethernet-Modem connection
+
+Once you are plugged into the system, your modem is on and your dhcp server
+is running as outlined in Section 2.5, you should be provided your own IP
+address that doesn't change unless you drop the lease (i.e. are offline) for
+a while. To confirm that the DHCP client is working and you have a new IP
+address, execute (as root) ifconfig without any other arguments, and you
+should see the following:
+
++---------------------------------------------------------------------------------------+
+|eth0 Link encap:Ethernet HWaddr 00:D0:09:DE:D4:6F                                      |
+|        inet addr:66.190.XXX.XXX Bcast:255.255.255.255 Mask:255.255.255.0 UP BROADCAST |
+|        RUNNING MULTICAST MTU:1500 Metric:1 RX packets:2591777 errors:0 dropped:0      |
+|        overruns:0 frame:0 TX packets:5589 errors:0 dropped:0 overruns:0 carrier:0     |
+|        collisions:0 txqueuelen:100 RX bytes:168673636 (160.8 MiB) TX bytes:1752872    |
+|        (1.6 MiB) Interrupt:12 Base address:0xc400                                     |
++---------------------------------------------------------------------------------------+
+
++-------------------------------------------------------------------------------------+
+|lo Link encap:Local Loopback                                                         |
+|        inet addr:127.0.0.1 Mask:255.0.0.0 UP LOOPBACK RUNNING MTU:16436 Metric:1 RX |
+|        packets:5168 errors:0 dropped:0 overruns:0 frame:0 TX packets:5168 errors:0  |
+|        dropped:0 overruns:0 carrier:0 collisions:0 txqueuelen:0 RX bytes:1695104    |
+|        (1.6 MiB) TX bytes:1695104 (1.6 MiB)                                         |
++-------------------------------------------------------------------------------------+
+
+...which shows the system loopback device, lo, and also eth0, the cable modem
+having successfully acquired an IP address (the 'inet addr') provided by our
+cable internet service provider.
+
+A simple Ethernet-based configuration should be complete at this step. If you
+have more than one Ethernet interface available and want to select a specific
+one for the cable service, go on to Section 3.2.
+-----------------------------------------------------------------------------
+
+3.2. Grabbing A Specific Interface
+
+Let's say we want to select a specific Ethernet interface (ethX) to be the
+recipient of the DHCP cable internet service. If you run ifconfig as root you
+get a list of open devices:
+
++-----------------------------------------------------------------------------------------+
+|eth0 Link encap:Ethernet                                                                 |
+|HWaddr 00:D0:09:DE:D4:6F                                                                 |
+|        inet addr:192.168.1.1 Bcast:192.168.1.255 Mask:255.255.255.0 BROADCAST RUNNING   |
+|        MULTICAST MTU:1500 Metric:1 RX packets:0 errors:0 dropped:0 overruns:0 frame:0   |
+|        TX packets:0 errors:0 dropped:0 overruns:0 carrier:0 collisions:0 txqueuelen:100 |
+|        RX bytes:0 (0.0 b) TX bytes:0 (0.0 b) Interrupt:12 Base address:0xc400           |
++-----------------------------------------------------------------------------------------+
+
++-------------------------------------------------------------------------------------+
+|lo Link encap:Local Loopback                                                         |
+|        inet addr:127.0.0.1 Mask:255.0.0.0 UP LOOPBACK RUNNING MTU:16436 Metric:1 RX |
+|        packets:5168 errors:0 dropped:0 overruns:0 frame:0 TX packets:5168 errors:0  |
+|        dropped:0 overruns:0 carrier:0 collisions:0 txqueuelen:0 RX bytes:1695104    |
+|        (1.6 MiB) TX bytes:1695104 (1.6 MiB)                                         |
++-------------------------------------------------------------------------------------+
+
+...where eth0 is a standard NIC that we have preconfigured to the IP address
+192.168.1.1.
+
+Note the HWaddr field, or hardware address, on the first line. This is the
+same as the MAC, or Media Access Control address, and is how we will specify
+the interface for each action.
+-----------------------------------------------------------------------------
+
+3.2.1. Manually Assigning MAC to Interface Name
+
+Whatever distribution you use, you can always use the command line to
+designate an Ethernet device (via the MAC) to be interface 'ethX' with or
+without a particular IP address. This may be necessary when you change your
+settings, swap out hardware or for just plain testing. Use ifconfig:
+
++---------------------------------------------------------------------------+
+|# ifconfig ethX hw ether 00:D0:09:DE:D4:6F up                              |
++---------------------------------------------------------------------------+
+
+You can check if it worked by calling ifconfig without options after your
+next reboot. See man ifconfig for more options.
+-----------------------------------------------------------------------------
+
+3.2.2. Automatic Configuration of Devices
+
+The method for automatically assigning a particular interface name ethX, to a
+specific hardware interface (Media Access Control address) differs by
+distribution.
+-----------------------------------------------------------------------------
+
+3.2.2.1. Debian
+
+If you are running a Debian system, you can alter the /etc/network/interfaces
+file to look like this:
+
++---------------------------------------------------------------------------------------+
+|        # /etc/network/interfaces -- configuration file for ifup(8), ifdown(8) # The   |
+|        loopback interface auto lo iface lo inet loopback auto eth0 iface eth0 inet    |
+|        static address 192.168.1.1 netmask 255.255.255.0 network 192.168.1.0 hwaddress |
+|        ether 00:D0:09:DE:D4:6F                                                        |
+|                                                                                       |
+|        auto eth1 iface eth1 inet dhcp hwaddress ether 00:04:BD:DE:42:0B               |
++---------------------------------------------------------------------------------------+
+
+The auto eth0 and auto eth1 are required to have the interfaces configured at
+boot-up. Note that some versions of dhcp clients by default always grab eth0
+for the dhcpc interface. So even after doing all the above, unless you
+specifically run /sbin/dhcpcd-bin eth1 it won't work. The easy way to do this
+at boot up is to make an init script to load the dhcp address to the correct
+interface, which should be placed in /etc/init.d. Then run update-rc.d as
+root with the correct arguments (see man update-rc.d).
+-----------------------------------------------------------------------------
+
+3.2.2.2. Red Hat
+
+The file to edit will of the form ifcfg-ethX, located in /etc/sysconfig/
+network-scripts/. The contents are typically of the form:
+
++---------------------------------------------------------------------------+
+| DEVICE=eth1                                                               |
+|# Device name. This is the interface your cable modem will use.            |
+|ONBOOT=yes                                                                 |
+|# load at boot BOOTPROTO=dhcp                                              |
+|# sets the device to receive an IP address from a DHCP server              |
+|HWADDR=00:04:BD:DE:42:0B                                                   |
+|# the hardware MAC                                                         |
++---------------------------------------------------------------------------+
+
+Edit the relevant sections with your favorite text editor program as root to
+reflect your interface name and MAC and save it. If the file doesn't exist
+for the interface you need you can create it, for example ifcfg-eth1. You can
+then use ifconfig eth1 up from the command line to use it immediately. Upon
+reboot the correct hardware settings should be loaded automatically.
+-----------------------------------------------------------------------------
+
+3.2.2.3. Slackware
+
+Slackware has a configuration utility named 'netconfig' that you can use at
+the command line as root to modify your network settings and configure
+interfaces by static IP addresses or dhcp. You can rerun it at any time to
+reconfigure things once you have installed your modem.
+-----------------------------------------------------------------------------
+
+3.2.2.4. Other Distributions
+
+Feel free to contribute if you have distribution-specific information to add;
+see Section 1.5. Consult your distribution documentation where appropriate.
+-----------------------------------------------------------------------------
+
+3.3. Using the USB interface instead of an Ethernet card
+
+3.3.1. USB CDCEther
+
+If you wish to use the USB interface to accept data you will need USB
+subsystem support in your kernel as discussed in Section 2.1, whether
+USB-ohci, USB-ehci, or whatever USB host controller driver required by your
+system. For a more in-depth discussion of this, I direct you to the Linux-USB
+project site.
+
+In addition the CDCEther (Communications Device Class Ethernet) protocol
+common to cable modems.
+
+There are two ways your kernel may support a device driver: either by being
+statically (always on) compiled within that kernel or loaded (at boot time or
+later by a script or manually) as a module. You can find out if a driver is
+statically compiled in the kernel by checking the log of messages at boot up
+using dmesg | less on the command line. Experienced users may want to take an
+easier route and check the configuration file for the currently running
+kernel in /boot, usually of the form config-2.X.x, which is a text file that
+can be grepped. On the command line, try grep -e followed by 
+CONFIG_USB_CDCETHER in 2.4.x kernels or CONFIG_USB_ETH in 2.6.x kernels
+followed by the filename; you should see a '=y or =m at the end of this
+string for static or modular status, respectively.
+
+The output of dmesg | less should reveal something similar to the following
+
++---------------------------------------------------------------------------+
+| Mar 2 11:00:52 K7 kernel: CDCEther.c:                                     |
+|0.98.6 7 Jan 2002 Brad Hards and another                                   |
+|Mar 2 11:00:52 K7 kernel: usb.c: registered new driver CDCEther            |
++---------------------------------------------------------------------------+
+
+in the case of a statically compiled driver or a module loaded at boot. 
+
+If you don't see it, to find out if your kernel has already loaded the
+CDCEther (Communications Device Class Ethernet) driver as a module, on the
+command line issue lsmod as root. You should see the module CDCEther listed
+for 2.4.x kernels, or alternatively usbnet for 2.6.x kernels.
+
+If you don't see it listed with lsmod try loading the module directly as
+root; for kernel 2.4.x this would be of the form
++---------------------------------------------------------------------------+
+| # modprobe CDCEther                                                       |
++---------------------------------------------------------------------------+
+whereas for 2.6.x the command would be
++---------------------------------------------------------------------------+
+| # modprobe usbnet                                                         |
++---------------------------------------------------------------------------+
+
+If all goes well you should see something like the following at the end of
+your system log files (/var/log/messages or /var/log/syslog, you may need to
+be root to view these) or at the end of dmesg | less from the command line:
+
++---------------------------------------------------------------------------+
+| Mar 2 11:00:52 K7 kernel: CDCEther.c:                                     |
+|0.98.6 7 Jan 2002 Brad Hards and another                                   |
+|Mar 2 11:00:52 K7 kernel: usb.c: registered new driver CDCEther            |
++---------------------------------------------------------------------------+
+
+If all goes well you should see something like the following in your system
+log files or at the end of dmesg:  
+
++---------------------------------------------------------------------------+
+| Mar 2 11:00:52 K7 kernel: CDCEther.c:                                     |
+|0.98.6 7 Jan 2002 Brad Hards and another                                   |
+|Mar 2 11:00:52 K7 kernel: usb.c: registered new driver CDCEther            |
++---------------------------------------------------------------------------+
+
+If you are unsuccessful with any of the above, and are determined to use the
+USB conduit of this device, you will need to recompile your kernel to support
+it. You will need the 2.4.3 kernel or later. For detailed instructions on
+recompiling your kernel, I direct you to the Kernel-HOWTO. The options
+required to get USB interface support working on this device have been
+addressed in Section 2.1.
+-----------------------------------------------------------------------------
+
+4. Notes on Specific Hardware
+
+Thanks to Jess Portnoy and others for much of the information below. Also,
+there are some notes specifically pertaining to configuring a cable modem and
+cable internet service providers in Israel on [http://www.freewebs.com/
+linuxnet/CableUSBLinuxEn.html] Jess' webpage for those that live there. I
+have personally subscribed to two large cable ISPs in the U.S. without any
+trouble using the instructions outlined above. The previous incarnation of
+this document had a large catalogue of ISPs listed by geography, but as a
+rule the identity of the upstream provider should not affect configuration.
+If your cable ISP claims not to support linux, it is not because of any
+technical difficulties related to the operating system. Just don't expect
+them to configure if for you on your end like they do for most other users
+(that's why you're reading this document, right?).
+-----------------------------------------------------------------------------
+
+4.1. Ambit Modems
+
+Supported by Ethernet and CDCEther.
+-----------------------------------------------------------------------------
+
+4.2. Broadcom Cable Modems
+
+Supported by Ethernet and CDCEther.
+-----------------------------------------------------------------------------
+
+4.3. Ericson PipeRider Modems
+
+Supported by Ethernet and CDCEther.
+-----------------------------------------------------------------------------
+
+4.4. Motorola SurfBoard Modems
+
+This model has enjoyed widespread use by cable providers. There is a separate
+[http://tldp.org/HOWTO/Motorola-Surfboard-Modem/index.html] HOWTO, written by
+your humble author. Supported by both Ethernet and USB CDCEther. Refer to
+that document for any hardware specific questions. The generic instructions
+above generally work.
+-----------------------------------------------------------------------------
+
+4.5. RCA (Tompson) Modems
+
+Supported with Ethernet, CDCEther untested.
+-----------------------------------------------------------------------------
+
+4.6. Terayon Modems
+
+At minimum the tj715 is known to be supported using Ethernet and CDCEther.
+-----------------------------------------------------------------------------
+
+4.7. Toshiba PCX-XXXX Cable Modems
+
+The four X's in the name indicate model number. Works with Ethernet, CDCEther
+untested. 'out-of-the-box' with the above instructions.
+-----------------------------------------------------------------------------
+
+4.8. Webstar Modems
+
+Supported with Ethernet, CDCEther untested.
+-----------------------------------------------------------------------------
+
+5. Troubleshooting
+
+Q: I get kicked offline about once every 4 days, for no apparent reason, and
+get the following error, or something similar, in the kernel log:
++-----------------------------------------------------------------------------------------+
+| Feb 20 10:05:12 K7 kernel: CDCEther.c: rx status -110 Feb 20 10:05:12 K7 kernel:        |
+|CDCEther.c: no repsonse in BULK IN Feb 20 10:05:12 K7 kernel: CDCEther.c: rx status -110 |
+|Feb 20 10:05:12 K7 kernel: CDCEther.c: no repsonse in BULK IN Feb 20 10:05:12 K7 kernel: |
+|CDCEther.c: rx status -110 Feb 20 10:05:12 K7 kernel: CDCEther.c: no repsonse in BULK    |
+|IN Feb 20 10:05:12 K7 kernel: CDCEther.c: rx status -110                                 |
++-----------------------------------------------------------------------------------------+
+
+A: There are a number of reasons this may be happening, and future updates to
+the CDCEther driver may solve some of them. At least one user on the
+Linux-USB-user mailing list noticed that on at least one occasion data sent
+to the modem from upstream by the cable provider has triggered it. Also, the
+modem itself is very sensitive to power interruptions and can lose the
+connection if this occurs. The fix is to run ifdown ethX, where ethX is the
+Ethernet interface (eth0, eth1 etc.) to clear out any remaining settings that
+are hung, then remove the module with rmmod CDCEther, reinsert the CDCEther
+module and then ifup ethX . A reboot may be necessary if this doesn't fix the
+problem. If none of these work you probably have a real service interruption.
+
+Q: I get the following messages on boot-up; are they errors?
+
++-------------------------------------------------------------------------------------+
+| Can't use                                                                           |
+|SetEthernetMulticastFilters request Mar 2 11:00:52 K7 kernel: CDCEther.c: Ethernet   |
+|information found at device configuration.  Trying to use it anyway.  Mar 2 11:00:52 |
+|K7 kernel: CDCEther.c: Imperfect filtering support - need sw hashing                 |
++-------------------------------------------------------------------------------------+
+
+A: No. The multicast message is pertaining to Multicast support in the
+kernel, which is optional and not necessary for the proper functioning of
+this modem. The message about 'Ethernet Information' is a design bug in the
+modem and can be ignored. As for the 'Imperfect filtering support, to quote
+Brad Hards:
+
+"This is a bit difficult to explain - I assume that you know what
+multicasting is - when you join a multicast group, this can be handled by the
+networking device so that other multicast traffic doesn't cause interrupts.
+That is called 'perfect filtering.' However sometimes the number of multicast
+addresses exceeds the number of filters that you have. This leads to
+'imperfect filtering,' which can cut down the number of interrupts, but you
+still need to do some work in the networking stack. Then you get to the
+typical cable modem implementation, and there is not filtering at all. Every
+multicast packet goes to the host to be filtered. This doesn't normally
+matter though, because the cable modem is a point to point link."
+-----------------------------------------------------------------------------
+
+A. Gnu Free Documentation License
+
+Version 1.2, November 2002
+
+Copyright (C) 2000,2001,2002 Free Software Foundation, Inc. 59 Temple Place,
+Suite 330, Boston, MA 02111-1307 USA Everyone is permitted to copy and
+distribute verbatim copies of this license document, but changing it is not
+allowed.
+
+0. PREAMBLE
+
+The purpose of this License is to make a manual, textbook, or other
+functional and useful document "free" in the sense of freedom: to assure
+everyone the effective freedom to copy and redistribute it, with or without
+modifying it, either commercially or noncommercially. Secondarily, this
+License preserves for the author and publisher a way to get credit for their
+work, while not being considered responsible for modifications made by
+others.
+
+This License is a kind of "copyleft", which means that derivative works of
+the document must themselves be free in the same sense. It complements the
+GNU General Public License, which is a copyleft cense designed for free
+software.
+
+We have designed this License in order to use it for manuals for free
+software, because free software needs free documentation: a free program
+should come with manuals providing the same freedoms that the software does.
+But this License is not limited to software manuals; it can be used for any
+textual work, regardless of subject matter or whether it is published as a
+printed book. We recommend this License principally for works whose purpose
+is instruction or reference.
+
+ 1. APPLICABILITY AND DEFINITIONS
+
+This License applies to any manual or other work, in any medium, that
+contains a notice placed by the copyright holder saying it can be distributed
+under the terms of this License. Such a notice grants a world-wide,
+royalty-free license, unlimited in duration, to use that work under the
+conditions stated herein. The "Document", below, refers to any such manual or
+work. Any member of the public is a licensee, and is addressed as "you". You
+accept the license if you copy, modify or distribute the work in a way
+requiring permission under copyright law.
+
+A "Modified Version" of the Document means any work containing the Document
+or a portion of it, either copied verbatim, or with modifications and/or
+translated into another language.
+
+A "Secondary Section" is a named appendix or a front-matter section of the
+Document that deals exclusively with the relationship of the publishers or
+authors of the Document to the Document's overall subject (or to related
+matters) and contains nothing that could fall directly within that overall
+subject. (Thus, if the Document is in part a textbook of mathematics, a
+Secondary Section may not explain any mathematics.) The relationship could be
+a matter of historical connection with the subject or with related matters,
+or of legal, commercial, philosophical, ethical or political position
+regarding them.
+
+The "Invariant Sections" are certain Secondary Sections whose titles are
+designated, as being those of Invariant Sections, in the notice that says
+that the Document is released under this License. If a section does not fit
+the above definition of Secondary then it is not allowed to be designated as
+Invariant. The Document may contain zero Invariant Sections. If the Document
+does not identify any Invariant Sections then there are none.
+
+The "Cover Texts" are certain short passages of text that are listed, as
+Front-Cover Texts or Back-Cover Texts, in the notice that says that the
+Document is released under this License. A Front-Cover Text may be at most 5
+words, and a Back-Cover Text may be at most 25 words.
+
+A "Transparent" copy of the Document means a machine-readable copy,
+represented in a format whose specification is available to the general
+public, that is suitable for revising the document straightforwardly with
+generic text editors or (for images composed of pixels) generic paint
+programs or (for drawings) some widely available drawing editor, and that is
+suitable for input to text formatters or for automatic translation to a
+variety of formats suitable for input to text formatters. A copy made in an
+otherwise Transparent file format whose markup, or absence of markup, has
+been arranged to thwart or discourage subsequent modification by readers is
+not Transparent. An image format is not Transparent if used for any
+substantial amount of text. A copy that is not "Transparent" is called
+"Opaque".
+
+Examples of suitable formats for Transparent copies include plain ASCII
+without markup, Texinfo input format, LaTeX input format, SGML or XML using a
+publicly available DTD, and standard-conforming simple HTML, PostScript or
+PDF designed for human modification. Examples of transparent image formats
+include PNG, XCF and JPG. Opaque formats include proprietary formats that can
+be read and edited only by proprietary word processors, SGML or XML for which
+the DTD and/or processing tools are not generally available, and the
+machine-generated HTML, PostScript or PDF produced by some word processors
+for output purposes only.
+
+The "Title Page" means, for a printed book, the title page itself, plus such
+following pages as are needed to hold, legibly, the material this License
+requires to appear in the title page. For works in formats which do not have
+any title page as such, "Title Page" means the text near the most prominent
+appearance of the work's title, preceding the beginning of the body of the
+text.
+
+A section "Entitled XYZ" means a named subunit of the Document whose title
+either is precisely XYZ or contains XYZ in parentheses following text that
+translates XYZ in another language. (Here XYZ stands for a specific section
+name mentioned below, such as "Acknowledgements", "Dedications",
+"Endorsements", or "History".) To "Preserve the Title" of such a section when
+you modify the Document means that it remains a section "Entitled XYZ"
+according to this definition.
+
+The Document may include Warranty Disclaimers next to the notice which states
+that this License applies to the Document. These Warranty Disclaimers are
+considered to be included by reference in this License, but only as regards
+disclaiming warranties: any other implication that these Warranty Disclaimers
+may have is void and has no effect on the meaning of this License.
+
+ 2. VERBATIM COPYING
+
+You may copy and distribute the Document in any medium, either commercially
+or noncommercially, provided that this License, the copyright notices, and
+the license notice saying this License applies to the Document are reproduced
+in all copies, and that you add no other conditions whatsoever to those of
+this License. You may not use technical measures to obstruct or control the
+reading or further copying of the copies you make or distribute. However, you
+may accept compensation in exchange for copies. If you distribute a large
+enough number of copies you must also follow the conditions in section 3.
+
+You may also lend copies, under the same conditions stated above, and you may
+publicly display copies.
+
+ 3. COPYING IN QUANTITY
+
+If you publish printed copies (or copies in media that commonly have printed
+covers) of the Document, numbering more than 100, and the Document's license
+notice requires Cover Texts, you must enclose the copies in covers that
+carry, clearly and legibly, all these Cover Texts: Front-Cover Texts on the
+front cover, and Back-Cover Texts on the back cover. Both covers must also
+clearly and legibly identify you as the publisher of these copies. The front
+cover must present the full title with all words of the title equally
+prominent and visible. You may add other material on the covers in addition.
+Copying with changes limited to the covers, as long as they preserve the
+title of the Document and satisfy these conditions, can be treated as
+verbatim copying in other respects.
+
+If the required texts for either cover are too voluminous to fit legibly, you
+should put the first ones listed (as many as fit reasonably) on the actual
+cover, and continue the rest onto adjacent pages.
+
+If you publish or distribute Opaque copies of the Document numbering more
+than 100, you must either include a machine-readable Transparent copy along
+with each Opaque copy, or state in or with each Opaque copy a
+computer-network location from which the general network-using public has
+access to download using public-standard network protocols a complete
+Transparent copy of the Document, free of added material. If you use the
+latter option, you must take reasonably prudent steps, when you begin
+distribution of Opaque copies in quantity, to ensure that this Transparent
+copy will remain thus accessible at the stated location until at least one
+year after the last time you distribute an Opaque copy (directly or through
+your agents or retailers) of that edition to the public.
+
+It is requested, but not required, that you contact the authors of the
+Document well before redistributing any large number of copies, to give them
+a chance to provide you with an updated version of the Document.
+
+ 4. MODIFICATIONS
+
+You may copy and distribute a Modified Version of the Document under the
+conditions of sections 2 and 3 above, provided that you release the Modified
+Version under precisely this License, with the Modified Version filling the
+role of the Document, thus licensing distribution and modification of the
+Modified Version to whoever possesses a copy of it. In addition, you must do
+these things in the Modified Version:
+
+A. Use in the Title Page (and on the covers, if any) a title distinct from
+that of the Document, and from those of previous versions (which should, if
+there were any, be listed in the History section of the Document). You may
+use the same title as a previous version if the original publisher of that
+version gives permission.
+
+B. List on the Title Page, as authors, one or more persons or entities
+responsible for authorship of the modifications in the Modified Version,
+together with at least five of the principal authors of the Document (all of
+its principal authors, if it has fewer than five), unless they release you
+from this requirement.
+
+C. State on the Title page the name of the publisher of the Modified Version,
+as the publisher.
+
+D. Preserve all the copyright notices of the Document.
+
+E. Add an appropriate copyright notice for your modifications adjacent to the
+other copyright notices.
+
+F. Include, immediately after the copyright notices, a license notice giving
+the public permission to use the Modified Version under the terms of this
+License, in the form shown in the Addendum below.
+
+G. Preserve in that license notice the full lists of Invariant Sections and
+required Cover Texts given in the Document's license notice.
+
+H. Include an unaltered copy of this License.
+
+I. Preserve the section Entitled "History", Preserve its Title, and add to it
+an item stating at least the title, year, new authors, and publisher of the
+Modified Version as given on the Title Page. If there is no section Entitled
+"History" in the Document, create one stating the title, year, authors, and
+publisher of the Document as given on its Title Page, then add an item
+describing the Modified Version as stated in the previous sentence.
+
+J. Preserve the network location, if any, given in the Document for public
+access to a Transparent copy of the Document, and likewise the network
+locations given in the Document for previous versions it was based on. These
+may be placed in the "History" section. You may omit a network location for a
+work that was published at least four years before the Document itself, or if
+the original publisher of the version it refers to gives permission.
+
+K. For any section Entitled "Acknowledgements" or "Dedications", Preserve the
+Title of the section, and preserve in the section all the substance and tone
+of each of the contributor acknowledgements and/or dedications given therein.
+
+L. Preserve all the Invariant Sections of the Document, unaltered in their
+text and in their titles. Section numbers or the equivalent are not
+considered part of the section titles.
+
+M. Delete any section Entitled "Endorsements". Such a section may not be
+included in the Modified Version.
+
+N. Do not retitle any existing section to be Entitled "Endorsements" or to
+conflict in title with any Invariant Section.
+
+O. Preserve any Warranty Disclaimers. If the Modified Version includes new
+front-matter sections or appendices that qualify as Secondary Sections and
+contain no material copied from the Document, you may at your option
+designate some or all of these sections as invariant. To do this, add their
+titles to the list of Invariant Sections in the Modified Version's license
+notice. These titles must be distinct from any other section titles. You may
+add a section Entitled "Endorsements", provided it contains nothing but
+endorsements of your Modified Version by various parties--for example,
+statements of peer review or that the text has been approved by an
+organization as the authoritative definition of a standard.
+
+You may add a passage of up to five words as a Front-Cover Text, and a
+passage of up to 25 words as a Back-Cover Text, to the end of the list of
+Cover Texts in the Modified Version. Only one passage of Front-Cover Text and
+one of Back-Cover Text may be added by (or through arrangements made by) any
+one entity. If the Document already includes a cover text for the same cover,
+previously added by you or by arrangement made by the same entity you are
+acting on behalf of, you may not add another; but you may replace the old
+one, on explicit permission from the previous publisher that added the old
+one.
+
+The author(s) and publisher(s) of the Document do not by this License give
+permission to use their names for publicity for or to assert or imply
+endorsement of any Modified Version.
+
+5. COMBINING DOCUMENTS
+
+You may combine the Document with other documents released under this
+License, under the terms defined in section 4 above for modified versions,
+provided that you include in the combination all of the Invariant Sections of
+all of the original documents, unmodified, and list them all as Invariant
+Sections of your combined work in its license notice, and that you preserve
+all their Warranty Disclaimers.
+
+The combined work need only contain one copy of this License, and multiple
+identical Invariant Sections may be replaced with a single copy. If there are
+multiple Invariant Sections with the same name but different contents, make
+the title of each such section unique by adding at the end of it, in
+parentheses, the name of the original author or publisher of that section if
+known, or else a unique number. Make the same adjustment to the section
+titles in the list of Invariant Sections in the license notice of the
+combined work.
+
+In the combination, you must combine any sections Entitled "History" in the
+various original documents, forming one section Entitled "History"; likewise
+combine any sections Entitled "Acknowledgements", and any sections Entitled
+"Dedications". You must delete all sections Entitled "Endorsements".
+
+6. COLLECTIONS OF DOCUMENTS
+
+You may make a collection consisting of the Document and other documents
+released under this License, and replace the individual copies of this
+License in the various documents with a single copy that is included in the
+collection, provided that you follow the rules of this License for verbatim
+copying of each of the documents in all other respects.
+
+You may extract a single document from such a collection, and distribute it
+individually under this License, provided you insert a copy of this License
+into the extracted document, and follow this License in all other respects
+regarding verbatim copying of that document.
+
+7. AGGREGATION WITH INDEPENDENT WORKS
+
+A compilation of the Document or its derivatives with other separate and
+independent documents or works, in or on a volume of a storage or
+distribution medium, is called an "aggregate" if the copyright resulting from
+the compilation is not used to limit the legal rights of the compilation's
+users beyond what the individual works permit. When the Document is included
+in an aggregate, this License does not apply to the other works in the
+aggregate which are not themselves derivative works of the Document.
+
+If the Cover Text requirement of section 3 is applicable to these copies of
+the Document, then if the Document is less than one half of the entire
+aggregate, the Document's Cover Texts may be placed on covers that bracket
+the Document within the aggregate, or the electronic equivalent of covers if
+the Document is in electronic form. Otherwise they must appear on printed
+covers that bracket the whole aggregate.
+
+8. TRANSLATION
+
+Translation is considered a kind of modification, so you may distribute
+translations of the Document under the terms of section 4. Replacing
+Invariant Sections with translations requires special permission from their
+copyright holders, but you may include translations of some or all Invariant
+Sections in addition to the original versions of these Invariant Sections.
+You may include a translation of this License, and all the license notices in
+the Document, and any Warranty Disclaimers, provided that you also include
+the original English version of this License and the original versions of
+those notices and disclaimers. In case of a disagreement between the
+translation and the original version of this License or a notice or
+disclaimer, the original version will prevail.
+
+If a section in the Document is Entitled "Acknowledgements", "Dedications",
+or "History", the requirement (section 4) to Preserve its Title (section 1)
+will typically require changing the actual title.
+
+9. TERMINATION
+
+You may not copy, modify, sublicense, or distribute the Document except as
+expressly provided for under this License. Any other attempt to copy, modify,
+sublicense or distribute the Document is void, and will automatically
+terminate your rights under this License. However, parties who have received
+copies, or rights, from you under this License will not have their licenses
+terminated so long as such parties remain in full compliance.
+
+10. FUTURE REVISIONS OF THIS LICENSE
+
+The Free Software Foundation may publish new, revised versions of the GNU
+Free Documentation License from time to time. Such new versions will be
+similar in spirit to the present version, but may differ in detail to address
+new problems or concerns. See http://www.gnu.org/copyleft/.
+
+Each version of the License is given a distinguishing version number. If the
+Document specifies that a particular numbered version of this License "or any
+later version" applies to it, you have the option of following the terms and
+conditions either of that specified version or of any later version that has
+been published (not as a draft) by the Free Software Foundation. If the
+Document does not specify a version number of this License, you may choose
+any version ever published (not as a draft) by the Free Software Foundation.
+
+ADDENDUM: How to use this License for your documents
+
+To use this License in a document you have written, include a copy of the
+License in the document and put the following copyright and license notices
+just after the title page:
+
+Copyright (c) YEAR YOUR NAME. Permission is granted to copy, distribute and/
+or modify this document under the terms of the GNU Free Documentation
+License, Version 1.2 or any later version published by the Free Software
+Foundation; with no Invariant Sections, no Front-Cover Texts, and no
+Back-Cover Texts. A copy of the license is included in the section entitled
+"GNU Free Documentation License".
+
+If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts,
+replace the "with...Texts." line with this: with the Invariant Sections being
+LIST THEIR TITLES, with the Front-Cover Texts being LIST, and with the
+Back-Cover Texts being LIST. If you have Invariant Sections without Cover
+Texts, or some other combination of the three, merge those two alternatives
+to suit the situation.
+
+If your document contains nontrivial examples of program code, we recommend
+releasing these examples in parallel under your choice of free software
+license, such as the GNU General Public License, to permit their use in free
+software.

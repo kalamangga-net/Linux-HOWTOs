@@ -1,0 +1,1123 @@
+  VCR-HOWTO - Using your GNU/Linux computer as a VCR
+  Brian Hayward, twivel@slothmud.org
+  0.04, 2001-07-30
+
+
+
+  This is a guide to setting up your GNU/Linux workstation as a digital
+  VCR using the video4linux driver and a supported tuner card.  A sec­
+  tion has been added for creating VCD's that can be played in any
+  DVD/VCD player as well.
+  ______________________________________________________________________
+
+  Table of Contents
+
+
+  1. Introduction
+
+     1.1 Copyright
+     1.2 Disclaimer
+     1.3 News
+     1.4 Credits
+     1.5 Translations
+
+  2. Technologies
+
+     2.1 Tuner or Capture Card
+     2.2 Kernel video4linux driver
+     2.3 Frame Capture Software
+
+  3. Implementation
+
+     3.1 Install and Configure Tuner Card
+     3.2 Configure xawtv to function properly.
+        3.2.1 Sample .xawtv configuration file.
+     3.3 Install the avifile library
+        3.3.1 Compiling and installing avifile-0.53-5
+     3.4 Installing the VCR frame-grabber program
+        3.4.1 Compiling and installing vcr-1.07
+        3.4.2 Sample .vcrrc configuration file
+     3.5 Using cron to record your favorite program.
+        3.5.1 Sample cron shell script
+        3.5.2 Calling the script from cron
+        3.5.3 Calling the script from at
+
+  4. Alternate Recorder - Creating VCD's for playback on DVD/VCD Players
+
+     4.1 Introduction to VCD Creation
+     4.2 Required Hardware for VCD Creation and Playing
+     4.3 Required Software for VCD Creation
+     4.4 Procedure for creating a VCD
+
+  5. Further Information
+
+     5.1 MyVCR Wrapper Program proposal
+     5.2 Alternate Recorders
+     5.3 Recording Results
+     5.4 Other Suggested Ideas
+
+  6. Getting Help
+
+  7. Concluding Remarks
+
+  8. Questions and Answers
+
+
+
+  ______________________________________________________________________
+
+  1.  Introduction
+
+
+  This is a guide to setting up your GNU/Linux computer as a VCR.
+  Setting up my VCR took a little research, but it didn't turn out to be
+  as difficult as I thought.  I decided to publish my results so others
+  may benefit from what I've done.  This is by no means the only method
+  to achieve the same results as there are several applications out
+  there that may perform similar tasks.  Hopefully any unique procedures
+  for configuring other software or devices may be incorporated into
+  this document.
+
+
+  1.1.  Copyright
+
+  Copyright (c) 2001 by Brian Hayward (Twivel)
+
+  Please freely copy and distribute (sell or give away) this document in
+  any format.  It's requested that corrections and/or comments be
+  forwarded to the document maintainer. You may create a derivative work
+  and distribute it provided that you:
+
+
+  ·  Send your derivative work (in the most suitable format such as
+     sgml) to the LDP (Linux Documentation Project) or the like for
+     posting on the Internet.  If not the LDP, then let the LDP know
+     where it is available.
+
+  ·  License the derivative work with this same license or use GPL.
+     Include a copyright notice and at least a pointer to the license
+     used.
+
+  ·  Give due credit to previous authors and major contributors.
+
+
+  If you're considering making a derived work other than a translation,
+  it's requested that you discuss your plans with the current
+  maintainer.
+
+
+
+  1.2.  Disclaimer
+
+
+  Use the information in this document at your own risk. I disavow any
+  potential liability for the contents of this document. Use of the
+  concepts, examples, and/or other content of this document is entirely
+  at your own risk.
+
+  All copyrights are owned by their owners, unless specifically noted
+  otherwise.  Use of a term in this document should not be regarded as
+  affecting the validity of any trademark or service mark.
+
+  Naming of particular products or brands should not be seen as
+  endorsements.
+
+  You are strongly recommended to take a backup of your system before
+  major installation and backups at regular intervals.
+
+
+
+  1.3.  News
+
+  This is the first release. No news yet.
+
+  The latest version of this document can be found at Here
+  <http://www.slothmud.org/~hayward/vcr-howto>.
+
+
+
+  1.4.  Credits
+
+
+  The following individuals either helped me directly or indirectly
+  during the process of developing this HOWTO.  Several tips that were
+  suggested by these people have not been added to this document yet,
+  don't worry - all in good time.
+
+
+
+       david (at) lupercalia.net -- For talking me into learning SGML
+       sjgoen (at) nyx.net -- The template for this HOWTO
+       knordberg (at) oru.edu -- Help with design and proof reading of this HOWTO
+       serge (at) tux.org -- Lots of Tips for expanding the document
+       gferg (at) hoop.timonium.sgi.com -- Help with SGML
+       remenyi (at) ace-net.com.au -- Suggestions for expanding this document
+       nando (at) antunes.eti.br -- Working on Portuguese Translation.
+       linuxpe (at) uol.com.br -- Working on Portuguese Translation.
+       sam (at) daemoninc.com -- Tips for expanding this document.
+       HeikoL77 (at) web.de -- Links to more information.
+       Henry.Kingman (at) zdnet.com -- Links to more information on supported video cards.
+       aoe (at) mars.tuwien.ac.at -- Alexander provided the section on creating VCD's.
+
+
+
+  1.5.  Translations
+
+  Marcio Montenegro was kind enough to translate this document to
+  Portuguese.  His translation is available at this site
+  <http://sites.uol.com.br/linuxpe>.  Feel free to translate this
+  document to other languages.  If you send me a link, I will credit you
+  and include it in this document.  Please note that for it to be
+  included in the Linux Documentation Project, you will have to provide
+  it in sgml format.
+
+
+
+  2.  Technologies
+
+  This section describes the different technologies used to build your
+  own Linux VCR.
+
+
+  2.1.  Tuner or Capture Card
+
+  You will need to install a supported video4linux capture card in your
+  computer.  I currently use the Hauppauge WinTV tuner card which I
+  purchased from Best Buy, but many other cards should work just as
+  well.  I don't have a suggestion for which is best, I can only comment
+  that the one I own works for me.
+
+  2.2.  Kernel video4linux driver
+
+  Many GNU/Linux distributions already provide a Linux kernel that is
+  configured to support video4linux devices.  The Hauppauge WinTV card
+  is supported by the 'bttv' driver.  I have to load two modules into
+  the linux kernel to support my card, namely the 'tuner' and 'bttv'
+  modules.  Check out the V4L homepage
+  <http://roadrunner.swansea.linux.org.uk/v4l.shtml> for details on
+  supported tuner cards.  Also check out ZDnet Linux Hardware
+  <http://lhd.zdnet.com/db/searchproduct.cgi?_catid=17> for information
+  about Linux tuner cards.
+
+
+
+  2.3.  Frame Capture Software
+
+  Recording with your digital VCR of course requires frame capture
+  software.  As I become aware of available software for capturing
+  audio/video to mpeg/avi formats, I will place it in this list.  If you
+  have any suggestions for good software please let me know and I'll add
+  it here.
+
+
+
+  3.  Implementation
+
+  Now lets go through the steps of actually configuring your computer as
+  a VCR.
+
+
+  3.1.  Install and Configure Tuner Card
+
+  My particular tuner card required special parameters to the 'tuner'
+  and If you can watch TV through your card via xawtv, then you have
+  correctly configured your card.  Here are the configuration lines from
+  my /etc/modules.conf (or /etc/conf.modules for older distributions).
+
+  options -k bttv radio=1 card=2
+  options -k tuner debug=0 type=6
+
+
+  These parameters will vary depending on the model of your card, see
+  the documentation found in the linux source (linux/Documenta­
+  tion/video4linux) to figure out exactly how to configure your card.  I
+  added these modules to /etc/modules so they would automatically load
+  on bootup.  You can also manually load them with 'modprobe modulename'
+  as root.  I'm currently using the 2.4.2 kernel, but I have had success
+  with this card with all of the 2.2.x kernels as well.  Hint: the user
+  may need to have ownership of the /dev/video /dev/video0 files (and
+  maybe other devices as well) before the tuner card will function.  As
+  always, I suggest not running any apps as root.
+
+
+  3.2.  Configure xawtv to function properly.
+
+  You can either use xawtv from a reasonably current distribution, or
+  download the source code from the xawtv Homepage
+  <http://www.strusel007.de/linux/xawtv/> Make sure xawtv functions for
+  your tuner card before proceeding.
+
+
+  3.2.1.  Sample .xawtv configuration file.
+
+  Here is a sample ".xawtv" configuration file.  This should be placed
+  within the home directory for the user who will be doing the VCR
+  recording.  I suggest adding presets to your .xawtv file for all
+  channels(0-NNN) (even non-existing ones) because you will use the
+  "v4lctl" command to switch channels later.  This command makes use of
+  'preset number' rather than 'channel number', so it's convenient to
+  have preset numbers be the same as actual channel numbers.  The
+  following configuration file was designed for US-cable, your mileage
+  may vary.
+
+
+
+  [global]
+  freqtab = us-cable
+  pixsize = 128 x 96
+  pixcols = 1
+  jpeg-quality = 75
+  mjpeg-quality = 75
+  toggle-mouse = 0
+  keypad-ntsc = no
+  osd = yes
+
+  # [Station name]
+  # capture = overlay | grabdisplay | on | off
+  # input = Television | Composite1 | S-Video | ...
+  # norm = PAL | NTSC | SECAM | ...
+  # channel = #
+  # fine = # (-128..+127)
+  # key = keysym | modifier+keysym
+  # color = #
+  # bright = #
+  # hue = #
+  # contrast = #
+
+  [defaults]
+  norm = NTSC
+  capture = over
+  input = Television
+
+
+  [CH0 0]
+  channel = 0
+  fine = 0
+
+  [CH1 1]
+  channel = 1
+  fine = 0
+
+  [CH2 2]
+  channel = 2
+  fine = 0
+
+  [CH3 3]
+  channel = 3
+  fine = 0
+
+  [CH4 4]
+  channel = 4
+  fine = 0
+
+  [CH5 5]
+  channel = 5
+  fine = 0
+
+  [CH6 6]
+  channel = 6
+  fine = 0
+
+  [CH7 7]
+  channel = 7
+  fine = 0
+
+  [CH8 8]
+  channel = 8
+  fine = 0
+
+  [CH9 9]
+  channel = 9
+  fine = 0
+
+  [CH10 10]
+  channel = 10
+  fine = 0
+
+  [CH11 11]
+  channel = 11
+  fine = 0
+
+  [CH12 12]
+  channel = 12
+  fine = 0
+
+  [CH13 13]
+  channel = 13
+  fine = 0
+
+  [CH14 14]
+  channel = 14
+  fine = 0
+
+  [CH15 15]
+  channel = 15
+  fine = 0
+
+  [CH16 16]
+  channel = 16
+  fine = 0
+
+  [CH17 17]
+  channel = 17
+  fine = 0
+
+  [CH18 18]
+  channel = 18
+  fine = 0
+
+  [CH19 19]
+  channel = 19
+  fine = 0
+
+  [CH20 20]
+  channel = 20
+  fine = 0
+
+  [CH21 21]
+  channel = 21
+  fine = 0
+
+  [CH22 22]
+  channel = 22
+  fine = 0
+
+  [CH23 23]
+  channel = 23
+  fine = 0
+
+  [CH24 24]
+  channel = 24
+  fine = 0
+
+  [CH25 25]
+  channel = 25
+  fine = 0
+
+  [CH26 26]
+  channel = 26
+  fine = 0
+
+  [CH27 27]
+  channel = 27
+  fine = 0
+
+  [CH28 28]
+  channel = 28
+  fine = 0
+
+  [CH29 29]
+  channel = 29
+  fine = 0
+
+  [CH30 30]
+  channel = 30
+  fine = 0
+
+  [CH31 31]
+  channel = 31
+  fine = 0
+
+  [CH32 32]
+  channel = 32
+  fine = 0
+
+  [CH33 33]
+  channel = 33
+  fine = 0
+
+  [CH34 34]
+  channel = 34
+  fine = 0
+
+  [CH35 35]
+  channel = 35
+  fine = 0
+
+  [CH36 36]
+  channel = 36
+  fine = 0
+
+  [CH37 37]
+  channel = 37
+  fine = 0
+
+  [CH38 38]
+  channel = 38
+  fine = 0
+
+  [CH39 39]
+  channel = 39
+  fine = 0
+
+  [CH40 40]
+  channel = 40
+  fine = 0
+
+  [CH41 41]
+  channel = 41
+  fine = 0
+
+  [CH42 42]
+  channel = 42
+  fine = 0
+
+  [CH43 43]
+  channel = 43
+  fine = 0
+
+  [CH44 44]
+  channel = 44
+  fine = 0
+
+  [CH45 45]
+  channel = 45
+  fine = 0
+
+  [CH46 46]
+  channel = 46
+  fine = 0
+
+  [CH47 47]
+  channel = 47
+  fine = 0
+
+  [CH48 48]
+  channel = 48
+  fine = 0
+
+  [CH49 49]
+  channel = 49
+  fine = 0
+
+  [CH50 50]
+  channel = 50
+  fine = 0
+
+  [CH51 51]
+  channel = 51
+  fine = 0
+
+  [CH52 52]
+  channel = 52
+  fine = 0
+
+  [CH53 53]
+  channel = 53
+  fine = 0
+
+  [CH54 54]
+  channel = 54
+  fine = 0
+
+  [CH55 55]
+  channel = 55
+  fine = 0
+
+  [CH56 56]
+  channel = 56
+  fine = 0
+
+  [CH57 57]
+  channel = 57
+  fine = 0
+
+  [CH58 58]
+  channel = 58
+  fine = 0
+
+  [CH59 59]
+  channel = 59
+  fine = 0
+
+
+
+  3.3.  Install the avifile library
+
+  Download the latest avifile package from DiVX :-) Homepage
+  <http://divx.euro.ru>.  You will need avifile-0.5x and binaries-
+  xxxxxx.zip.  You should extract the binaries to /usr/lib/win32.  The
+  next section describes compiling and installing avifile-0.53-5.
+
+
+
+  3.3.1.  Compiling and installing avifile-0.53-5
+
+
+  # tar xvfz avifile-0.53-5.tar.gz
+  # cd avifile-0.53-5
+  # ./configure
+  # make
+  # make install
+  # mkdir /usr/lib/win32
+  # cd /usr/lib/win32
+  # unzip /path/to/binaries-010122.zip
+
+
+  You will need to be root for the make install step to work.  If you
+  receive any errors, they were probably due to a missing dependency
+  during the configure step.  Resolve any dependencies and try again.
+  This should work smoothly on any recent distribution that was
+  installed with 'development' tools.
+
+
+
+  3.4.  Installing the VCR frame-grabber program
+
+  You can get the latest vcr program (vcr-1.07 at the time I wrote this)
+  from The VCR Homepage <http://www.stack.nl/~brama/vcr/>.
+
+
+
+  3.4.1.  Compiling and installing vcr-1.07
+
+  You will need to be root for the make install step to work.
+
+  # tar xvfz vcr-1.07.tar.gz
+  # cd vcr-1.07
+  # ./configure
+  # make
+  # make install
+
+
+
+  3.4.2.  Sample .vcrrc configuration file
+
+  By default, vcr installs everything into /usr/local (unless you
+  changed the prefix on the ./configure line).  You can now read the man
+  page for vcr with:  'man -M/usr/local/man vcr'.  This is where I got
+  the initial .vcrrc file.  I configured this one for my needs and added
+  the same presets to this file as I did with the .xawtv file.  If you
+  think these files look similar, it's because vcr was originally based
+  on the xawtv code base.  Here is the .vcrrc I use:  (note that the new
+  'audiobitrate' parameter means record audio in mp3 format at the
+  specified bitrate.  mp3 audio is MUCH! smaller than PCM audio that vcr
+  records by default.  30 minutes = 113 megs for mp3 instead of 240megs
+  for PCM!).
+
+
+
+  [defaults]
+  quality = 95
+  keyframes = 15
+  codec = DivX ;-) low-motion
+  attributes = BitRate=1600
+  source = Television
+  norm = ntsc
+  verbose = 1
+  freqtab = us-cable
+  audiofrequency=44
+  audiobitrate=64
+  resolution=384
+  framerate = 29.97
+  grabdevice=/dev/video0
+
+
+  [CH0 0]
+  channel = 0
+  fine = 0
+
+  [CH1 1]
+  channel = 1
+  fine = 0
+
+  [CH2 2]
+  channel = 2
+  fine = 0
+
+  [CH3 3]
+  channel = 3
+  fine = 0
+
+  [CH4 4]
+  channel = 4
+  fine = 0
+
+  [CH5 5]
+  channel = 5
+  fine = 0
+
+  [CH6 6]
+  channel = 6
+  fine = 0
+
+  [CH7 7]
+  channel = 7
+  fine = 0
+
+  [CH8 8]
+  channel = 8
+  fine = 0
+
+  [CH9 9]
+  channel = 9
+  fine = 0
+
+  [CH10 10]
+  channel = 10
+  fine = 0
+
+  [CH11 11]
+  channel = 11
+  fine = 0
+
+  [CH12 12]
+  channel = 12
+  fine = 0
+
+  [CH13 13]
+  channel = 13
+  fine = 0
+
+  [CH14 14]
+  channel = 14
+  fine = 0
+
+  [CH15 15]
+  channel = 15
+  fine = 0
+
+  [CH16 16]
+  channel = 16
+  fine = 0
+
+  [CH17 17]
+  channel = 17
+  fine = 0
+
+  [CH18 18]
+  channel = 18
+  fine = 0
+
+  [CH19 19]
+  channel = 19
+  fine = 0
+
+  [CH20 20]
+  channel = 20
+  fine = 0
+
+  [CH21 21]
+  channel = 21
+  fine = 0
+
+  [CH22 22]
+  channel = 22
+  fine = 0
+
+  [CH23 23]
+  channel = 23
+  fine = 0
+
+  [CH24 24]
+  channel = 24
+  fine = 0
+
+  [CH25 25]
+  channel = 25
+  fine = 0
+
+  [CH26 26]
+  channel = 26
+  fine = 0
+
+  [CH27 27]
+  channel = 27
+  fine = 0
+
+  [CH28 28]
+  channel = 28
+  fine = 0
+
+  [CH29 29]
+  channel = 29
+  fine = 0
+
+  [CH30 30]
+  channel = 30
+  fine = 0
+
+  [CH31 31]
+  channel = 31
+  fine = 0
+
+  [CH32 32]
+  channel = 32
+  fine = 0
+
+  [CH33 33]
+  channel = 33
+  fine = 0
+
+  [CH34 34]
+  channel = 34
+  fine = 0
+
+  [CH35 35]
+  channel = 35
+  fine = 0
+
+  [CH36 36]
+  channel = 36
+  fine = 0
+
+  [CH37 37]
+  channel = 37
+  fine = 0
+
+  [CH38 38]
+  channel = 38
+  fine = 0
+
+  [CH39 39]
+  channel = 39
+  fine = 0
+
+  [CH40 40]
+  channel = 40
+  fine = 0
+
+  [CH41 41]
+  channel = 41
+  fine = 0
+
+  [CH42 42]
+  channel = 42
+  fine = 0
+
+  [CH43 43]
+  channel = 43
+  fine = 0
+
+  [CH44 44]
+  channel = 44
+  fine = 0
+
+  [CH45 45]
+  channel = 45
+  fine = 0
+
+  [CH46 46]
+  channel = 46
+  fine = 0
+
+  [CH47 47]
+  channel = 47
+  fine = 0
+
+  [CH48 48]
+  channel = 48
+  fine = 0
+
+  [CH49 49]
+  channel = 49
+  fine = 0
+
+  [CH50 50]
+  channel = 50
+  fine = 0
+
+  [CH51 51]
+  channel = 51
+  fine = 0
+
+  [CH52 52]
+  channel = 52
+  fine = 0
+
+  [CH53 53]
+  channel = 53
+  fine = 0
+
+  [CH54 54]
+  channel = 54
+  fine = 0
+
+  [CH55 55]
+  channel = 55
+  fine = 0
+
+  [CH56 56]
+  channel = 56
+  fine = 0
+
+  [CH57 57]
+  channel = 57
+  fine = 0
+
+  [CH58 58]
+  channel = 58
+  fine = 0
+
+  [CH59 59]
+  channel = 59
+  fine = 0
+
+
+
+  3.5.  Using cron to record your favorite program.
+
+  You may want to verify vcr will record your program before setting up
+  cron to record your programs.  You can test this by doing "vcr -t 2m
+  test.avi", then try to play back that two-minute sample using aviplay.
+  Note that you will need to add to work properly.  It was also
+  suggested that you can use 'at' to record your program as well, this
+  may be useful for times when you just want to record a program once at
+  a specific time, but not regularly.  Here is a sample shell script
+  that can be called from cron:
+
+
+  3.5.1.  Sample cron shell script
+
+  This is a very simple script that merely switches to a channel and
+  records sixty minutes of a program to a date oriented filename.  Place
+  this in $HOME/bin of the user who will actually do the recording -
+  since I am going to run it at 6pm, I'll call it recordshow6pm.sh.
+
+
+  #!/bin/sh
+  LD_LIBRARY_PATH=/usr/local/lib
+  export LD_LIBRARY_PATH
+  PATH=/usr/local/bin:$PATH
+  export PATH
+
+  DATE=`date +%m%d%y`
+  FILENAME=/path/to/myshow-6pm-$DATE.avi
+  v4lctl setstation 3
+  vcr -t 60m $FILENAME
+
+
+
+  3.5.2.  Calling the script from cron
+
+  Now it's time to call it from cron, monday through friday at 6pm.  To
+  do this, run the crontab -e command as the correct user and enter the
+  following line:
+
+  00 18 * * 1-5 /home/username/bin/recordshow6pm.sh
+
+
+
+  3.5.3.  Calling the script from at
+
+  If you'd rather call the script from at, for one-time execution, you
+  may instead do this:
+
+  at -f /home/username/bin/recordshow6pm.sh 18:00
+
+
+
+  4.  Alternate Recorder - Creating VCD's for playback on DVD/VCD Play­
+  ers
+
+
+  4.1.  Introduction to VCD Creation
+
+  I must thank Alexander Oelzant for creating this portion of the VCR-
+  HOWTO.  His original version is located at: README.bttv2mpeg
+  <http://131.130.199.155/~aoe/mystuff/mpeg2_movie-
+  avipatch/README.bttv2mpeg>.
+
+  After recording shows on my computer for a while, I realized it was
+  much nicer to watch the shows on my full-sized television set than to
+  watch them on my computer monitor.  There are two options for doing
+  this: 1) Purchase a video card with TV-OUT and run a cable to my
+  television. or 2) Create a VCD and play it in my DVD Player.  Since
+  CD-R and CD-RW media is really cheap I decided to go this route.
+
+  This section could theoretically be done in a different HOWTO because
+  it uses a different method for recording/converting than the other
+  sections of the VCR-HOWTO use.  This is primarily because I haven't
+  figured out how to create VCD compatible mpeg's using vcr.  If your
+  goal is to create VCD's, use this section of the HOWTO.  If you don't
+  care about VCD's, completely ignore this section of the howto because
+  these procedures require MUCH MORE disk space than using vcr to record
+  for playing under linux.
+
+
+
+  4.2.  Required Hardware for VCD Creation and Playing
+
+
+  1)A linux supported CD writer.
+  2)A bttv compatible TV Tuner Card (WinTV is one good example)
+  3)A VCD player or DVD Player
+
+
+
+  4.3.  Required Software for VCD Creation
+
+  This is one method for creating VCD's under linux.  If you have a
+  better method, please let me know.  The following list of software
+  contains the versions I found to work well for me under Red Hat 7.1.
+
+
+  1)NuppelVideo 0.52a (nuvrec must be setuid root)
+  2)exportvideo 7e-pre4  (must be this version or later)
+  3)mjpegtools 1.4.1 (installed rpm found on rpmfind.net)
+  4)toolame 02h
+  5)mplex 1.1
+  6)vcdimager 0.6.2 (installed rpm found on rpmfind.net)
+  7)cdrdao 1.1.4 (rpm from redhat 7.1)
+
+
+
+  4.4.  Procedure for creating a VCD
+
+
+
+  1)nuvrec -t _NUM_m _filename_
+  _NUM_m = size.  E.g. 30m = 30 minutes.
+  2)nuvplay -e _filename_.nuv | toolame -b 224 -m s /dev/stdin _filename_.mp2
+  3)exportvideo _filename_.nuv "|mpeg2enc -o _filename_.m1v"_
+  4)mplex -f 1 -s 2324 -p 1 -o _filename_.mpg _filename_.m1v _filename_.mp2_
+  5)vcdimager -l "Movie Title" -c _filename_.cue -b _filename_.bin _filename_.mpg_
+  6)cdrdao write --device _your_device_ _filename_.cue_
+  7)Eject the cd-r, stick it in the vcd player, press play and enjoy._
+  8)File Sizes From each step for 30 minutes of data._
+
+  Bytes       Filename      Created from step?  Can Delete after Step?
+  =====================================================================
+  1391756119  finefilm.nuv  1) nuvrec           2) toolame and 3) mpeg2enc
+  50401280    finefilm.mp2  2) toolame          4) mplex
+  259097824   finefilm.m1v  3) mpeg2enc         4) mplex
+  313793452   finefilm.mpg  4) mplex            5) vcdimager
+  120         finefilm.cue  5) vcdimager        6) cdrdao
+  318808896   finefilm.bin  5) vcdimager        6) cdrdao
+  ---------------------------------------------------------------------
+  Total approx 2.3g for 30 minutes of sample data.
+  If you delete previous files after the appropriate steps, max used space
+  for 30 minutes of data was 1.7gb.
+
+
+
+  5.  Further Information
+
+  In this section, you'll find more information on additional utilities
+  or ideas for making a VCR work under Linux.
+
+
+
+  5.1.  MyVCR Wrapper Program proposal
+
+  We need a wrapper program that provides us with the ability to do the
+  following things (from a main menu)
+
+  ·  Archive recorded shows to CDR/CDRW/DVDRAM
+
+  ·  Play Recorded shows (From hard disk or prompt for the media!)
+
+  ·  Set record times for recording shows - use tvguide.com as a source
+     for showtimes.  A program that accesses tvguide.com for showtimes
+     is: tvguide.com perl program
+     <http://http://www.cherrynebula.net/projects/tvguide/tvguide.php>
+
+  ·  Be fully configurable to used preferred recorder/player.
+
+  ·  See Kvdr <http://www.s.netic.de/gfiala/> as a possible place to
+     start.
+
+
+
+  5.2.  Alternate Recorders
+
+
+  ·  Slow-CPU Capture Program
+     <http://mars.tuwien.ac.at/~roman/nuppelvideo>
+
+  ·  Vstream <http://www.ee.up.ac.za/~justin/bttv>
+
+  ·  Qdvt <http://www.ee.up.ac.za/~justin/videostuff>
+
+
+
+  5.3.  Recording Results
+
+
+  ·  Serge Wroclawski - 200mhz CPU is not fast enough.
+
+  ·  Brian Hayward - 900mhz Duron is fast enough.
+
+  ·  Brian Hayward - 875mhz Duron is fast enough.
+
+  ·  Stephen Moore - 500mhz Celeron CPU is not fast enough.
+
+
+
+  5.4.  Other Suggested Ideas
+
+
+  ·  Describe recording from FM Tuner (radio) card and piping it to
+     oggvorbiz or mp3encoder.
+
+  ·  Cable Descramblers: fscktv <http://fscktv.fortyoz.org/> and CableTV
+     <http://linux.davecentral.com/cgi-bin/homepage.pl?6158>.
+
+  ·  Figure out how to implement VCR+
+     <http://www.righto.com/papers/vcr.html>
+
+  ·  Check out the Video Disk Recorder Project
+     <http://www.cadsoft.de/people/kls/vdr/index.htm> - build your own
+     digital satellite receiver.
+
+  ·  Check out the LinuxTV project <http://linuxtv.org/>.
+
+  ·  A Menu Driven Video Recorder: Kvdr <http://www.s.netic.de/gfiala/>
+
+
+
+  6.  Getting Help
+
+  Feel free to contact me if you have any questions.  For product
+  specific questions, you may also make use of resources for the
+  specific application.  As always, read the documentation for each
+  product before contacting someone.  I may be contacted at
+  twivel@slothmud.org <mailto:twivel@slothmud.org>.
+
+
+
+  7.  Concluding Remarks
+
+  I hope this document has been helpful.  If you have any ideas or
+  improvements to this document, please feel free to contact me.
+
+
+  8.  Questions and Answers
+
+
+  This is just a collection of what I believe are the most common
+  questions people might have. Give me more feedback and I will turn
+  this section into a proper FAQ.
+
+
+  ·  Q:Why don't I get audio when playing back recorded programs?
+
+     A: This could be due to several things.  In order for audio
+     recording to work, you must have the tuner card send output to the
+     'line-in' on your sound card.  You must also use the mixer to
+     enable the line-in on the sound card (if you hear sound while
+     recording the show, it is probably enabled).  I used to have my
+     tuner card sound sent to my stereo receiver instead of the sound
+     card, which was why I didn't get sound.  Finally, it may be that
+     the sound was record properly, but your sound device is in use by
+     another program (esd, licq, xmms, etc).
+
+
+  ·  Q: Why is my video very jumpy?
+
+     A: This may be due to a slow CPU.  I currently haven't determined
+     the exact requirements for recording with this method, I'm hoping
+     user feedback will help me figure out what CPU is indeed required.
+     I have a Duron 700 that seems to work fine, but I've heard that
+     people with a 200-500mhz processor are unable to get smooth video.
+
+
+  ·  Q: Why is the audio/video out of sync?
+
+     A: This may be due to an incorrect FPS setting for your video type.
+     For NTSC you will want to use 29.97.  For PAL you will want to use
+     25.  I still don't get perfect audio/video synchronization - but I
+     can live with it.  Hopefully this will improve over time.
+
+
+

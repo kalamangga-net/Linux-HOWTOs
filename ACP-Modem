@@ -1,0 +1,793 @@
+Linux ACP Modem (Mwave) mini-HOWTO
+
+Mike Sullivan
+
+sullivam@us.ibm.com
+
+Paul Schroeder
+
+paulsch@us.ibm.com
+
+Joy Yokley - Edited document and coverted to DocBook v4.1 (SGML).
+
+2001-01-12
+Revision History                                                             
+Revision .11           2002-07-18            Revised by: PBS                 
+Revision .10           2001-07-18            Revised by: PBS                 
+Revision .09           2001-05-21            Revised by: PBS                 
+Revision .08           2001-05-09            Revised by: JEY                 
+Revision .07           2001-04-30            Revised by: JEY                 
+
+
+This document describes how to build, setup, and use the driver and user
+space application necessary for using the ACP (Mwave) Modem in the IBM
+Thinkpad?? 600, 600E, and 770 models which include the on board ACP modem
+hardware. The latest version of this document can always be found at [http://
+www.ibm.com/linux/ltc/] http://www.ibm.com/linux/ltc/
+
+-----------------------------------------------------------------------------
+Table of Contents
+1. General Information and Hardware Requirements
+    1.1. Introduction
+    1.2. Credits
+    1.3. Where Can I Get the Latest Version of this Driver?
+    1.4. Are There Any Other Resources?
+    1.5. Copyright Notice and Disclaimer
+    1.6. Which Systems are Supported
+    1.7. Features of the Modem
+   
+   
+2. Compilation, Installation, and Startup
+    2.1. Prerequisites
+    2.2. Building and Installing Source
+    2.3. Setting Things Up
+    2.4. Runtime
+   
+   
+3. Resolving Installation and Configuration Problems
+    3.1. DSP Does Not Start
+    3.2. Resource Conflicts
+    3.3. Not Connecting at Specified Starting Speed
+    3.4. Dialer Application Cannot Detect Serial Port
+    3.5. PPP Errors Using 2.4.0 Version of the Kernel
+   
+   
+4. Debugging Tips
+    4.1. Error Logs
+    4.2. Tracing
+   
+   
+5. Test Claims
+6. List of Supported Countries
+7. Trademarks
+
+1. General Information and Hardware Requirements
+
+1.1. Introduction
+
+The ACP Modem for Linux is a software based modem. Support software for the
+ACP modem is composed of a loadable kernel module and a user level
+application. Together these components support direct connection to public
+switched telephone networks (PSTNs) and support selected countries world
+wide. Refer to Section 6 of this document for the supported country list.
+
+The modem also supports the standard communications port interface (ttySx)
+and is compatible with the Hayes AT Command Set.
+
+ACP Modem software is continually under development. If you encounter bugs or
+usability issues, please contact us and we'll work to correct them.
+-----------------------------------------------------------------------------
+
+1.2. Credits
+
+This Linux ACP Modem driver was ported from the Windows NT?? version of the
+driver available from IBM. Many thanks to Keith Frechette, Charles Ball, and
+Frank Novak for their technical and support efforts in making this project
+possible.
+-----------------------------------------------------------------------------
+
+1.3. Where Can I Get the Latest Version of this Driver?
+
+The latest version of this driver is available from [http://www.ibm.com/linux
+/ltc/] http://www.ibm.com/linux/ltc/
+-----------------------------------------------------------------------------
+
+1.4. Are There Any Other Resources?
+
+Thomas Hood's [http://panopticon.csustan.edu/thood/tp600lnx.htm] Debian GNU/
+Linux on IBM ThinkPad 600 and 600x page contains lots of useful information.
+-----------------------------------------------------------------------------
+
+1.5. Copyright Notice and Disclaimer
+
+Copyright (c) 2002 IBM Corporation
+
+This document may be reproduced or distributed in any form without prior
+permission. Modified versions of this document may be freely distributed,
+provided that they are clearly identified as such, and this copyright is
+included intact.
+
+This document is provided "AS IS", with no express or implied warranties. Use
+the information in this document at your own risk.
+-----------------------------------------------------------------------------
+
+1.6. Which Systems are Supported
+
+This version of the ACP Modem driver supports the IBM Thinkpad?? 600E, 600,
+and 770 that include on-board ACP modem hardware.
+-----------------------------------------------------------------------------
+
+1.7. Features of the Modem
+
+The ACP Modem provides the following features:
+
+  * Standard asynchronous COM port interface (NS16550A UART compatible)
+    operation
+   
+  * Bell-103/212A, CCITT-V.21/V.22,V.22bis protocols with data from 300 to
+    2400 bps
+   
+  * CCITT-V.32 protocols with data rates of 4800, 9600 uncoded, and 9600 bps
+    Trellis coded (Optional)
+   
+  * CCITT-V.32bis protocols with data rates of 4800, 9600, 12000, and 14400
+    bps (optional)
+   
+  * ITU-T V.34 protocols with data rates from 2400 to 33600 bps.
+   
+  * 56K capable modem
+   
+  * Hayes AT Command Set compatibility
+   
+  * DTMF and pulse dialing
+   
+  * Asynchronous error recovery protocol
+   
+  * Error correction via Microcom Network Protocol (MNP) classes 1-4
+   
+  * Error correction via the V.42 error correction standard
+   
+  * MNP class 5 for up to 2x data compression
+   
+  * V.42bis for up to 4x data compression
+   
+  * "Adaptive Rate Negotiation" which provides for "Fallback / Fallforward"
+    as line quality deteriorates or improves
+   
+
+Your modem contains 56K technology. To take advantage of this technology, you
+must first make sure that your Internet Service Provider (ISP) supports a 56K
+modem protocol. Significantly higher modem connection speeds, up to 56kbps,
+require all-digital transmission connections from your ISP to the line card
+in the central office from which your phone line is connected. The actual
+connection rate may be limited by the quality of your telephone lines.
+Telephone line quality may vary from location to location. Current
+regulations limit maximum trasfer rates to 53K. While your modem contains 56K
+technology, typical maximum connection rates in the receive direction may be
+significantly less than 56K. Currently, 56K capability is for the receive
+direction only. The transmit direction uses V.34 technology.
+-----------------------------------------------------------------------------
+
+2. Compilation, Installation, and Startup
+
+2.1. Prerequisites
+
+  * A 2.2.16 series (or later) Linux kernel source tree
+   
+  * An appropriate set of module utilities
+   
+  * gcc version 2.7.x or later
+   
+
+If you are building the ACP Modem driver along with the user space
+application, you need to have a complete Linux source tree for your kernel,
+not just an up-to-date kernel image.
+-----------------------------------------------------------------------------
+
+2.2. Building and Installing Source
+
+ 1. Use tar xzvf mwavem-yyyymmdd.tar.gz to unpack the distribution.
+   
+ 2. Change directories with cd mwavem-yyyymmdd
+   
+ 3. Use the ./configure command to configure the build options. Issue ./
+    configure --help to view all of the options. The defaults are probably
+    okay though.
+   
+    Note NOTE                                                        
+         As of mwavem-1.0.3 you must give ./configure the            
+         --enable-mwavedd argument in order to build the driver with 
+         the user space application.                                 
+   
+ 4. Use the make command to build all of the ACP Modem binaries.
+   
+    Note NOTE                                                        
+         Your gcc package should be at least at the 2.7.x level.     
+         Check your /usr/src/linux/Documentation/Changes file for the
+         minimum version information.                                
+   
+ 5. Use make install to install the mwavem binary, mwavem.conf configuration,
+    the extra binary (mostly .dsp) files, and module device driver (if you
+    specified that it must be built) and to create the /dev/modems/mwave
+    device node.
+   
+
+-----------------------------------------------------------------------------
+2.3. Setting Things Up
+
+In the [WORLDTRADE] section of your mwavem.conf file, set the Country=
+parameter to your country access code.
+
+Note NOTE                                                                    
+     The mwavem.conf file is installed in the /usr/local/etc directory unless
+     you specified otherwise during the build process                        
+
+Country information (including access codes) are listed in the mwavem.conf
+file. For example, for France the following section is present:
+[Telephony\Country List\33]                                                  
+                                                                             
+CountryCode=00000021                                                         
+                                                                             
+Name=France                                                                  
+                                                                             
+SameAreaRule=0FG                                                             
+                                                                             
+LongDistanceRule=0FG                                                         
+                                                                             
+InternationsalRule=00EFG                                                     
+
+To set France to be your configured country in the [WORLDTRADE] section of
+mwavem.conf,
++---------------------------------------------------------------------------+
+|set Country=33                                                             |
++---------------------------------------------------------------------------+
+-----------------------------------------------------------------------------
+
+2.4. Runtime
+
+An initialization script has been provided which may be used to to start,
+stop, or check the status of the ACP Modem driver and application. It has
+been successfully run on the Debian, Slackware, SuSE, and Red Hat
+distributions and should run on any of their derivitives. If you are using
+the runtime script, it will load the mwave device driver module, configure
+the serial port, and start the mwave manager for you. All of the options
+which can be passed to the device driver module, along with some options for
+the script itself, can be configured by uncommenting and editing the
+appropriate variables at the beginning of the script.
+
+The mwaved startup script can be found in the src/mwavem directory of the
+source distribution. If you are running the Red Hat distribution, you can
+copy the script to your /etc/rc.d/init.d directory and issue the ntsysv
+command in order to enable it at boot time. If not using Red Hat, see the
+documentation for your distribution for information on how to set this up to
+run at boot time.
+
+It is recommended that you use the provided mwaved script. If you are not
+using the script, however, the following sections will describe how to
+manually start the device driver and application.
+-----------------------------------------------------------------------------
+
+2.4.1. Loading the ACP device driver
+
+To load the mwave device driver use
++---------------------------------------------------------------------------+
+|insmod mwave                                                               |
++---------------------------------------------------------------------------+
+or
++---------------------------------------------------------------------------+
+|modprobe mwave                                                             |
++---------------------------------------------------------------------------+
+
+The following arguments may be supplied with the insmod command:
+
+Note NOTE                                                                    
+     The following arguments are not persistent from boot to boot (i.e. We   
+     are not saving them in the BIOS).                                       
+
+  * mwave_3780i_irq=5/7/10/11/15
+   
+    This parameter allows you to configure the IRQ used by the DSP if the DSP
+    IRQ was not set and stored in BIOS by the Thinkpad?? configuration
+    utility.
+   
+  * mwave_3780i_io=0x130/0x350/0x0070/0xDB0
+   
+    This parameter allows you to configure the I/O range used by the DSP if
+    the DSP I/O range was not set and stored in the BIOS by the Thinkpad??
+    configuration utility.
+   
+  * mwave_uart_irq=3/4
+   
+    This parameter allows you to configure the IRQ used by the ACP UART if
+    the Mwave's UART IRQ was not set and stored in BIOS by the Thinkpad??
+    configuration utility.
+   
+  * mwave_uart_io=0x3f8/0x2f8/0x3E8/0x2E8
+   
+    This parameter allows you to configure the I/O range used by the ACP UART
+    if the UART I/O range was not set and stored in BIOS by the Thinkpad??
+    configuration utility.
+   
+
+The following code is an example of how to run DSP using ttyS1 resources:
++------------------------------------------------------------------------------------------+
+|insmod mwave mwave_3780i_irq=10 mwave_3780i_io=0x0130 mwave_uart_irq=3 mwave_uart_io=0x2f8|
++------------------------------------------------------------------------------------------+
+
+Note NOTE                                                                    
+     The mwave is unable to check for resource conflicts. It is your         
+     responsibility to ensure that none of the resources specified conflict  
+     with other (commonly PCMCIA) devices.                                   
+
+You can use the tpctl package on Linux or the Thinkpad?? configuration
+utility on Windows NT or DOS to manage the configuration of Thinkpad??
+related resources.
+-----------------------------------------------------------------------------
+
+2.4.2. Running ACP Modem Application
+
+ 1. Once the ACP device driver is loaded successfully, use the mwavem command
+    to execute the application.
+   
+    Note NOTE                                                        
+         The location of the mwavem.conf file can be specified as an 
+         argument to the mwavem application. If not specified the    
+         default location is assumed to be /usr/local/etc/mwavem.conf
+         unless otherwise changed during the build process.          
+   
+ 2. Setup the serial driver to recognize the UART provided by the ACP driver.
+    +---------------------------------------------------------------+
+    |setserial /dev/ttyS0 autoconfig                                |
+    +---------------------------------------------------------------+
+   
+    Note NOTE                                                        
+         Substitute /dev/ttyS0 to match the serial port you have     
+         configured the DSP to use.                                  
+   
+    Note NOTE                                                        
+         You may wish to create a symbolic link from your modem      
+         device to your serial device for convenience. Example: ln -s
+         /dev/ttyS0 /dev/modem                                       
+   
+
+The ACP Modem is now available for use by your favorite dialing application.
+-----------------------------------------------------------------------------
+
+3. Resolving Installation and Configuration Problems
+
+The following sections list solutions to possible problems you may
+experience.
+-----------------------------------------------------------------------------
+
+3.1. DSP Does Not Start
+
+In order to recognize memory above 64 Meg, it may be necessary to append the
+"mem=" option to the kernel command line. If you are using LILO for your boot
+loader, you would do this in the lilo.conf file. For example, if you had a
+machine with 128 Meg you would type:
++---------------------------------------------------------------------------+
+|append="mem=130496K"                                                       |
++---------------------------------------------------------------------------+
+
+Note NOTE                                                                    
+     Your statement must reflect 576K less than you actually have. Specifying
+     the full amount of memory will prevent the DSP from starting. In the    
+     above example, the formula used to arrive at the proper number was 1024 
+     * nMB - 576 = nK.                                                       
+
+If you forget to run the Thinkpad?? utility to enable the ACP Modem and you
+didn't specify any command line arguments when inserting the mwave module (or
+it didn't work), you will receive a message in the syslog, similar to the one
+below:
+ACP Modem, UART settings IRQ 0x3        IO 0x2f8                             
+                                                                             
+tp3780::EnableDSP, pSettings->bDSPEnabled 0 failed                           
+                                                                             
+Mwave Modem, ERROR cannot Enable DSP error fffffffb                          
+                                                                             
+Mwave Modem, ERROR cannot perform Mwave Initialization retval fffffffb       
+
+If you receive a message like the one above, check the command line arguments
+you provided to insmod.
+-----------------------------------------------------------------------------
+
+3.2. Resource Conflicts
+
+The ACP Modem requires the use of system resources for both the DSP and the
+UART provided by the ACP chip. For Linux systems, you will specify parameters
+to use for the duration of the boot with the insmod mwave command line
+parameters listed in Section 2.4.1.
+
+Typically the configured resources are:
+For the DSP:  IRQ 10, I/O address 0x130-0x13f                                
+                                                                             
+For the UART: IRQ 3,  I/O address 0x2f8 (if using ttyS1)                     
+                                                                             
+                                  IRQ 4,  I/O address 0x3f8 (if using ttyS0) 
+
+For dual boot systems we recommeded that you use the Thinkpad?? Configuration
+Utility on Windows NT or DOS to configure these system resources.
+
+Windows NT Thinkpad Configuration Utility Notes: (Under the Internal Modem --
+> Advanced selection)
+
+ 1. Set IRQ sharing to disabled
+   
+ 2. Set 1st IRQ to your DSP IRQ (10 is recommened)
+   
+ 3. Set 2nd IRQ to your UART IRQ (i.e. ttyS1 is equivalent to COM2)
+   
+ 4. Set the DSP I/O address (0x130 is recommended)
+   
+ 5. Set the internal modem I/O address to the UART I/O address (i.e. 0x2f8
+    for COM2)
+   
+ 6. The DMA address is unused and can be set to anything.
+   
+
+Note NOTE                                                                    
+     You may also specify parameters to use for the duration of the boot by  
+     using the insmod mwave line parameters listed in section Section 2.4.1. 
+-----------------------------------------------------------------------------
+
+3.3. Not Connecting at Specified Starting Speed
+
+The configured initial connection speed is set to 64000. The modem should
+start there and negotiate down to a connection speed based on target modem
+and line capabilities. If the modem is unable to connect it may be having
+difficulty negotiating with the target modem. Try setting the SPEED parameter
+in mwavem.conf to a lower initial starting speed. Supported speeds include:
+
+  * 64000
+   
+  * 33600
+   
+  * 14400
+   
+  * 9600
+   
+  * 2400
+   
+
+-----------------------------------------------------------------------------
+3.4. Dialer Application Cannot Detect Serial Port
+
+The startup script that executes the serial port setup works well with Red
+Hat, Debian, Slackware, and SuSE. If you are not running one of these
+distributions, you may need to perform the following steps in order to set
+up.
+
+After inserting the mwave.o module and starting the mwavem application, you
+must run the setserial command in order for the serial port configuration to
+discover the UART on the mwave hardware:
++---------------------------------------------------------------------------+
+|setserial /dev/ttySx autoconfig                                            |
++---------------------------------------------------------------------------+
+
+Replace ttySx with the serial port you have configured the ACP driver to use.
+
+To test whether the serial port is setup correctly, run:
++---------------------------------------------------------------------------+
+|setserial /dev/ttySx                                                       |
++---------------------------------------------------------------------------+
+
+The above command should return the following for serial port 1:
++---------------------------------------------------------------------------+
+|/dev/ttyS1, UART: 16550A, Port: 0x2f8, IRQ: 3                              |
++---------------------------------------------------------------------------+
+
+The port and IRQ numbers should match the information placed in the syslog by
+the ACP module when it was loaded:
+kernel: Mwave Modem, UART settings IRQ 0x3 IO 0x2f8                          
+
+If the information returned by setserial indicates that the UART is 'unknown'
+or if the IRQ and I/O resources do not match what you have in the syslog, you
+will need to reconfigure. Check the setserial man pages to learn how to setup
+the resources on your ttySx to match what appears in the syslog output.
+
+If you have problems running setserial, you may have a resource conflict.
+Before using insmod mwave, check /proc/ioports and /proc/interrupts to make
+sure the resources you intend to claim are not already in use.
+-----------------------------------------------------------------------------
+
+3.5. PPP Errors Using 2.4.0 Version of the Kernel
+
+When upgrading to the 2.4.0 version of the kernel be sure to read the ./
+Documentation/Changes file. Kernel 2.4.0 requires an upgraded version of the
+pppd, gcc, and modutils (amoung other things). Follow the instructions for
+setting up the new pppd daemon carefully.
+
+You may experience some initial problems getting ppp running with 2.4.0. One
+of the most prevelant errors we received was, "Can't locate module
+tty-ldisc-3." However, we had no problems once we rebuilt the kernel with the
+following options:
+CONFIG_PPP=y                                                                 
+                                                                             
+CONFIG_PPP_ASYNC=m                                                           
+                                                                             
+CONFIG_PPP_SYNC_TTY=m                                                        
+                                                                             
+CONFIG_PPP_DEFLATE=m                                                         
+                                                                             
+CONFIG_PPP_BSDCOM=m                                                          
+-----------------------------------------------------------------------------
+
+4. Debugging Tips
+
+4.1. Error Logs
+
+Errors encountered by the ACP Modem device driver or application are logged
+using the syslog utility.
+-----------------------------------------------------------------------------
+
+4.2. Tracing
+
+The ACP device driver supports a debug argument to enable the generation of
+trace information. The command for this debug is listed below. You can also
+access several of the variables listed below in the mwaved script.
++---------------------------------------------------------------------------+
+|insmod mwave mwave_debug=0x0f                                              |
++---------------------------------------------------------------------------+
+
+Where the following debug trace information is selectable:
+0x01    ACP Modem Device driver entry points                                 
+                                                                             
+0x02    Systems Management API(SMAPI)                                        
+                                                                             
+0x04    Hardware Interface (3780I)                                           
+                                                                             
+0x08    Thinkpad Interface (tp3780i)                                         
+
+Trace information is logged using the syslog utility.
+
+The ACP application supports tracing through the use of flags configured in
+the [STARTUP] section of the mwavem.conf file.
+
+Mwave Manager API trace points:
+MANAGER_API_TRACE=1                                                          
+                                                                             
+MANAGER_API_DATA_TRACE=1                                                     
+                                                                             
+MANAGER_CORE_TRACE=1                                                         
+                                                                             
+MANAGER_SPECIFIC_TRACE=1                                                     
+
+MEIO Manager trace points:
+MEIO_API_TRACE=1                                                             
+                                                                             
+MEIO_CORE_TRACE=1                                                            
+                                                                             
+MEIO_SPECIFIC_TRACE=1                                                        
+
+Mwave Modem application trace points:
+MWMLW32_TRACE=1                                                              
+                                                                             
+MWMPW32_TRACE=1                                                              
+                                                                             
+MWMUTIL_TRACE=1                                                              
+                                                                             
+MWWTT32_TRACE=1                                                              
+
+Trace information is logged using the syslog utility.
+-----------------------------------------------------------------------------
+
+5. Test Claims
+
+This driver has been tested using the ThinkPad?? 600E. The same chipset is
+integrated on the 600 and 770 models and should work.
+-----------------------------------------------------------------------------
+
+6. List of Supported Countries
+
+The following countries are supported by the ACP Modem driver
+
+ 
+
+
+Table 1. List of Supported Countries
++--------------------+-------------------+
+|Country Name        |Country Access Code|
++--------------------+-------------------+
+|ALGERIA             |213                |
++--------------------+-------------------+
+|ANTIGUA_BARBUDA     |102                |
++--------------------+-------------------+
+|ARGENTINA           |54                 |
++--------------------+-------------------+
+|ARMENIA             |374                |
++--------------------+-------------------+
+|ARUBA               |297                |
++--------------------+-------------------+
+|AUSTRALIA           |61                 |
++--------------------+-------------------+
+|AUSTRIA             |43                 |
++--------------------+-------------------+
+|AZERBAIJAN          |994                |
++--------------------+-------------------+
+|BAHAMAS             |103                |
++--------------------+-------------------+
+|BARBADOS            |104                |
++--------------------+-------------------+
+|BELARUS             |375                |
++--------------------+-------------------+
+|BELGIUM             |32                 |
++--------------------+-------------------+
+|BERMUDA             |105                |
++--------------------+-------------------+
+|BOLIVIA             |591                |
++--------------------+-------------------+
+|BRAZIL              |55                 |
++--------------------+-------------------+
+|BRUNEI              |673                |
++--------------------+-------------------+
+|BULGARIA            |359                |
++--------------------+-------------------+
+|CANADA              |107                |
++--------------------+-------------------+
+|CAYMAN_ISLANDS      |108                |
++--------------------+-------------------+
+|CHILE               |38                 |
++--------------------+-------------------+
+|COLOMBIA            |57                 |
++--------------------+-------------------+
+|COSTA_RICA          |506                |
++--------------------+-------------------+
+|CUBA                |53                 |
++--------------------+-------------------+
+|CYPRUS              |357                |
++--------------------+-------------------+
+|CZECHREPUBLIC       |420                |
++--------------------+-------------------+
+|DENMARK             |45                 |
++--------------------+-------------------+
+|ECUADOR             |593                |
++--------------------+-------------------+
+|EGYPT               |20                 |
++--------------------+-------------------+
+|EL_SALVADOR         |503                |
++--------------------+-------------------+
+|FINLAND             |358                |
++--------------------+-------------------+
+|FRANCE              |33                 |
++--------------------+-------------------+
+|GERMANY             |49                 |
++--------------------+-------------------+
+|GREECE              |30                 |
++--------------------+-------------------+
+|GRENADA             |111                |
++--------------------+-------------------+
+|GUATEMALA           |502                |
++--------------------+-------------------+
+|GUYANA              |592                |
++--------------------+-------------------+
+|HONDURAS            |504                |
++--------------------+-------------------+
+|HONG_KONG           |852                |
++--------------------+-------------------+
+|HUNGARY             |36                 |
++--------------------+-------------------+
+|INDIA               |91                 |
++--------------------+-------------------+
+|INDONESIA           |62                 |
++--------------------+-------------------+
+|IRELAND             |353                |
++--------------------+-------------------+
+|ISRAEL              |972                |
++--------------------+-------------------+
+|ITALY               |39                 |
++--------------------+-------------------+
+|JAMAICA             |112                |
++--------------------+-------------------+
+|JAPAN               |81                 |
++--------------------+-------------------+
+|JORDAN              |962                |
++--------------------+-------------------+
+|KOREA               |850                |
++--------------------+-------------------+
+|KOREA_SOUTH         |82                 |
++--------------------+-------------------+
+|KUWAIT              |965                |
++--------------------+-------------------+
+|LUXEMBOURG          |352                |
++--------------------+-------------------+
+|MALAYSIA            |60                 |
++--------------------+-------------------+
+|MEXICO              |52                 |
++--------------------+-------------------+
+|NETH_ANTILLES       |599                |
++--------------------+-------------------+
+|NETHERLANDS         |31                 |
++--------------------+-------------------+
+|NEW_ZEALAND         |64                 |
++--------------------+-------------------+
+|NICARAGUA           |505                |
++--------------------+-------------------+
+|NORWAY              |47                 |
++--------------------+-------------------+
+|OMAN                |968                |
++--------------------+-------------------+
+|PAKISTAN            |92                 |
++--------------------+-------------------+
+|PANAMA              |507                |
++--------------------+-------------------+
+|PARAGUAY            |595                |
++--------------------+-------------------+
+|PERU                |51                 |
++--------------------+-------------------+
+|PHILIPPINES         |63                 |
++--------------------+-------------------+
+|POLAND              |48                 |
++--------------------+-------------------+
+|PORTUGAL            |351                |
++--------------------+-------------------+
+|PRC                 |852                |
++--------------------+-------------------+
+|ROMANIA             |40                 |
++--------------------+-------------------+
+|RUSSIA              |7                  |
++--------------------+-------------------+
+|SAUDI_ARABIA        |966                |
++--------------------+-------------------+
+|SINGAPORE           |65                 |
++--------------------+-------------------+
+|SLOVAKIA            |421                |
++--------------------+-------------------+
+|SLOVENIA            |386                |
++--------------------+-------------------+
+|SOUTH_AFRICA        |27                 |
++--------------------+-------------------+
+|SPAIN               |34                 |
++--------------------+-------------------+
+|ST_KITTS_NEVIS      |115                |
++--------------------+-------------------+
+|ST_LUCIA            |122                |
++--------------------+-------------------+
+|ST_VINCENT          |116                |
++--------------------+-------------------+
+|SURINAME            |597                |
++--------------------+-------------------+
+|SWEDEN              |46                 |
++--------------------+-------------------+
+|SWITZERLAND         |41                 |
++--------------------+-------------------+
+|TAIWAN              |866                |
++--------------------+-------------------+
+|THAILAND            |66                 |
++--------------------+-------------------+
+|TRINIDAD_TOBAGO     |117                |
++--------------------+-------------------+
+|TURKEY              |90                 |
++--------------------+-------------------+
+|TURKS_CAICOS        |118                |
++--------------------+-------------------+
+|U_K                 |44                 |
++--------------------+-------------------+
+|UKRAINE             |380                |
++--------------------+-------------------+
+|UNITED_ARAB_EMIRATES|971                |
++--------------------+-------------------+
+|URUGUAY             |598                |
++--------------------+-------------------+
+|USA                 |1                  |
++--------------------+-------------------+
+|VENEZUELA           |58                 |
++--------------------+-------------------+
+|VIETNAM             |84                 |
++--------------------+-------------------+
+|VIRGIN_IS_BRITISH   |106                |
++--------------------+-------------------+
+|VIRGIN_IS_USA       |123                |
++--------------------+-------------------+
+|YEMAN               |967                |
++--------------------+-------------------+
+|YUGOSLAVIA          |381                |
++--------------------+-------------------+
+-----------------------------------------------------------------------------
+
+7. Trademarks
+
+Hayes is a trademark of Hayes Microcomputer Products, Inc.
+
+MNP (Microcom Network Protocol) is a trademark of Microcom, Inc.
+
+IBM is a trademark of International Business Machines, Inc.

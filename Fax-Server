@@ -1,0 +1,303 @@
+  Linux simple fax printer server mini-HOWTO (faxsrv-mini-
+  HOWTO)
+  Erez Strauss <erez@newplaces.com> <mailto:Erez Strauss
+  <erez@newplaces.com>>
+  v1.0, 8 November 1997
+
+  No warranties. Comments are always welcome.  This document describes
+  in details one of the simplest ways to setup fax server on your Linux
+  system. The fax is available to the users on the local host and to
+  network users.
+  ______________________________________________________________________
+
+  Table of Contents
+
+
+  1. Introduction
+
+  2. Questions & Answers
+
+     2.1 What is a fax printer server ?
+     2.2 How to set it up ?
+        2.2.1 The efax Software
+        2.2.2 The printcap entry.
+        2.2.3 The fax command
+        2.2.4 The /usr/bin/fax file.
+        2.2.5 The /var/spool/fax directory.
+        2.2.6 The lock file.
+        2.2.7 The /dev/modem special file.
+        2.2.8 The
+     2.3 How do I use it, for the server ?
+     2.4 Where do I specify the target Fax number ?
+     2.5 How do I use it from other Unixes on the net ?
+     2.6 Caldera, LPRng users
+
+  3. Latest version, Contacting the author.
+
+
+
+  ______________________________________________________________________
+
+  1.  Introduction
+
+  To get a working printer/fax on the linux machine you should have some
+  software and fax modem.
+
+  The Printing software will be using the fax software as a print
+  filter.  The efax will find the fax number from the print Job number
+  and will send the fax.  The efax software was written be Ed Casas
+  <edc@cce.com>.
+
+  The rest of the document is build as Q&A.
+
+
+  2.  Questions & Answers
+
+  2.1.  What is a fax printer server ?
+
+  A fax printer server is a setup of few programs: efax, and the print
+  server, in such a way that sending a fax from the computer is as
+  simple as sending printout to a printer.
+
+
+  2.2.  How to set it up ?
+
+  Setting efax as fax print server includes few problems As I worked it
+  out few times, I decided to collect this wisdom in this small mini-
+  HOWTO, comments are welcome at <erez@newplaces.com>.  I describe them
+  here and the solutions, and all the instruction in short steps:
+
+
+  2.2.1.  The efax Software
+
+  make sure you have the efax package.
+
+  On RPM based system use the command 'rpm -qv efax'.
+
+  You can get the efax sources in tar.gz format from sunsite:
+  ftp://sunsite.unc.edu/pub/Linux/apps/serialcomm/fax/efax08a.tar.gz or
+  binary rpm package:
+  ftp://ftp.redhat.com/pub/redhat/redhat-4.2/i386/RedHat/RPMS/efax-0.8a-3.i386.rpm
+
+  2.2.2.  The printcap entry.
+
+  The efax documentation is missing the :  at the end of the printcap
+  entry.
+
+  Solution: Add the following /etc/printcap entry:
+
+
+
+       fax:\
+               :lp=/dev/null:\
+               :sd=/var/spool/fax:\
+               :if=/usr/bin/faxlpr:
+
+
+
+  2.2.3.  The fax command
+
+  Use hard link and not symbolic link to the fax command.
+
+  Run the command:
+
+
+       ln /usr/bin/fax /usr/bin/faxlpr
+
+
+
+  2.2.4.  The /usr/bin/fax file.
+
+  Edit the /usr/bin/fax to your preferences:
+
+  choose the right Fax Class for your modem:
+
+
+       CLASS=2.0
+
+
+
+  Set the FROM="your international phone number" field
+
+
+       NAME="Your Name"
+
+
+
+  Add the line for conversion of international phone number to local for
+  example in Israel you would use:
+
+
+       TELCVT='sed -e s/+972/0/ -e s/+/00/'  # Israel
+
+
+
+  There is a problem in the file in line 586, change the cfile=... with
+  the following two lines:
+
+
+
+       cfile=`/usr/bin/tail -1 lock`
+       cfile=`cat $cfile`
+
+
+
+  at lines 586,587 there shouldn't be '-' signs the lines are:
+
+
+
+       0) echo "$l" | mail -s "fax to $num succeeded" $user@$host ;;
+       *) echo "$l" | mail -s "fax to $num failed   " $user@$host ;;
+
+
+
+  2.2.5.  The /var/spool/fax directory.
+
+  create the directory /var/spool/fax
+
+
+       mkdir /var/spool/fax
+       chmod 777 /var/spool/fax
+
+
+
+  2.2.6.  The lock file.
+
+  The lock file (/var/spool/fax/lock) is being created with incorrect
+  permissions, use the following command to set it correctly:
+
+
+
+       touch /var/spool/fax/lock ; chmod 644 /var/spool/fax/lock
+
+
+
+  2.2.7.  The /dev/modem special file.
+
+  The efax program is expecting real device file at the /dev/modem and
+  will not work with symbolic link, so create a device file with the
+  same major and minor number as the /dev/cua? the is connected to the
+  modem. The file should have the rw-rw-rw- mode to enable any user to
+  use the fax software.
+
+
+
+  ls -lL /dev/modem
+  rm /dev/modem
+  mknod /dev/modem c Mj Mi
+  chmod 666 /dev/modem
+
+
+
+  Mj is 5, and Mi is 64 for the cua0, 65 for cua1 and so on.  For
+  example (for cua1):
+
+
+
+       mknod /dev/modem c 5 65
+
+
+
+  2.2.8.  The /var/lock  directory.
+
+  change the mode at the /var/lock directory
+
+
+
+       chmod 1777 /var/lock
+
+
+
+  2.3.  How do I use it, for the server ?
+
+  You should use the fax printer using the -P option and the -J option
+  with the fax number.
+
+  use one of the following lpr commands:
+
+
+
+        lpr -Pfax -J <Fax-Number> [file-names]
+        any command | lpr -Pfax -J <Fax-Number>
+
+
+
+  2.4.  Where do I specify the target Fax number ?
+
+  After the -J option.
+
+  2.5.  How do I use it from other Unixes on the net ?
+
+  Add the following entry into the /etc/printcap file and the client
+  Linux systems, create the spool directory, and so on ...
+
+
+
+       fax:\
+               :sd=/var/spool/fax:\
+               :mx#0:\
+               :sh:\
+               :rm=host.domain:\
+               :rp=fax:
+
+  add the name of the client hosts into the /etc/hosts.lpd on the fax
+  server machine.
+
+
+  use it as before.
+
+
+  Note:
+
+  The header string that efax adds to the fax pages is not effected by
+  the user name that sends the fax. (can be updated).
+
+  2.6.  Caldera, LPRng users
+
+  The LPRng printing management software is using a different method to
+  handle the control file.
+
+  Thanks to Luca Montecchiani <m.luca@usa.net>, who found the problem
+  and the solution.  Here is an update to the /usr/bin/fax file. The
+  following line replace the two simple cfile=... lines at lines 586,587
+
+
+
+       # Modified to work also with the LPRng package
+       # Luca Montecchiani (08/11/97 m.luca@usa.net)
+       if [ !-z "$CONTROL_FILE" ]
+           then
+               cfile=`cat tail -1 lock`
+               cfile=`cat $cfile`
+           else
+               cfile=$CONTROL_FILE
+       fi
+
+
+
+  3.  Latest version, Contacting the author.
+
+  The latest version of this file can be accessed through the world wide
+  web using URLs
+
+
+
+       http://www.newplaces.com/linux/faxsrv/faxsrv-mini-HOWTO.sgml
+       http://www.newplaces.com/linux/faxsrv/faxsrv-mini-HOWTO.html
+       http://www.newplaces.com/linux/faxsrv/faxsrv-mini-HOWTO.txt
+       http://www.newplaces.com/linux/faxsrv/faxsrv-mini-HOWTO.info
+
+
+
+  You can contact me
+
+
+       Erez Strauss
+       erez@newplaces.com
+       http://www.newplaces.com/linux/
+       http://www.newplaces.com/
+       Phone: +972 52 739737
+       Fax:  +972 9 954 3034
+
+
+

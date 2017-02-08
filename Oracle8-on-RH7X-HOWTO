@@ -1,0 +1,579 @@
+  Oracle 8i on Linux RH7.X Installation HOWTO
+  Krastio Atanassov <st201789@educ.di.unito.it> , and Luca
+  Roversi <roversi@di.unito.it>
+  v0.1, 2002-07-15
+
+  Following this HOWTO you should be able to get "Oracle 8i, version
+  8.1.7, Enterprise Edition for Linux" installed on a RedHat 7.X distri­
+  bution (and, we hope, on distributions based/derived from it.) You
+  will also have some few hints at how to create a database.  We decide
+  to write this notes because we did not manage to get through the
+  installation, simply following the already existing "Oracle 8 for
+  Linux" HOWTOs, and Oracle documentation and we found people on the net
+  experiencing our problems.
+  ______________________________________________________________________
+
+  Table of Contents
+
+
+  1. Introduction
+
+     1.1 What's in here?
+     1.2 Who is this HOWTO for?
+     1.3 Current versions of this document
+     1.4 Disclaimer
+     1.5 Credits and Thanks
+     1.6 License
+
+  2. Starting off
+
+     2.1 Prerequisites
+        2.1.1 Hardware
+     2.2 Linux setup
+        2.2.1 Distribution
+        2.2.2 Distribution Setup
+        2.2.3 Setting users and groups
+        2.2.4 Installing the right Java Virtual Machine
+        2.2.5 Kernel parameters
+        2.2.6 Setting up some libraries
+        2.2.7 Final step
+
+  3. Installing Oracle 8i, version 8.1.7
+
+     3.1 Setting up oracle's shell
+     3.2 Starting the installer
+
+  4. Creating a database
+
+  5. Final Words
+
+     5.1 Some Internet Resources
+
+
+  ______________________________________________________________________
+
+  1.  Introduction
+
+  1.1.  What's in here?
+
+  A sequence of steps that brought us to let Oracle 8i, and Linux RedHat
+  7.2 working together.
+
+
+  1.2.  Who is this HOWTO for?
+
+  This document is for people who want to install Oracle 8i version
+  8.1.7 Enterprise edition on Linux RedHat 7.2. At the time Luca Roversi
+  tried to combine the twos, he could only find people on the net who
+  was wandering why previous HOWTOs could not lead them to a successful
+  installation.
+
+  We have not yet realized the points where this HOWTO substantially
+  differs from previous HOWTOs on the same subject; however, it lists
+  operations that seems to be correct.
+
+
+  1.3.  Current versions of this document
+
+  The web site where this document can be found is: author's web site
+  <http://www.di.unito.it/~rover/LOCAL-HOWTOS/>
+
+
+  1.4.  Disclaimer
+
+  You get what you pay for. We offer no warranty of any kind, implied or
+  otherwise.  May be we shall help you where we can, but, legally, you
+  are on your own.
+
+
+  1.5.  Credits and Thanks
+
+  This HOWTO has been written by Krastio Atanassov and Luca Roversi.
+  The very first version could not have been created without the initial
+  support the second author obtained from various mailing lists.
+
+  Also, the very first revision was written exploiting Stephen
+  Darlington's <stephen@zx81.org.uk> "Oracle for Linux Installation
+  HOWTO" sgml source as a template.
+
+  We welcome any constructive feedback on this HOWTO and any general
+  Linux or Oracle issues. Email us at st201789@educ.di.unito.it
+  <mailto:st201789@educ.di.unito.it> or/and roversi@di.unito.it
+  <mailto:roversi@di.unito.it>.
+
+
+  1.6.  License
+
+  This document is copyright 2002 Krastio Atanassov and Luca Roversi.
+
+
+  Permission is granted to copy, distribute and/or modify this document
+  under the terms of the GNU Free Documentation License
+  <http://www.gnu.org/copyleft/fdl.html>, Version 1.1 or any later
+  version published by the Free Software Foundation.
+
+
+  2.  Starting off
+
+  2.1.  Prerequisites
+
+  At least 800M free on your hard disk. Type:
+
+
+  bash$ df -h
+  Filesystem            Size  Used Avail Use% Mounted on
+  /dev/hda2             5.3G  3.6G  1.4G  72% /
+
+
+
+  and read the field Avail.
+
+
+
+  2.1.1.  Hardware
+
+  The steps we are going to describe allow to have Oracle 8i, version
+  8.1.7 running on:
+
+  ·  a laptop Toshiba Satellite 2800-100 with 128Mb RAM and a 600 Mhz
+     Intel Celeron;
+
+  ·  others ....
+
+  In any case, never underestimate Oracle's system prerequisites.
+
+
+  2.2.  Linux setup
+
+  2.2.1.  Distribution
+
+  We focus on a Linux RedHat 7.2 distribution, since we had problems
+  with it and we wanted to use it. The steps we are going to describe
+  should work on any Red Hat 7.2 based Linux distribution.
+
+
+  2.2.2.  Distribution Setup
+
+  We assume you have your Linux RedHat 7.2 box installed and working in
+  a reasonable way for you. In any case, 'base' packages, X Windows (the
+  installation routine is a Java GUI) and the development tools
+  regardless of whether you intend doing any coding or not is what you
+  need.
+
+
+  2.2.3.  Setting users and groups
+
+  Login as root:
+
+  $ su - root
+
+  and type whatever password you decided root must have.
+
+  Create groups:
+
+
+  bash# groupadd oinstall
+  bash# groupadd dba
+  bash# groupadd oper
+
+
+
+  Create oracle user and set its password:
+
+
+  bash# useradd oracle -g oinstall -G dba,oper
+  bash# passwd oracle (to change password)
+
+
+
+  2.2.4.  Installing the right Java Virtual Machine
+
+  The only Java Virtual Machine compatible with Oracle 8i, version
+  8.1.7, is: <ftp://sunsite.dk/mirrors/java-
+  linux/JDK-1.1.8/i386/v3/jdk118_v3-glibc-2.1.3.tar.bz2>.
+  Do not think: "newer versions will be less buggy", as the installer
+  probably won't work. And don't think.
+
+
+  Once downloaded it, move it:
+
+  bash# mv jdk118_v3-glibc-2.1.3.tar.bz2 /usr/local
+
+  untar it:
+
+  bash# tar xvIf jdk118_v3-glibc-2.1.3.tar.bz2
+
+  and create a symbolic link to the folder the command here above has
+  just created:
+
+  bash# ln -s /usr/local/jdk118_v3 /usr/local/java
+
+
+  2.2.5.  Kernel parameters
+
+  Oracle documentation suggests that you make changes to the Linux
+  kernel so you can get more shared memory.  If you decide to follow
+  that way, keep the instructions in the Oracle documentation  and the
+  Linux Kernel HOWTO <http://www.linuxdoc.org/HOWTO/Kernel-HOWTO.html>
+  at hand to build your new kernel.
+
+
+  In fact, the required changes can be made by setting some parameter in
+  a suitable initialization file. Just follow some steps:
+
+  ·
+
+     bash# cd /etc
+
+
+  and create a new file rc.config, if it does not exists.  Inside
+  rc.config copy the following four lines:
+
+  cd /proc/sys/kernel
+  echo 250 32000 100 128 > sem
+  echo 4294967295 > shmmax
+  echo 4096 > shmmni
+
+
+
+  ·  Edit the file /etc/rc and add the line:
+
+     /etc/rc.config
+
+
+
+  In any case, if you want just to start playing with Oracle 8i, version
+  8.1.7, Linux RedHat 7.2 default settings can work fine, and you do not
+  need to set any kernel parameter, as just described.
+
+
+  2.2.6.  Setting up some libraries
+
+  There may be some compatibility problems between Oracle 8i and gcc
+  versions >= 2.1. If you experience them, download these rpms:
+
+  compat-egcs-6.2-1.1.2.14.i386.rpm
+  <http://www.pawprint.net/linux/compat-egcs-6.2-1.1.2.14.i386.rpm>
+  compat-glibc-6.2-2.1.3.2.i386.rpm
+  <http://www.pawprint.net/linux/compat-glibc-6.2-2.1.3.2.i386.rpm>
+  compat-libs-6.2-3.i386.rpm <http://www.pawprint.net/linux/compat-
+  libs-6.2-3.i386.rpm>
+
+
+  install them, as usual, by:
+
+  $ rpm -Uvh compat-egcs-6.2-1.1.2.14.i386.rpm compat-glibc-6.2-2.1.3.2.i386.rpm compat-libs-6.2-3.i386.rpm
+
+
+  and, finally set a symbolic link because there is a small installation
+  bug in one of the packages just installed:
+
+  bash# ln -s /bin/id /usr/bin/id
+
+
+
+  2.2.7.  Final step
+
+  Reboot your machine and keep reading...
+
+
+
+  3.  Installing Oracle 8i, version 8.1.7
+
+  3.1.  Setting up oracle's shell
+
+  Login as oracle user, edit the file .bash_profile and copy the
+  following  lines into it:
+
+
+
+  # +------------------------------------------------------------+
+  # | FILE          : .bash_profile                              |
+  # +------------------------------------------------------------+
+
+  umask 022
+  EDITOR=vi;                   export EDITOR
+  TERM=xterm;                  export TERM
+  TMPDIR=/tmp;                 export TMPDIR
+
+  # +--------------------------+
+  # | SETUP ORACLE ENVIRONMENT |
+  # +--------------------------+
+
+  export ORACLE_SID=O817DB
+  export ORACLE_BASE=/u01/app/oracle
+  export ORACLE_HOME=/u01/app/oracle/product/8.1.7
+
+  export LD_LIBRARY_PATH=$ORACLE_HOME/lib:/lib:/usr/lib:/usr/local/lib
+  export TNS_ADMIN=$ORACLE_HOME/network/admin
+
+  export NLS_LANG=AMERICAN_AMERICA.WE8ISO8859P1
+  export ORA_NLS33=$ORACLE_HOME/ocommon/nls/admin/data
+
+  export ORACLE_OWNER=oracle
+  export ORACLE_TERM=xterm
+
+  # +--------------------------+
+  # | LINUX STUFF              |
+  # +--------------------------+
+
+  export LD_ASSUME_KERNEL=2.2.5
+  source /usr/i386-glibc21-linux/bin/i386-glibc21-linux-env.sh
+
+  # +--------------------------+
+  # | SETUP SEARCH PATH        |
+  # +--------------------------+
+
+  PATH=$ORACLE_HOME/bin:/opt/bin:/bin:/usr/bin:/usr/local/bin:/usr/sbin:/usr/X11R6/bin:/usr/local/java/bin:.
+  export PATH
+
+  # +--------------------------+
+  # | SETUP JAVA ENVIRONMENT   |
+  # +--------------------------+
+
+  export JAVA_HOME=/usr/local/java
+
+  export CLASSPATH=/u01/app/oracle/product/8.1.7/jdbc/lib/classes12.zip:/u01/app/oracle/product/8.1.7/JRE:/u01/app/oracle/product/8.1.7/jlib:/u01/app/oracle/product/8.1.7/rdbms/jlib:/u01/app/oracle/product/8.1.7/network/jlib:.
+
+  # +-------------+
+  # | "GREETINGS" |
+  # +-------------+
+  echo ".bash_profile executed"
+
+
+
+  Save the new version of .bash_profile and re-read it, by issuing:
+
+  bash$ source .bash_profile
+
+
+
+  Finally, if you have not any window manager running, it is time to let
+  it running.
+
+
+
+  3.2.  Starting the installer
+
+  We shall work under the hypothesis that you want to install cdrom
+  Oracle distribution. Mount the cdrom with:
+
+  bash$ mount /mnt/cdrom
+
+
+  and move to the directory that contains the installer:
+
+  bash$ cd /mnt/cdrom/install/linux
+
+
+  Then, launch the installer by:
+
+  bash$ ./runInstaller
+
+
+  and follow the steps on the GUI it should appear:
+
+  1. after a first click on NEXT verify that the proposed path is:
+
+     /u01/app/oracle/product/8.1.7
+
+
+  and click NEXT again;
+
+  2. fill in the filed Unix Group Name with the value:
+
+     oinstall
+
+
+  If, for any reasons, this is not your first attempt to install Oracle,
+  you will not be prompted for the Unix Group Name. In this case jump to
+  step 4, below.
+
+  3. A pop-up window will ask you to run a script as root user, so, open
+     a terminal emulator and type in:
+
+     bash$ su
+     bash# cd $ORACLE_HOME
+     bash# ./orainstRoot.sh
+
+
+  When you're done click Retry on the pop-up window.
+
+  4. You are now given the option of what to install. Choose Oracle
+     Enterprise Edition, and click Next.
+
+
+     It should now allow you to choose what you install with much finer
+     granularity. Unless you're particularly constrained by disk space
+     or know exactly what you need,  choose Typical and click Next.
+
+
+  5. When it asks you the Global database name, if you do not have any
+     particular needs you can type in oracle.localdomain.  Also, verify
+     that the values of SID is set to:
+
+     O817DB
+
+
+  Then, click Next.
+
+  6. The next step is to set the location of the database. Type in:
+
+     /u01
+
+
+  and click Next.
+
+  7. Finally, you are asked to indicate the location where you put java.
+     If you followed our suggestions the path is already:
+
+     /usr/local/java
+
+
+  Since it is fine, click Next, and, then Install.
+
+  8. The installation completes by a pop-up windows that asks you to run
+     a script as root. If you closed the previously opened terminal open
+     one again and type:
+
+     bash$  su
+     bash# cd $ORACLE_HOME
+     bash# ./root.sh
+
+
+
+  After the script completes, click OK on the pop-up window.
+
+  9. Oracle Net8 Configuration starts.  Choose  Perform typical
+     configuration and click Next.
+
+
+  10.
+     The configuration tool that starts is the Database Configuration
+     Assistant.
+
+
+     It may signal errors like:
+
+     ORA-03114: not connected to  ORACLE
+
+
+  The temporary solution is to just click on Abort.  These kinds of
+  errors will be recovered in a few!!
+
+
+  When the Database Configuration Assistant concludes its tasks, just
+  click on Next and the installation concludes.
+
+
+  If you needed to click on Abort, you must:
+
+  ·  Download the patch: glibc-2.1.3-stubs.tar.gz
+     <http://www.pawprint.net/linux/glibc-2.1.3-stubs.tar.gz>
+
+  ·  move it into ORACLE_HOME by:
+
+             bash$ mv ./glibc-2.1.3-stubs.tar.gz $ORACLE_HOME
+
+
+
+  and let ORACLE_HOME your working directory:
+
+          bash$ cd  $ORACLE_HOME
+
+
+
+  ·  uncompress and untar the patch:
+
+             bash$ gunzip glibc-2.1.3-stubs.tar.gz
+             bash$ tar xvf glibc-2.1.3-stubs.tar
+
+
+
+  ·  run the patch script:
+
+             bash$ ./setup_stubs.sh
+
+
+
+  When it stops you are done!
+
+
+  4.  Creating a database
+
+  We just typed:
+
+  bash$ dbassist
+
+
+  and we played around with the default options. This allowed us to gen­
+  erate an instance of Oracle 8i we could use for teaching purposes,
+  during an undergraduate course on the foundational principles of data
+  bases. If you need more professional-oriented instances, consult other
+  HOWTOs or read Oracle documentation.
+
+
+  In any case, at this point, what you should be able to do is to let
+  interactive Oracle sql interpreter SQL*Plus run, by issuing:
+
+  bash$ sqlplus
+
+
+  and by choosing one of the following two default account/passwd pairs
+  that Oracle creates by default. The first pair is:
+
+  user-name:sys
+  password:change_on_install
+
+
+  while the second is:
+
+  user-name:system
+  password:manager
+
+
+
+  However, if you, just for example,  want to connect from/to another
+  machine we  address you to other HOWTOs; for example, Stephen
+  Darlington's "Oracle for Linux Installation HOWTO" covers this
+  subjects and gives other useful hints in its final sections.
+
+
+  5.  Final Words
+
+  Our goal was to write a short list of steps to have Oracle 8i, version
+  8.1.7, running on RedHat 7.2. We think we have gotten to our goal, so
+  we stop here.
+
+
+
+  We think that it would be nice merge all HOWTOs, related to some
+  Oracle installation on some Linux distribution could be very helpful.
+  This is not in our coming projects. Any volunteer?
+
+
+  5.1.  Some Internet Resources
+
+  To conclude, we have copied here, with some minor changes, the list of
+  Internet resources Stephen Darlington's "Oracle for Linux Installation
+  HOWTO" lists, just for easy of use:
+
+  ·  Oracle Technet <http://technet.oracle.com>. This is Oracle's public
+     and free support website. Lot's of very useful information there.
+
+  ·  Oracle Metalink <http://support.oracle.com>. Oracle's private (you
+     need a support contract) support website. Only slightly more useful
+     than Technet!
+
+  ·  Oracle Fans <http://www.orafans.com>. Editorials and support
+     forums. No official connection to Oracle.
+
+  ·  OraFaq <http://www.orafaq.org>. A site full of questions and
+     answers regarding Oracle on all platforms.
+
+  ·  Oracle Linux mailing list (Send a mail to ListGuru@fatcity.com
+     <mailto:ListGuru@fatcity.com> with the words 'SUBSCRIBE ORACLE-
+     LINUX-L' in the body.
+
+
+

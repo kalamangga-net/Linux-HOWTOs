@@ -1,0 +1,1660 @@
+  LILO mini-HOWTO
+  Miroslav "Misko" Skoric, skoric at eunet dot rs
+  v3.39, 2010-07-18
+
+  LILO is the most used Linux Loader for the x86 flavor of Linux; I'll
+  call it Lilo rather than LILO here because I don't appreciate upper-
+  case. This file describes some typical Lilo installations. It's
+  intended as a supplement to the Lilo User's Guide. I think examples
+  are informative even if your setup isn't much like mine. I hope this
+  saves you trouble. Since Lilo's own documentation is very good, who's
+  interested in the details is referred to /usr/doc/lilo* (once upon a
+  time said gentlemen like Cameron Spitzer and Alessandro Rubini who
+  have made early versions of this document)
+
+  This version of Lilo mini-HOWTO is based on work of Cameron Spitzer
+  (cls@truffula.sj.ca.us) and Alessandro Rubini (rubini@linux.it). There
+  are also contributions from Tony Harris (tony@nmr.mgh.harvard.edu) and
+  Marc Tanguy (mtanguy@ens.uvsq.fr). Well, I have used materials from
+  the authors mentioned - without changes - and added some pointers
+  related to configuring LILO for using with Windows NT and Windows
+  2000.  More detailed information about the activation of Windows
+  NT/2000 from LILO menu, you may find in wonderfull Linux+WindowsNT
+  <http://tldp.org/HOWTO/Linux+WinNT.html> mini-HOWTO.
+
+
+
+  1.  Introduction
+
+  Although the documentation found in Lilo's sources (the one installed
+  in /usr/doc/lilo-version) is very comprehensive, most Linux users
+  experience some trouble in building their own /etc/lilo.conf file.
+  This document is meant to support them by giving the minimal
+  information and by showing five sample installations:
+
+
+  ·  The first example is the classical ``Linux and other''
+     installation.
+
+  ·  The next one shows how to install Lilo on a hard drive connected as
+     /dev/hdc that will boot as /dev/hda.  This is usually needed when
+     you install a new Linux drive from your own running system. This
+     also tells how to boot from SCSI disks when your BIOS is modern
+     enough.
+
+  ·  The third example shows how to boot a Linux system whose root
+     partition can't be accessed by the BIOS.
+
+  ·  The next sample file is used to access huge disks, that neither the
+     BIOS nor DOS can access easily (this one is somehow outdated).
+
+  ·  The last example shows how to restore a damaged disk, if the damage
+     resulted from installing another operating system).
+
+
+  The last three examples are by Cameron, cls@truffula.sj.ca.us, who
+  wrote the original document. Alessandro rubini@linux.it doesn't run
+  anything but Linux, so he can't check nor update them by himself.
+  Needless to say, any feedback is welcome.
+
+
+
+  2.  Background Information and Standard Installation
+
+  When Lilo boots the system, it uses BIOS calls to load the Linux
+  kernel off the disk (IDE drive, floppy or whatever). Therefore, the
+  kernel must live in some place that can be accessed by the bios.
+  At boot time, Lilo is not able to read filesystem data, and any
+  pathname you put in /etc/lilo.conf is resolved at installation time
+  (when you invoke /sbin/lilo). Installation time is when the program
+  builds the tables that list which sectors are used by the files used
+  to load the operating system. As a consequence, all of these files
+  must live in a partition that can be accessed by the BIOS (the files
+  are usually located in the /boot directory, this means that only the
+  root partition of your Linux system needs to be accessed via the
+  BIOS).
+
+
+  Another consequence of being BIOS-based is that you must reinstall the
+  loader (i.e., you must reinvoke /sbin/lilo) any time you modify the
+  Lilo setup. Whenever you recompile your kernel and overwrite your old
+  image you must reinstall Lilo.
+
+
+  2.1.  Where Should I Install Lilo?
+
+  The boot= directive in /etc/lilo.conf tells Lilo where it should place
+  its primary boot loader. In general, you can either specify the master
+  boot record (/dev/hda) or the root partition of your Linux
+  installation (is usually is /dev/hda1 or /dev/hda2).
+
+
+  If you have another operating system installed in your hard drive,
+  you'd better install Lilo to the root partition instead of the MBR. In
+  this case, you must mark the partition as ``bootable'' using the ``a''
+  command of fdisk or the ``b'' command of cfdisk.  If you don't
+  overwrite the master boot sector you'll find it easier to uninstall
+  Linux and Lilo if needed.
+
+
+  Of course, you always have a way to avoid some "rules" like above.
+  Well, you may install Lilo to the MBR even if you already have another
+  operating system installed there. For example, if you installed
+  Windows NT 4.0 as the first operating system on your machine, then
+  NT's boot loader was placed into the MBR so you were able to boot NT
+  without problems. After you installed Linux and chose to install Lilo
+  to the MBR, Lilo rewrote NT's boot loader.  Next time you boot your
+  machine, you won't be able to boot NT. But, that is no problem. You
+  should edit your /etc/lilo.conf and add a new entry for NT. Next time
+  you re-boot your system, there will be the new added NT entry under
+  Lilo menu. The same thing happened when I installed Windows 2000
+  instead of Windows NT.
+
+
+  2.2.  How Should I Configure my IDE Hard Drives?
+
+  I personally don't use LBA or LARGE settings in the BIOS (but I only
+  run Linux); they are horrible kludges forced on by design deficiencies
+  in the PC world. This requires that the kernel lives in the first 1024
+  cylinders, but this is not a problem as long as you partition your
+  hard drives and keep root small (as you should do anyways).
+
+
+  If your hard disk already carries another operating system, you won't
+  be able to modify the BIOS settings, or the old system won't work any
+  more. All recent Lilo distribution are able to deal with LBA and LARGE
+  disk settings.
+
+
+  Note that the "linear" keyword in /etc/lilo.conf can help in dealing
+  with geometry problems. The keyword instructs Lilo to use linear
+  sector addresses instead of sector/head/cylinder tuples.  Conversion
+  to 3D addresses is delayed to run-time, therefore making the setup
+  more immune to geometry problems.
+
+
+  If you have more than one hard disk and some of them are only used by
+  Linux and are not involved in the boot process, you can tell your BIOS
+  that they are not installed. Your system will boot more quickly and
+  Linux will autodetect all the disks in no time. I often switch disks
+  in my computers, but I never touch the BIOS configuration.
+
+
+  2.3.  How Can I Interact at Boot Time?
+
+  When you see the Lilo prompt, you can hit the  <Tab>  key to show the
+  list of possible choices. If Lilo is not configured to be interactive,
+  press and hold the  <Alt> or <Shift>  key before the ``LILO'' message
+  appears.
+
+
+  If you choose to boot a Linux kernel, you can add command-line
+  arguments after the name of the system you choose. The kernel accepts
+  many command-line arguments. All the arguments are listed in the
+  ``BootPrompt-HOWTO'' by Paul Gortmaker, and I won't replicate it here.
+  A few command line arguments, however, are particularly important and
+  worth describing here:
+
+
+  ·  root=: you can tell the Linux kernel to mount as root a different
+     partition than the one appearing in /lilo.conf.  For example, my
+     system has a tiny partition hosting a minimal Linux installation,
+     and I've been able to boot the system after destroying my root
+     partition by mistake.
+
+  ·  init=: version 1.3.43 and newer of the Linux kernel can execute
+     another command instead of /sbin/init, as specified on the command
+     line. If you experience bad problems during the boot process, you
+     can access the bare system by specifying init=/bin/sh (when you are
+     at the shell prompt you most likely will need to mount your disks:
+     try ``mount -w -n -o remount /; mount -a'', and remember to
+     ``umount -a'' before turning off the computer).
+
+  ·  A number: by specifying a number on the kernel command line, you
+     instruct init to enter a specific run-level (the default is usually
+     3 or 2, according to the distribution you chose).  Refer to the
+     init documentation, to /etc/inittab and to /etc/rc*.d to probe
+     further.
+
+
+  2.4.  How Can I Uninstall Lilo?
+
+  When Lilo overwrites a boot sector, it saves a backup copy in
+  /boot/boot.xxyy, where xxyy are the major and minor numbers of the
+  device, in hex. You can see the major and minor numbers of your disk
+  or partition by running ``ls -l /dev//device''. For example, the first
+  sector of /dev/hda (major 3, minor 0) will be saved in
+  /boot/boot.0300, installing Lilo on /dev/fd0 creates /boot/boot.0200
+  and installing on /dev/sdb3 (major 8, minor 19) creates
+  /boot/boot.0813. Note that Lilo won't create the file if there is
+  already one so you don't need to care about the backup copy whenever
+  you reinstall Lilo (for example, after recompiling your kernel). The
+  backup copies found in /boot/ are always the snapshot of the situation
+  before installing any Lilo.
+
+
+  If you ever need to uninstall Lilo (for example, in the unfortunate
+  case you need to uninstall Linux), you just need to restore the
+  original boot sector. If Lilo is installed in /dev/hda, just do ``dd
+  if=/boot/boot.0300 of=/dev/hda bs=446 count=1'' (I personally just do
+  ``cat /boot/boot.0300 > /dev/hda'', but this is not safe, as this will
+  restore the original partition table as well, which you might have
+  modified in the meanwhile). This command is much easier to run than
+  trying ``fdisk /mbr'' from a DOS shell: it allows you to cleanly
+  remove Linux from a disk without ever booting anything but Linux.
+  After removing Lilo remember to run Linux' fdisk to destroy any Linux
+  partition (DOS' fdisk is unable to remove non-dos partitions).
+
+
+  If you installed Lilo on your root partition (e.g., /dev/hda2),
+  nothing special needs to be done to uninstall Lilo.  Just run Linux'
+  fdisk to remove Linux partitions from the partition table. You must
+  also mark the DOS partition as bootable.
+
+
+  2.5.  How to make a ram disk?
+
+  Notice: If you find the next section difficult to read, you may also
+  look for the web page:
+  http://surfer.nmr.mgh.harvard.edu/partition/ramdisk.html where you
+  would find the "original" of this contribution ...
+
+
+  by Tony Harris
+
+  16 Oct 2000
+
+  ram disk eenie-weenie HOWTO
+
+
+  If your root file system is on a device for which your kernel has no
+  compiled-in driver, you will need to use lilo to load that driver as a
+  module very early in the boot cycle.  There are only two easy steps:
+
+
+  ·  make a ram disk image with /mkinitrd
+
+  ·  modify lilo.conf to point to the image
+
+  First, I cd over to /boot:
+
+
+
+  System.map                  chain.b                module-info-2.2.16-3ext3
+  System.map-2.2.16-3         initrd-2.2.16-3.img    vmlinux-2.2.16-3
+  System.map-2.2.16-3ext3     vmlinux-2.2.16-3ext3
+  vmlinuz                     kernel.h
+  boot.b                      map                    vmlinuz-2.2.16-3
+  bz.2.2.15.juke.Image        module-info            vmlinuz-2.2.16-3ext3
+  bzImage-2.2.14              module-info-2.2.16-3
+
+
+
+  Here you can see that I have a 2.2.16-3 kernel and I have added a
+  second kernel with ext3 support (vmlinuz-2.2.16-3ext3). There is
+  already a ram disk image for my first kernel (initrd-2.2.16-3.img)
+
+  To make a new image for the second kernel, I type the following (stuff
+  I type is in bold):
+
+  boot# mkinitrd initrd-2.2-16-3ext3.img 2.2.16-3ext3
+
+  mkinitrd is a shellscript that looks at the modules needed by my
+  kernel, then makes an ext2 filesystem containing them.  If we look
+  inside the image we see this is the case:
+
+  boot# cat initrd-2.2.16-3ext3.img | gunzip > /tmp/myimage
+
+  boot# file /tmp/myimage
+
+  /tmp/myimage: Linux/i386 ext2 filesystem/
+
+
+  You do not have to look inside your image. Only making the image and
+  modifying lilo.conf are necessary steps. However, discussion of the
+  ramdisk image is provided for pedagogic purposes.
+
+  In order to look inside, I need to mount the image as though it were a
+  filesystem:
+
+  boot# mount /tmp/myimage /mnt/tmp -t ext2 -o loop=/dev/loop3
+
+  boot# ls /mnt/tmp
+
+  bin  dev  etc  lib  linuxrc
+
+  boot# find /mnt/tmp
+
+  mnt/tmp/
+
+  mnt/tmp/lib/
+
+  mnt/tmp/lib/aic7xxx.o/
+
+  mnt/tmp/bin/
+
+  mnt/tmp/bin/sh/
+
+  mnt/tmp/bin/insmod/
+
+  mnt/tmp/etc/
+
+  mnt/tmp/dev/
+
+  mnt/tmp/dev/console/
+
+  mnt/tmp/dev/null/
+
+  mnt/tmp/dev/ram/
+
+  mnt/tmp/dev/systty/
+
+  mnt/tmp/dev/tty1/
+
+  mnt/tmp/dev/tty2/
+
+  mnt/tmp/dev/tty3/
+
+  mnt/tmp/dev/tty4/
+
+  mnt/tmp/linuxrc/
+
+  The most important part of this ram disk image is aic7xxx.o, which is
+  my scsi module.
+
+  Finally, I move on to the last step, modifying /etc/lilo.conf:
+
+  Here is my entry in lilo.conf that corresponds to the kernel and image
+  I just created:
+
+  image=boot/vmlinuz-2.2.16-3ext3/
+
+  label=linux.ext3
+
+  initrd=boot/initrd-2.2.16-3ext3.img/
+
+  read-only
+
+  root=dev/hdb3/
+
+  That's it. Run /lilo as root and reboot.
+
+
+  If you have problems, check out the kernel HOWTO. There are a couple
+  things you need to have covered: you need your kernel modules compiled
+  and living in /etc/conf.modules.
+
+
+
+  3.  The Simple Configuration
+
+  Most Lilo installations use a configuration file like the following
+  one:
+
+
+  boot = /dev/hda   # or your root partition
+  delay = 10        # delay, in tenth of a second (so you can interact)
+  vga = 0           # optional. Use "vga=1" to get 80x50
+  #linear           # try "linear" in case of geometry problems.
+
+  image = /boot/vmlinux  # your zImage file
+    root = /dev/hda1     # your root partition
+    label = Linux        # or any fancy name
+    read-only            # mount root read-only
+
+  other = /dev/hda4   # your dos partition, if any
+    table = /dev/hda  # the current partition table
+    label = dos       # or any non-fancy name
+
+
+
+  You can have multiple ``image'' and ``other'' sections if you want.
+  It's not uncommon to have several kernel images configured in your
+  lilo.conf, at least if you keep up to date with kernel development.
+
+
+  3.1.  How to Deal with Big Kernels
+
+  If you compile a ``zImage'' kernel and it is too big to fit in half a
+  megabyte (this is common with new 2.1 kernels), you should build a
+  ``big zImage'' instead: ``make bzImage''. To boot a big kernel image
+  nothing special is needed, but you need version 18 or newer of Lilo.
+  If your installation is older, you should upgrade your Lilo package.
+
+
+  3.2.  How to boot Windows NT from 'LILO boot:' menu
+
+  Here I will give you an order of routines you have to do if you want
+  to have both Linux and NT entries under Lilo menu:
+
+
+  ·  First of all, I would suggest you to install a fresh copy of
+     Windows NT 4.0 on your hard disk. I suppose that you already made a
+     backup of your important data, so the NT installation shouldn't be
+     a problem. During the NT installation, setup is not going to ask
+     you where to place NT's boot loader, so it would be placed into the
+     MBR (Master Boot Record) of your hard disk. But, there is a
+     possibility for a previous content of the MBR to remain within the
+     MBR (especially any previous Lilo), so I would suggest you (before
+     installation of NT) to boot the computer with a DOS floppy diskette
+     having DOS version of FDISK. At the prompt a:\  just enter the
+     command: fdisk /mbr and restart the computer again (without that
+     floppy).
+
+
+
+  ·  After you have successfully installed your NT, you will see that it
+     uses the whole hard disk or a specific partition of the hard disk
+     (depending on what you decided during the setup process).  So, it
+     is advisable to 'shrink' the partition where NT resides in order to
+     make some free space on the disk. Onto that free space you will
+     install your Linux. After you have your NT configured and running,
+     you have to boot your computer using a floppy diskette with
+     Partition Magic utility by Power Quest. It is a graphical tool able
+     to see all partitions on all hard disks you have. The best thing is
+     that you can make some changes with your partitions but not to
+     destroy your existing data. One of the available changes is to make
+     your existing partition(s) smaller, so to get some free space on
+     the disk(s) for other purposes.  Although you are advised to make a
+     backup before you make any changes to the partitions, I usually
+     practice to 'shrink' NT's partition before I installed anything but
+     NT itself (so, if needed, a repetitive re-installation wouldn't be
+     a problem).  Well, Partition Magic (or any other similar utility
+     you are familiar with) will shrink your NT's partition (either NTFS
+     or FAT) to a smaller measure and place it to either the beginning
+     or to the end of the previous measure. It means that you may choose
+     to have your 'shrinked' NT partition at the beginning or at the end
+     of your disk (I usually choose NT to be at the beginning, so the
+     ending part of the disk will become a 'free space'). After the
+     'shrinking' is finished, you may re-boot your NT in order to check
+     the new situation: you may use Windows Explorer or Disk
+     Administrator for that.
+
+
+
+  ·  So far so good. Next step is to install your Linux. Case you are
+     familiar with RedHat distribution (I hope with other distros is the
+     same or similar), you start by putting your installation CD in the
+     drive and re-boot the computer). Well, when you are about to choose
+     what type of installation it will be (Gnome or KDE Workstation,
+     Custom, etc.) you may choose whatever you planned before, but I
+     would suggest to install a Workstation at first.  This is good
+     because Linux setup will find automatically the free space on the
+     (first) hard disk, make all partitions needed for Linux, format
+     them properly, make majority of option by default so you won't have
+     much pain during the setup (later, if you want, you may either to
+     add missing components or re-install Linux as Custom over the
+     existing linux partitions). Lilo should go to the MBR.
+
+
+
+  ·  After it looks that Linux installation is finished, you are going
+     to re-start the computer and there there you will only see Lilo
+     with one Linux entry to boot (or maybe more than one Linux entry,
+     in case your hardware is multi-processor one). But, don't panic!
+     Your Windows NT is still there where you had installed it before
+     Linux. You should become some familiar with Linux as soon as
+     possible, in order to be able to find and edit your new
+     /etc/lilo.conf file. When you open this file for the first time,
+     you'll see that there is only one (or more) Linux entry. Well, you
+     should know the exact position (read: a partition) where Windows NT
+     has been installed, so you could add an appropriate entry into
+     /etc/lilo.conf file. After you do that, restart Lilo and, after the
+     next re-boot, you will have both 'linux' and 'nt' entries under
+     Lilo menu.
+
+
+  3.3.  How to boot Windows 2000 from 'LILO boot:' menu
+
+  Well, you may use the same procedure as described above.  I suggest
+  you to read Linux+WindowsNT <http://tldp.org/HOWTO/Linux+WinNT.html>
+  mini-HOWTO that also talks about booting Windows 2000, which is
+  installed on the same part of disk where Windows NT was before. There
+  you'll find many useful details regarding various Linux+WinNT/2000/98
+  combinations.
+
+
+
+  4.  Installing hdc  to Boot as hda  and Using bios=
+
+  Lilo allows to map the kernel image from one disk and instruct the
+  BIOS to retrieve it from another disk. For example, it's common for me
+  to install Linux on a disk I connect to hdc (master disk of secondary
+  controller) and boot it as a standalong system on the primary IDE
+  controller of another computer. I copied the installation floppy to a
+  tiny partition, so I can run chroot in a virtual console to install
+  hdc while I use the system to do something else.
+
+
+  The lilo.conf file I use to install Lilo looks like:
+
+
+  # This file must be used from a system running off /dev/hdc
+  boot = /dev/hdc   # overwrite MBR of hdc
+  disk = /dev/hdc   # tell how hdc will look like:
+     bios = 0x80    #  the bios will see it as first drive
+  delay = 0
+  vga = 0
+
+  image = /boot/vmlinux  # this is on /dev/hdc1
+    root = /dev/hda1     # but at boot it will be hda1
+    label = Linux
+    read-only
+
+
+
+  This configuration file must be read by a Lilo running off /dev/hdc1.
+  The Lilo maps that get written the boot sector (/dev/hdc) must refer
+  to the files in /boot (currently installed as hdc); such files will be
+  accessed under hda when this disk will be booted as a standalone
+  system.
+
+
+  I call this configuration file /mnt/etc/lilo.conf.hdc (/mnt is where
+  hdc is mounted during the installation. I install Lilo by invoking
+  ``cd /mnt; chroot . sbin/lilo -C /etc/lilo.conf.hdc''. Refer to the
+  manual page for chroot if this looks magic.
+
+
+  The ``bios='' directive in lilo.conf is used to tell Lilo what the
+  BIOS thinks of your devices. BIOS calls identify floppy disks and hard
+  drives with a number: 0x00 and 0x01 select the floppy drives, 0x80 and
+  the following numbers select hard disks (old BIOS-es can only access
+  two disks). The meaning of ``bios = 0x80 in the previous sample file
+  is therefore ``use 0x80 in your BIOS calls for /dev/hdc''.
+
+  This Lilo directive can be handy in other situations, for example when
+  your BIOS is able to boot from SCSI disks instead of IDE ones. When
+  both IDE and SCSI devices are there, Lilo can't tell whether 0x80 will
+  refer to one or the other because the user is able to choose it in the
+  BIOS configuration menus, and the BIOS can't be accessed while Linux
+  is running.
+
+
+  By default, Lilo assumes that IDE drives are mapped first by the BIOS,
+  but this can be overridden by using instructions like these in
+  /etc/lilo.conf:
+
+
+  disk = /dev/sda
+    bios = 0x80
+
+
+
+  5.  Using Lilo When the BIOS Can't See the Root Partition
+
+  I have two IDE drives, and a SCSI drive.  The SCSI drive can't be seen
+  from BIOS.  The Linux Loader, Lilo, uses BIOS calls and can only see
+  drives that BIOS can see.  My stupid AMI BIOS will only boot from "A:"
+  or "C:" My root file system is on a partition on the SCSI drive.
+
+
+  The solution consists in storing the kernel, map file, and chain
+  loader in a Linux partition on the first IDE.  Notice that it is not
+  necessary to keep your kernel on your root partition.
+
+
+  The second partition on my first IDE (/dev/hda2, the Linux partition
+  used to boot the system) is mounted on /u2.  Here is the
+  /etc/lilo.conf file I used.
+
+
+
+  #  Install Lilo on the Master Boot Record
+  #  on the first IDE.
+  #
+  boot = /dev/hda
+  #  /sbin/lilo (the installer) copies the Lilo boot record
+  #  from the following file to the MBR location.
+  install = /u2/etc/lilo/boot.b
+  #
+  #  I wrote a verbose boot menu.  Lilo finds it here.
+  message = /u2/etc/lilo/message
+  #  The installer will build the following file. It tells
+  #  the boot-loader where the blocks of the kernels are.
+  map = /u2/etc/lilo/map
+  compact
+  prompt
+  #  Wait 10 seconds, then boot the 1.2.1 kernel by default.
+  timeout = 100
+  #  The kernel is stored where BIOS can see it by doing this:
+  #      cp -p /usr/src/linux/arch/i386/boot/zImage /u2/z1.2.1
+  image = /u2/z1.2.1
+          label = 1.2.1
+  #  Lilo tells the kernel to mount the first SCSI partition
+  #  as root.  BIOS does not have to be able to see it.
+          root = /dev/sda1
+  #  This partition will be checked and remounted by /etc/rc.d/rc.S
+          read-only
+  #  I kept an old Slackware kernel lying around in case I built a
+  #  kernel that doesn't work.  I actually needed this once.
+  image = /u2/z1.0.9
+          label = 1.0.9
+          root = /dev/sda1
+          read-only
+  #  My DR-DOS 6 partition.
+  other = /dev/hda1
+          loader=/u2/etc/lilo/chain.b
+          label = dos
+          alias = m
+
+
+
+  6.  How do i know the BIOS number for my SCSI disks
+
+  The contribution from Marc Tanguy (mtanguy@ens.uvsq.fr), 2001-09-27
+
+
+
+  6.1.  The theory
+
+  Actually, it exists two ways to know it :
+
+
+  If you have an adaptec scsi card (2940u2, 29160, 39160), you simply
+  use the 'diagnose' mode (using BIOS v3.10.0 recommended). It must be
+  activated in the scsi card BIOS menu.  Then you just have to wait and
+  see something like :
+
+
+  ...     ID     LUN     Vendor      Product       Rev      Size     Sync     Bus    HD#
+  ...     0      0       QUANTUM     ATLAS10K2     DDD6     17GB     160      16     80h
+  ...     1      0       QUANTUM     ATLAS10K2     DDD6     17GB     160      16     81h
+  ...     2      0       IBM         DDRS          DC1B     4GB      80       16     82h
+  ...     3      0       IBM         DNES          SAH0     9GB      80       16     83h
+
+
+  If you don't own an adaptec card, you have to know what is the
+  'booting' disk (usually ID 0, but not necessary, it can be defined in
+  the scsi card BIOS) where LILO is going to be found and start : this
+  is the first disk so it has number 0x80.  Then it's very simple, the
+  BIOS follows the IDs.
+
+
+  By example :
+
+
+  ID 0 -> boot  -> 0x80
+  ID 1 -> empty
+  ID 2 -> disk  -> 0x81
+  ID 3 -> disk  -> 0x82
+
+
+
+  or
+
+
+  ID 0 -> disk  -> 0x81
+  ID 1 -> empty
+  ID 2 -> disk  -> 0x82
+  ID 3 -> boot  -> 0x80
+  ID 4 -> disk  -> 0x83
+
+
+
+  This part doesn't care at all of what is installed on the scsi drives.
+  But you should note that if you use an ID higher than the SCSI adapter
+  it c an be a problem. So you should always try to set the SCSI adapter
+  ID after the SCSI devices IDs.
+
+
+
+  6.2.  How to swap linux and NT booting ?
+
+  OK, but NT must be the first disk to boot, so i want it in 0x80, but i
+  already have LILO and a full ext2 only drive on 0x80 and my NT drive
+  is in 0x83. How can i 'swap' linux and NT ?  This a very easy : you
+  just have to tell BIOS that NT drive is now 0x80 and the Linux drive
+  is 0x83.
+
+
+  other=/dev/sdd1
+        label=nt
+        map-drive = 0x83
+        to = 0x80
+        map-drive = 0x80
+        to = 0x83
+
+
+
+  This change will produce a warning :
+
+    Warning: BIOS drive 0x8? may not be accessible
+
+
+
+  but if you know what you are doing it will run without problem.
+
+  I used it on this configuration which has a Red Hat Linux 7.1 and a
+  Windows 2000 Pro :
+
+
+  Name        Flags      Part Type  FS Type          [Label]        Size (MB)
+
+  Disk Drive: /dev/sda - 0x80
+  sda1        Boot        Primary   Linux ext2       [/boot]            24.68
+  sda2                    Primary   Linux Swap                         139.83
+  sda3                    Primary   Linux ext2       [/usr]           3150.29
+  sda4                    Primary   Linux ext2       [/home]         15044.04
+
+  Disk Drive: /dev/sdb - 0x81
+  sdb1                    Primary   Linux Swap                         139.83
+  sdb2                    Primary   Linux ext2       [/]              3150.29
+  sdb3                    Primary   Linux ext2       [/opt]           1052.84
+  sdb4                    Primary   Linux ext2       [/public]       14015.88
+
+  Disk Drive: /dev/sdc - 0x82
+  sdc1                    Primary   Linux ext2       [/var]           1052.84
+  sdc2                    Primary   Linux ext2       [/tmp]            106.93
+  sdc3                    Primary   Linux ext2       [/cache]         1052.84
+  sdc4                    Primary   Linux ext2       [/chroot]        2352.44
+
+  Disk Drive: /dev/sdd - 0x83
+  sdd1        Boot        Primary   NTFS             [WINDOWS_2000]   9162.97
+
+
+
+  My full /etc/lilo.conf :
+
+  boot=/dev/sda
+  map=/boot/map
+  install=/boot/boot.b
+  prompt
+  default=Linux
+  read-only
+  compact
+  image=/boot/vmlinuz
+    label=Linux
+    root=/dev/sdb2
+  other=/dev/sdd1
+    label=Windows
+    map-drive = 0x83
+    to = 0x80
+    map-drive = 0x80
+    to = 0x83
+
+
+
+  6.3.  Miscellaneous
+
+  I just plugged a new scsi drive, and now LILO refuse to boot, what's
+  going on ?
+
+  When you plug a disk, you must be careful with the IDs. If you add a
+  drive between two already plugged disks the BIOS numbers are changed :
+
+
+           Before            ---->             After
+  scsi id -       - BIOS id        scsi id -          - BIOS id
+  ID 0    - disk  - 0x80           ID 0    - disk     - 0x80
+  ID 1    - empty                  ID 1    - new disk - 0x81
+  ID 2    - disk  - 0x81           ID 2    - disk     - 0x82 !!
+
+
+
+  If you change the BIOS ids, you have to re-evaluate them.
+
+
+
+  7.  Accessing Huge Disks When the BIOS Can't
+
+  Notice: 1GB is "Huge"? Well, once upon a time...
+
+
+  The system in my office has a 1GB IDE drive.  The BIOS can only see
+  the first 504 MB of the IDE.  (Where MB means 2**10 bytes, not 10**6
+  bytes.)  So I have MS-DOS on a 350 MB partition /dev/hda1 and my Linux
+  root on a 120 MB partition /dev/hda2.
+
+
+  Hauke Laging (hauke@laging.de) and Bob Hall (bhall@hallfire.org) have
+  noticed a small mistake above, so they've suggested a MB to be 2**20
+  bytes rather than 2**10 bytes. Thanks for correction. In addition,
+  Hauke would like to learn more about what he called, "character codes
+  on LILO startup, when LILO dies with LI, LI-, LIL- or whatever". I'd
+  appreciate a contribution related to this issue or a valid web link to
+  that.
+
+
+  Here it is (a contribution by Zohar Stolar, zohar@numericable.fr):
+
+  B. LILO boot error codes
+
+  http://www.tldp.org/HOWTO/Bootdisk-HOWTO/a1483.html
+  <http://www.tldp.org/HOWTO/Bootdisk-HOWTO/a1483.html>
+
+
+
+  Thanks for link.
+
+
+  MS-DOS was unable to install itself correctly when the drive was
+  fresh.  Novell DOS 7 had the same problem.  Luckily for me, "Options
+  by IBM" forgot to put the "OnTrack" diskette in the box with the
+  drive.  The drive was supposed to come with a product called "OnTrack
+  Disk Manager."  If you only have MSDOS, I guess you have to use it.
+
+
+  So I made a partition table with Linux' fdisk.  MSDOS-6.2 refused to
+  install itself in /dev/hda1.  It said something like ``this release of
+  MS-DOS is for new installations.  Your computer already has MS-DOS so
+  you need to get an upgrade release from your dealer.''  Actually, the
+  disk was brand new.
+
+
+  What a crock!  So I ran Linux' fdisk again and deleted partition 1
+  from the table.  This satisfied MS-DOS 6.2 which proceeded to create
+  the exact same partition 1 I had just deleted and installed itself.
+  MS-DOS 6.2 wrote its Master Boot Record on the drive, but it couldn't
+  boot.
+
+
+  Luckily I had a Slackware kernel on floppy (made by the Slackware
+  installation program "setup"), so I booted Linux and wrote Lilo over
+  MS-DOS' broken MBR.  This works.  Here is the /etc/lilo.conf file I
+  used:
+
+
+
+  boot = /dev/hda
+  map = /lilo-map
+  delay = 100
+  ramdisk = 0             # Turns off ramdisk in Slackware kernel
+  timeout = 100
+  prompt
+  disk = /dev/hda         # BIOS only sees first 500 MB.
+     bios = 0x80          # specifies the first IDE.
+     sectors = 63         # get the numbers from your drive's docs.
+     heads = 16
+     cylinders = 2100
+  image = /vmlinuz
+    append = "hd=2100,16,63"
+    root = /dev/hda2
+    label = linux
+    read-only
+    vga = extended
+  other = /dev/hda1
+    label = msdos
+    table = /dev/hda
+    loader = /boot/chain.b
+
+
+
+  After I installed these systems, I verified that the partition
+  containing the zImage, boot.b, map, chain.b, and message files can use
+  an msdos file system, as long as it is not "stackered" or
+  "doublespaced."  So I could have made the DOS partition on /dev/hda1
+  500 MB.
+
+
+  I have also learned that "OnTrack" would have written a partition
+  table starting a few dozen bytes into the drive, instead of at the
+  beginning, and it is possible to hack the Linux IDE driver to work
+  around this problem.  But installing would have been impossible with
+  the precompiled Slackware kernel.  Eventually, IBM sent me an
+  "OnTrack" diskette.  I called OnTrack's technical support.  They told
+  me Linux is broken because Linux doesn't use BIOS.  I gave their
+  diskette away.
+
+
+
+  8.  Booting from a Rescue Floppy
+
+  Next, I installed Windows-95 on my office system.  It blew away my
+  nice Lilo MBR, but it left my Linux partitions alone.  Kernels take a
+  long time to load from floppy, so I made a floppy with a working Lilo
+  setup on it, which could boot my kernel from the IDE.
+
+  I made the lilo floppy like so:
+
+    fdformat /dev/fd0H1440      #  lay tracks on virgin diskette
+    mkfs -t minix /dev/fd0 1440 #  make file system of type minix
+    mount /dev/fd0 /mnt         #  mount in the standard tmp mount point
+    cp -p /boot/chain.b /mnt    #  copy the chain loader over
+    lilo -C /etc/lilo.flop      #  install Lilo and the map on the diskette.
+    umount /mnt
+
+
+
+  Notice that the diskette must be mounted when you run the installer so
+  that Lilo can write its map file properly.
+
+
+  This file is /etc/lilo.flop.  It's almost the same as the last one:
+
+
+  #  Makes a floppy that can boot kernels from HD.
+  boot = /dev/fd0
+  map = /mnt/lilo-map
+  delay = 100
+  ramdisk = 0
+  timeout = 100
+  prompt
+  disk = /dev/hda     # 1 GB IDE, BIOS only sees first 500 MB.
+     bios=0x80
+     sectors = 63
+     heads = 16
+     cylinders = 2100
+  image = /vmlinuz
+    append = "hd=2100,16,63"
+    root = /dev/hda2
+    label = linux
+    read-only
+    vga = extended
+  other = /dev/hda1
+    label = msdos
+    table = /dev/hda
+    loader = /mnt/chain.b
+
+
+
+  Finally, I needed MS-DOS 6.2 on my office system, but I didn't want to
+  touch the first drive.  I added a SCSI controller and drive, made an
+  msdos file system on it with Linux' mkdosfs, and Windows-95 sees it as
+  "D:".   But of course MSDOS will not boot off of D:.  This is not a
+  problem when you have Lilo.  I added the following to the lilo.conf in
+  Example 2.
+
+
+  other = /dev/sda1
+    label = d6.2
+    table = /dev/sda
+    loader = /boot/any_d.b
+
+
+
+  With this modification MSDOS-6.2 runs, and it thinks it is on C: and
+  Windows-95 is on D:.
+
+
+
+  9.  LILO after the installation of Mandrake Linux 9.1 on HP products
+
+  2003-11-19
+
+
+  9.1.  Description of the products used in this experiment
+
+  Notice: Folks, that part is NOT a commercial for HP production of any
+  means! In fact, a series of HP computers I have been using has
+  delivered failures in power supply units, problems with hard disks
+  etc.  On the other side, laptop's batteries get exhausted earlier than
+  expected.  Other than these issues, HP machines are fine.
+
+  HP Omnibook 6000
+
+  A laptop computer Omnibook 6000 is equipped with a 'bootable' DVD
+  drive and recently, at an ICT conference, I bought a bootable DVD-ROM
+  with Mandrake Linux 9.1 installation. After booting the laptop with
+  that bootable DVD, it gets directly to the Linux installation menu.
+
+
+  HP Vectra VL420 (used as a server)
+
+  In opposite, an HP Vectra VL420 doesn't have a DVD drive (it only has
+  a CD drive), so the direct installation from that particular
+  installation DVD is not possible. But, an option of making a bootable
+  floppy disk for starting the installation procedure is possible. In
+  fact, several boot images are available for those users who don't have
+  (bootable or not) DVD drive. One of the images is a 'network' one.
+  That means, in a local area network there has to be either a NFS, FTP
+  or HTTP server from which the installation will take place.
+
+
+  HP Vectra VL420 (used as a workstation)
+
+  Another VL420 desktop system I also use, has a spare HDD from a
+  previous Windows 2000 server installation (actually, that IDE disk was
+  moved from the other computer where it was a primary one and here it
+  is the second one disk for backup data). The nice things is that it
+  has a HTTP and FTP servers installed (of course, usable if the system
+  is boot from that disk).  That was good so I could use one of these
+  servers now.
+
+  So, I made a 'network' bootable floppy and booted the first Vectra
+  VL420 (intended to be a Linux server) with it. After a while, it came
+  to a point to choose the installation method (NFS or FTP or HTTP
+  server). At first, I wanted to use the second 'spare' HTTP server at
+  the other Vectra mentioned above, but regardless of what permission I
+  tried to give to the 'Everyone' group of Windows users, I always got
+  the following answer from the Linux setup:
+
+  Error: Couldn't get file ... (or something like that)
+
+  Then I tried to use the FTP 'spare' server from the second Vectra and
+  at first it also asked for local and remote IP addresses. That time
+  successfully, it started to load a part of the remote Linux files into
+  its memory without any complaint. Soon after, it came to the very same
+  position as Omnibook 6000 did: it got directly to the installation
+  menu, asking a user to choose a language for the installation use.
+
+  >From that point, the setup process was almost the same...
+
+  I have chosen/confirmed the following items:
+
+  - a language to use, besides English(American) as default: I added
+  Unicode and Serbian (both Cyrillic and Latin); - a mouse and keyboard;
+  - a security level - I accepted defaults: 'Standard' for laptop and
+  'Higher' for server;
+
+  The next important task was to choose one of DrakX partitioning
+  options:
+
+  - for laptop I chose the 'Use the free space on the Windows
+  partition', because the laptop has one IDE hard disk and I wanted it
+  to use a part of it for Linux (besides existing Windows 2000 Prof.
+  already installed). Windows' Disk Management reported:
+
+
+
+  Disk 0  15      MB      FAT     (HP Diagnostics or like)
+          7.13    GB      FAT32   (C: "HPNOTEBOOK")
+          20.80   GB      Free space
+
+  The two partitions (FAT & FAT32) were made during the installation
+  procedure using HP's supplied installation CD's.
+
+  At the first moment, Linux setup complained that my Windows partition
+  "was too fragmented" and required me to reboot under Windows, run the
+  "defrag" utility, then restart the Mandrake Linux installation.  The
+  defragmentation process have taken cca. 1.5 hour to be completed!
+  When restarted the setup, it wanted to use 7.13 GB Windows partition,
+  instead of 20.80 GB. I chose to 'Use the free space'. Then it made
+  partitions for Linux: /dev/hda5 and /dev/hda7.
+
+  - for Vectra VL420 I used 'Custom disk partitioning' because there I
+  had two SCSI disks, one of them running Windows 2000 Server already
+  installed, and the other one I wanted to use entirely for a Linux
+  server. BTW, I wasn't sure what the option 'Erase entire disk' would
+  do during its next step (erase a whole disk or a partition?), although
+  it also may be the proper solution too. DrakX recognized the two SCSI
+  disks as sda and sdb and I chose sdb to install Linux. The first step
+  was to 'Clear all' and after that to 'Auto allocate' the space on that
+  second disk.  Finally, after a 'Done' it appeared to make /dev/sdb1
+  and /dev/sdb6 Linux partitions.
+
+
+  9.2.  What does LILO looks like on these HP products
+
+  HP Omnibook 6000
+
+
+
+  boot=/dev/hda
+  map=/boot/map
+  vga=normal
+  default="windows"
+  keytable=/boot/us.klt
+  prompt
+  nowarn
+  timeout=100
+  message=/boot/message
+  menu-scheme=wb:bw:wb:bw
+  image=/boot/vmlinuz
+          label="linux"
+          root=/dev/hda5
+          initrd=/boot/initrd.img
+          append="quiet devfs=mount acpi=off"
+          read-only
+  image=/boot/vmlinuz
+          label="failsafe"
+          root=/dev/hda5
+          initrd=/boot/initrd.img
+          append="failsafe devfs=nomount acpi=off"
+          read-only
+  other=/dev/hda2                                 <--- /dev/hda1 seems to be reserved for some HP diags.
+          label="windows"
+          table=/dev/hda
+  other=/dev/fd0
+          label="floppy"
+          unsafe
+
+
+
+  HP Vectra VL420 (installed as a desktop client Linux system)
+
+
+
+  boot=/dev/hda
+  map=/boot/map
+  vga=normal
+  default="windows"
+  keytable=/boot/us.klt
+  prompt
+  nowarn
+  timeout=100
+  message=/boot/message
+  menu-scheme=wb:bw:wb:bw
+  image=/boot/vmlinuz
+          label="linux"
+          root=/dev/hda5
+          initrd=/boot/initrd.img
+          append="quiet devfs=mount acpi=off"
+          vga=788                                 <--- that line is missing at laptop with LCD screen above.
+          read-only
+  image=/boot/vmlinuz
+          label="linux-nonfb"
+          root=/dev/hda5
+          initrd=/boot/initrd.img
+          append="devfs=mount acpi=off"
+          read-only
+  image=/boot/vmlinuz
+          label="failsafe"
+          root=/dev/hda5
+          initrd=/boot/initrd.img
+          append="failsafe devfs=nomount acpi=off"
+          read-only
+  other=/dev/hda1                                 <--- /dev/hda1 seems not to be reserved for HP diags here.
+          label="windows"                                     There I have Windows 2000 Professional already
+          table=/dev/hda                                  installed (probably without HP's supplied CD's).
+  other=/dev/hdb1                                 <--- that is the spare disk with Windows 2000 Server.
+          label="windows2"                            Actually I had some data on it and used it as a
+          table=/dev/hdb                                  second, backup disk on that desktop workstation.
+          map-drive=0x80                                  I have never tried to boot the computer from it, but
+             to=0x81                                      Mandrake's setup offered it as a boot option.
+          map-drive=0x81                                  (And that was useful as a FTP server, needed to install
+             to=0x80                                      Mandrake Linux on the other box - without DVD drive too).
+  other=/dev/fd0
+          label="floppy"
+          unsafe
+
+
+
+  HP Vectra VL420 (installed as a desktop Linux system with server
+  features)
+
+
+
+  boot=/dev/sda                                   <--- /dev/sda is the first SCSI disk where LILO resides (MBR).
+  map=/boot/map
+  vga=normal
+  default="windows"
+  keytable=/boot/us.klt
+  prompt
+  nowarn
+  timeout=100
+  message=/boot/message
+  menu-scheme=wb:bw:wb:bw
+  image=/boot/vmlinuz
+          label="linux"
+          root=/dev/sdb1                          <--- /dev/sdb1 is the second SCSI disk where Linux resides.
+          initrd=/boot/initrd.img
+          append="quiet devfs=mount acpi=off"
+          vga=788
+          read-only
+  image=/boot/vmlinuz
+          label="linux-nonfb"
+          root=/dev/sdb1
+          initrd=/boot/initrd.img
+          append="devfs=mount acpi=off"
+          read-only
+  image=/boot/vmlinuz-secure
+          label="linux-secure"                        <--- something related to the Linux server security?
+          root=/dev/sdb1
+          initrd=/boot/initrd-secure.img
+          append="quiet devfs=mount acpi=off"
+          read-only
+  image=/boot/vmlinuz
+          label="failsafe"
+          root=/dev/sdb1
+          initrd=/boot/initrd.img
+          append="failsafe devfs=nomount acpi=off"
+          read-only
+  other=/dev/sda1                                 <--- /dev/sda1 is the first partition on the first SCSI disk where Windows resides.
+          label="windows"
+          table=/dev/sda
+
+
+
+  9.3.  Conclusions
+
+  >From the examples above, you could see that I have been using various
+  computer forms with also various types of hard disk.  Somewhere there
+  is only one IDE drive, somewhere else there are two of them, otherwise
+  there are a couple of SCSI drives etc. Regardless of that, I always
+  tried to put LILO into the MBR - located on the first disk. Now it
+  looks like that Linux finally managed to solve the old 1024 cyl
+  problem. In fact, LILO seems to be capable to boot Linux regardless it
+  is placed close to the rest of Linux partitions or not.
+
+
+  There are some other considerations related to the experiment above,
+  but they are part of the other fine document: Linux+WindowsNT
+  <http://tldp.org/HOWTO/Linux+WinNT.html> mini-HOWTO.
+
+
+
+  10.  Bibliography
+
+  2010-07-18
+
+  Notice: I often participate in various (inter)national ICT conferences
+  in Serbia and abroad, presenting technical papers and delivering half-
+  day and full-day tutorials, covering basic ideas and useful mission of
+  the amateur radio hobby and its possible usage in engineering
+  education. What I have been doing is to spread - as much as possible -
+  the knowledge about existing open source products, including Linux and
+  amateur radio free software. Besides that, I have been writing various
+  articles for a variety of scientific and other magazines. Here you
+  have the list of those articles and paper topics submitted to the
+  conferences.
+
+
+  In case you want to re-publish or forward my volunteer paper works to
+  some journals or other public media around, you are free to contact
+  me. Some of my papers are written in Serbian Cyrillic, some of them
+  are in English and some of them even combined!
+
+
+
+        - "U prilog I.A.C.", MI (the youth scientists' organization
+           newspaper), No. 69, 1990.
+
+        - "U prilog I.A.C. (2)", MI (the youth scientists' organization
+           newspaper), No. 70, 1990.
+
+        - "Vise od radio-amaterskog hobija", Vojska, No. 163, 1995.
+
+        - "Korak ka zvezdama", Vojska, No. 200, 1996.
+
+        - "Die Gefahr von Innen - Internet gegen Amateurfunk",
+           AMSAT-DL Journal, No. 4, Dez./Feb. 96/97.
+
+        - "Kakva nam organizacija (ne) treba?", Radioamater,
+           Feb. 1997.
+
+        - "Kakva nam organizacija (ne) treba? (2)", Radioamater,
+           Apr./May. 1997.
+
+        - "Sateliti umiru padajuci", Vojska, No. 235, 1997.
+
+        - "The Internet is not the Enemy", QST, Aug. 1998.
+
+        - "Novi radio-amateri za novi vek", Antena, June 2000.
+
+        - "Racunarske komunikacije putem radio-veza i
+           zastita pristupa", Bezbednost, No. 3, 2000.
+
+        - "Paket-radio - Racunarske komunikacije putem radio-veza",
+           proceedings, "Info-Teh", Vrnjacka Banja, Serbia, 2001.
+
+        - "Racunarske komunikacije putem radio-amaterskih veza",
+           proceedings, "YU-Info", Kopaonik, Serbia, 2002.
+
+        - "Computer Communications over radio", presentation,
+          "Linux FEST", Belgrade, Serbia, 2002.
+
+        - "Paket-radio - Radio-amaterske digitalne veze",
+           proceedings, "Kongres JISA", Herceg Novi, Montenegro, 2002.
+
+        - "Paket-radio (2) - Modemi za radio-veze",
+           proceedings, "Info-Teh", Vrnjacka Banja, Serbia, 2002.
+
+        - "Alternativne racunarske mreze", festival catalog,
+          "INFOFEST", Budva, Montenegro, 2002.
+
+        - "Alternative computer networks", proceedings, "TELFOR",
+           Belgrade, Serbia, 2002.
+
+        - "With rule and regulation improvements to the progress"
+           proceedings, "TELFOR", Belgrade, Serbia, 2002.
+
+        - "Racunarske komunikacije putem radio-amaterskih veza (2)",
+           proceedings, "YU-Info", Kopaonik, Serbia, 2003.
+
+        - "Racunarske komunikacije putem radio-amaterskih veza (3)",
+           proceedings, "YU-Info", Kopaonik, Serbia, 2003.
+
+        - "Paket-radio (3) - Programske mogucnosti na strani servera",
+           proceedings, "Info-Teh", Vrnjacka Banja, Serbia, 2003.
+
+        - "Paket-radio (4) - Legal rules and regulations in the amateur
+           computer networks", proceedings, "Info-Teh", Vrnjacka Banja,
+           Serbia, 2003.
+
+        - "Packet-radio (2) - With rule and regulation improvements to the progress",
+           proceedings, "Kongres JISA", Herceg Novi, Montenegro, 2003.
+
+        - "Alternativne racunarske mreze (2)", festival catalog,
+          "INFOFEST", Budva, Montenegro, 2003.
+
+        - "Alternativne racunarske komunikacije putem radio-veza",
+           Info M, 6-7/2003.
+
+        - "Legal Rules and Regulations in the Amateur Radio Computer Networks",
+           proceedings, "22nd ARRL and TAPR Digital Communications Conference",
+           Hartford, CT USA, 2003.
+
+        - "Favoritism", IEEE Potentials, Oct/Nov 2003
+
+        - "Alternative computer networks (2)", proceedings, "TELFOR",
+           Belgrade, Serbia, 2003.
+
+        - "With rule and regulation improvements to the progress (2)"
+           proceedings, "TELFOR", Belgrade, Serbia, 2003.
+
+        - "XI Telekomunikacioni forum - TELFOR 2003", Info M, 8/2003.
+
+        - "Aktivnosti organizacije IEEE Computer Society - YU Chapter"
+          Info M, 8/2003.
+
+        - "Yugoslavia IEEE Student Branch", IEEE Region 8 News,
+          Vol. 7 No. 1, Feb/Mar 2004
+
+        - "Radio-amaterske racunarske mreze", tutorial, "Info-Teh",
+          Vrnjacka Banja, Serbia, 2004.
+
+        - "Radio-amaterske racunarske mreze", tutorial, "Kongres
+          JISA", Herceg Novi, Montenegro, 2004.
+
+        - "The Amateur Radio as a Learning Technology in
+          Developing Countries", proceedings, "ICALT/TEDC 2004",
+          Joensuu, Finland, 2004.
+
+        - "The Amateur Radio in Engineering Education", seminar,
+          "IEEE-EESTEC Technical Conference 2004", Arcavacata
+          di Rende (Cosenza), Italy, 2004.
+
+        - "The Conference Low-Down", IEEE Potentials, Feb/Mar 2005
+
+        - "ICALT 2004, IEEE Novi Sad SB, Serbia & Montenegro",
+          IEEE Region 8 News, Vol. 8 No. 1, Mar 2005
+
+        - "The Conference Low-Down", IEEE Potentials, Apr/May 2005
+
+        - "The Amateur Radio Networking And Computing", proceedings,
+          "PSU-UNS ICEE 2005", Novi Sad, Serbia, 2005
+
+        - "Radio-amaterske racunarske mreze", tutorial, "Info-Teh",
+          Vrnjacka Banja, Serbia, 2005 (intro: dr D. Surla, PMF)
+
+        - "Radio-veze", round table session, "Kongres JISA", Herceg
+          Novi, Montenegro, 2005.
+
+        - "The New Amateur Radio University Network - AMUNET",
+          proceedings, "9th WSEAS CSCC Multiconference",
+          Vouliagmeni, Athens, Greece, 2005.
+
+        - "The perspectives of the Amateur University Network -
+          AMUNET", WSEAS Transactions on Communications, Vol 4,
+          pp 834, Sep. 2005.
+
+        - "Conferences in Serbia and Montenegro", IEEE Region 8 News,
+          Vol. 8 No. 3, Sep 2005.
+
+        - "The Conference Low-Down", IEEE Potentials, Dec 2005
+
+        - "Divided We Fall", The Institute, IEEE, Dec 2005
+
+        - "University Networking Through the Amateur Radio Communications",
+          plenary lecture, "3rd WSEAS/IASME Int. Conf. on Engineering
+          Education", Vouliagmeni, Athens, Greece, 2006.
+
+        - "The New Amateur Radio University Network - AMUNET (Part 2)",
+          proceedings, "10th WSEAS CSCC Multiconference",
+          Vouliagmeni, Athens, Greece, 2006.
+
+        - "University Networking Through the Amateur Radio Communications",
+          tutorial, "10th WSEAS CSCC Multiconference",
+          Vouliagmeni, Athens, Greece, 2006.
+
+        - "Education in Peril", The Institute, IEEE, Sep 2006
+
+        - "The Conference Low-Down", IEEE Potentials, Dec 2006
+
+        - "Amateur Radio in Engineering Education", tutorial, "Info-Teh",
+          Vrnjacka Banja, Serbia, 2007.
+
+        - "Paket-radio (5) - Programske mogucnosti na strani klijenta",
+           proceedings, "Info-Teh", Vrnjacka Banja, Serbia, 2007.
+
+        - "Summer Schools on the Amateur Radio Computing", proceedings,
+          "12th Annual Conference on Innovation & Technology in Computer
+           Science Education", ACM ITiCSE 2007, Dundee, Scotland, 2007.
+
+        - "Amateur Radio in Engineering Education", tutorial, "EUROCON",
+          Warsaw, Poland, 2007.
+
+        - "Bringing New Life in Old Computers", proceedings, "26th ARRL
+          and TAPR Digital Communications Conference", Hartford, CT USA,
+          2007.
+
+        - "The Conference Low-Down", IEEE Potentials, Sep/Oct 2007
+
+        - "My trip to Eurocon - a member's view", IEEE Region 8 News,
+          Vol. 10 No. 3, Dec 2007.
+
+        - "Amateur Radio in Engineering Education", tutorial, "Info-Teh",
+          Vrnjacka Banja, Serbia, 2008.
+
+        - "Paket-radio (6) - Privatnost podataka i zastita ucesnika u
+          radio-amaterskim mrezama", proceedings, "Info-Teh", Vrnjacka
+          Banja, Serbia, 2008.
+
+        - "Amateur Radio in Engineering Education",
+          tutorial, "5th WSEAS/IASME Int. Conf. on Engineering
+          Education", Heraklion, Crete, Greece, 2008.
+
+        - "The New Amateur Radio University Network - AMUNET (Part 3)",
+          proceedings, "12th WSEAS CSCC Multiconference",
+          Heraklion, Crete, Greece, 2008.
+
+        - "Amateur Radio Telecommunications and Networking in Education",
+          tutorial, "IARIA ICWMC 2008", Vouliagmeni, Athens, Greece, 2008.
+
+        - "The Conference Low-Down", IEEE Potentials, Sep/Oct 2008
+
+        - "Amateur Radio in Engineering Education", workshop,
+          "TELFOR", Belgrade, Serbia, 2008.
+
+        - "Amateur Radio: More than a hobby!", tutorial,
+          "IAENG IMECS 2009", Hong Kong, China, 2009.
+
+        - "Wasted Gear", IEEE Computer, Feb 2009
+
+        - "Amateur Radio: More than a hobby!", tutorial,
+          "6th WSEAS/IASME Int. Conf. on Engineering Education",
+          Rodos, Greece, 2009.
+
+        - "The New Amateur Radio University Network - AMUNET (Part 4)",
+          proceedings, "13th WSEAS CSCC Multiconference",
+          Rodos, Greece, 2009.
+
+        - "Amateur Radio in Education", book chapter in "Handbook of
+          Research on Human Performance and Instructional Technology",
+          ISBN: 978-1-60566-782-9, October 2009
+
+        - "Surveillance as a service", IEEE Computer, Dec 2009
+
+        - "Amateur Radio: More than a hobby!", tutorial, IEEE
+          "ICACT 2010", Phoenix Park, Korea, 2010.
+
+        - "Amateur Radio: More than a hobby!", tutorial, DIRF
+          "NDT 2010", Prague, Czech Republic, 2010.
+
+
+
+  Besides the published articles and presented works, I am also a member
+  of the following associations: IEEE Computer Society, IEEE
+  Communications Society, WSEAS and ACM. In addition, I work on
+  establishing an academic computer network that would use the amateur
+  radio stations as the media.  Some kinds of proposed networks exist
+  elsewhere on this planet and I invite their administrators to contact
+  me in order to cooperate.
+
+
+
+  11.  Further Information
+
+
+  11.1.  Copyright
+
+  Copyright (c) 2000-2010 by Miroslav "Misko" Skoric, YT7MPB.
+
+  Permission is granted to copy, distribute and/or modify this document
+  under the terms of the GNU Free Documentation License, Version 1.1 or
+  any later version published by the Free Software Foundation; with no
+  Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+  Texts. A copy of the license is available from
+  http://www.fsf.org/licenses/fdl.html.
+
+
+  11.2.  Disclaimer
+
+
+  Use the information in this document at your own risk. I disavow any
+  potential liability of this document. Use of the concepts, examples,
+  and/or other content of this document is entirely at your own risk.
+
+  All copyrights are owned by their owners, unless specifically noted
+  otherwise. Use of a term in this document should not be regarded as
+  affecting the validity of any trademark or service mark.
+
+  Naming of particular products or brands should not be seen as
+  endorsements.
+
+  You are strongly recommended to take a backup of your system before
+  major installation and backups at regular intervals.
+
+
+  11.3.  News
+
+  In addition to the Lilo docs, there are a number of mini-howto's that
+  can be useful for your needs.  All of them are called ``Linux+foobar-
+  OS'', for some foobar-OS, they deal with coexistence of Linux and
+  other operating system(s). For example, "NT OS Loader + Linux mini-
+  HOWTO" by Bernd Reichert, describes how to add an entry for Linux
+  under existing Windows NT Loader's menu. Next, you have
+  Linux+WindowsNT <http://tldp.org/HOWTO/Linux+WinNT.html> mini-HOWTO
+  written by myself, covering how to add an entry for NT under existing
+  Linux Lilo menu (more detailed than here).  Also, "Multiboot-with-
+  LILO" describes how the various Windows flavors can be made to coexist
+  with Linux.
+
+  This mini-HOWTO would be improved from time to time. If you think that
+  the HOWTO on your Linux installation CD is some out-of-date, you may
+  check for newest release on the Internet. It could be found within the
+  main Linux Documentation Project <http://www.tldp.org/> or some of its
+  mirrors.
+
+
+  11.4.  Credits
+
+  This version of mini-HOWTO can thanks to:
+
+
+
+       Cameron Spitzer (cls@truffula.sj.ca.us)
+       Alessandro Rubini (rubini@linux.it)
+       Tony Harris (tony@nmr.mgh.harvard.edu)
+       Marc Tanguy (mtanguy@ens.uvsq.fr)
+       Dragomir Kalaba, a local Linux 'guru'
+
+
+
+  Any comments or suggestions can be mailed to my email address: skoric
+  at eunet dot rs
+
+
+  11.5.  HOWTO
+
+  These are intended as the primary starting points to get the
+  background information as well as show you how to solve a specific
+  problem.  Some relevant HOWTOs are Bootdisk, Installation,  SCSI and
+  UMSDOS.  The main site for these is the LDP archive
+  <http://metalab.unc.edu/LDP/> at Metalab (formerly known as Sunsite).
+
+
+  11.6.  Mini-HOWTO
+
+  These are the smaller free text relatives to the HOWTOs.  Some
+  relevant mini-HOWTOs are Backup-With-MSDOS, Diskless, LILO, Large
+  Disk, Linux+DOS+Win95+OS2, Linux+OS2+DOS, Linux+Win95,
+  Linux+WindowsNT, Linux+NT-Loader, NFS-Root, Win95+Win+Linux, ZIP
+  Drive, FBB packet-radio BBS.  You can find these at the same place as
+  the HOWTOs, usually in a sub directory called mini. Note that these
+  are scheduled to be converted into SGML and become proper HOWTOs in
+  the near future.
+
+
+  11.7.  Local Resources
+
+  In most distributions of Linux there is a document directory
+  installed, have a look in the /usr/doc directory.  where most packages
+  store their main documentation and README files etc.  Also you will
+  here find the HOWTO archive ( /usr/doc/HOWTO) of ready formatted
+  HOWTOs and also the mini-HOWTO archive ( /usr/doc/HOWTO/mini
+  <file:///usr/doc/HOWTO/mini>) of plain text documents.
+
+  Many of the configuration files mentioned earlier can be found in the
+  /etc directory. In particular you will want to work with the
+  /etc/fstab file that sets up the mounting of partitions and possibly
+  also /etc/mdtab file that is used for the md system to set up RAID.
+
+  The kernel source in /usr/src/linux <file:///usr/src/linux> is, of
+  course, the ultimate documentation. In other words, use the source,
+  Luke.  It should also be pointed out that the kernel comes not only
+  with source code which is even commented (well, partially at least)
+  but also an informative documentation directory
+  <file:///usr/src/linux/Documentation>.  If you are about to ask any
+  questions about the kernel you should read this first, it will save
+  you and many others a lot of time and possibly embarrassment.
+
+  Also have a look in your system log file ( /var/log/messages) to see
+  what is going on and in particular how the booting went if too much
+  scrolled off your screen. Using tail -f /var/log/messages in a
+  separate window or screen will give you a continuous update of what is
+  going on in your system.
+
+  You can also take advantage of the /proc file system that is a window
+  into the inner workings of your system.  Use cat rather than more to
+  view the files as they are reported as being zero length. Reports are
+  that less works well here.
+
+
+  11.8.  Web Pages
+
+  There is a huge number of informative web pages out there and by their
+  very nature they change quickly so don't be too surprised if these
+  links become quickly outdated.
+
+  A good starting point is of course the Linux Documentation Project
+  <http://www.linuxdoc.org/> home page, or this one: Linux
+  Documentation Project <http://www.tldp.org/>, an information central
+  for documentation, project pages and much, much more.
+
+  Please let me know if you have any other leads that can be of
+  interest.
+
+
+
+  12.  Getting help
+
+
+  In the end you might find yourself unable to solve your problems and
+  need help from someone else. The most efficient way is either to ask
+  someone local or in your nearest Linux user group, search the web for
+  the nearest one.
+
+  Another possibility is to ask on Usenet News in one of the many, many
+  newsgroups available. The problem is that these have such a high
+  volume and noise (called low signal-to-noise ratio) that your question
+  can easily fall through unanswered.
+
+  No matter where you ask it is important to ask well or you will not be
+  taken seriously. Saying just my disk does not work is not going to
+  help you and instead the noise level is increased even further and if
+  you are lucky someone will ask you to clarify.
+
+  Instead describe your problems in some detail that will enable people
+  to help you. The problem could lie somewhere you did not expect.
+  Therefore you are advised to list up the following information on your
+  system:
+
+
+     Hardware
+
+        ·  Processor
+
+        ·  DMA
+
+        ·  IRQ
+
+        ·  Chip set (LX, BX etc)
+
+        ·  Bus (ISA, VESA, PCI etc)
+
+        ·  Expansion cards used (Disk controllers, video, IO etc)
+
+
+     Software
+
+        ·  BIOS (On motherboard and possibly SCSI host adapters)
+
+        ·  LILO, if used
+
+        ·  Linux kernel version as well as possible modifications and
+           patches
+
+        ·  Kernel parameters, if any
+
+        ·  Software that shows the error (with version number or date)
+
+
+     Peripherals
+
+        ·  Type of disk drives with manufacturer name, version and type
+
+        ·  Other relevant peripherals connected to the same busses
+
+
+  Remember that booting text is logged to /var/log/messages which can
+  answer most of the questions above. Obviously if the drives fail you
+  might not be able to get  the log saved to disk but you can at least
+  scroll back up the screen using the SHIFT and PAGE UP keys. It may
+  also be useful to include part of this in your request for help but do
+  not go overboard, keep it brief as a complete log file dumped to
+  Usenet News is more than a little annoying.
+
+
+

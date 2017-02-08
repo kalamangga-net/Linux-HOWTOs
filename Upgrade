@@ -1,0 +1,415 @@
+Upgrading Your linux Distribution mini-HOWTO
+
+Greg Louis
+
+      glouis@dynamicro.on.ca
+    
+
+Copyright © 1996, 2002 by Dynamicro Consulting Limited
+
+
+Hints and tips on upgrading from one linux distribution to another. This is
+version 1.2, 2002-03-09.
+
+-----------------------------------------------------------------------------
+Table of Contents
+1. IMPORTANT!!! Disclaimer and Copyright
+2. Changes since version 1.1
+3. Introduction
+    3.1. How to slay and reincarnate your linux box!
+    3.2. Why would anyone want to do that?
+    3.3. Do you have to ``destroy and reinstall?''
+    3.4. How long will it take?
+   
+   
+4. Write down everything you do.
+5. Make a full backup of the existing system.
+6. Back up /etc and its subdirectories on one or more floppies.
+7. Make separate backups of each group of files you want to preserve.
+8. Prepare root and boot floppies for the new installation.
+9. Format floppies for the temporary kernel and the final build.
+10. Inhibit logins and back up the /root and /home trees.
+11. Boot from the new installation's boot and root floppies.
+12. Delete the linux partitions with fdisk and recreate them.
+13. Run the new linux installation.
+14. Restore configuration data to the /etc directory and subdirectories.
+15. Configure and rebuild the linux kernel.
+16. Restore the stuff from the backups you made earlier.
+17. Review security.
+18. Enable logins.
+19. Sorry, but once again: USE THIS INFORMATION AT YOUR OWN RISK!
+20. Acknowledgements
+
+1. IMPORTANT!!! Disclaimer and Copyright
+
+The procedure to which this document attempts to be a guide is inherently
+dangerous to the programs and data stored in your computer. You carry out any
+such procedure entirely at your own risk. The steps described in this
+document worked for the author; there is no guarantee that they will work for
+you, nor that you can attempt to follow them without serious damage to your
+computer's programs and/or data. You are entirely on your own in any use you
+may make of the information presented herein, and the author shall not be
+liable in any way whatsoever for any damage or inconvenience of any kind that
+you may suffer in so doing.
+
+This document is copyright © 1996, 2000 Dynamicro Consulting Limited, and is
+released under the terms of the GNU General Public License. This basically
+means that you may copy and modify it at will, but may not prevent others
+from doing likewise.
+
+Comments and questions may be directed to the author. Especially welcome, for
+use in future revisions, are accounts of successful upgrades of complex
+systems.
+-----------------------------------------------------------------------------
+
+2. Changes since version 1.1
+
+  * Converted to docbook
+   
+  * Corrected some obsolete information
+   
+  * Added this history section
+   
+  * Added Zoltán Hidvégi's suggestion re mtime and ctime. Thanks, Zoltán!
+   
+  * Added an Acknowledgements section
+   
+
+-----------------------------------------------------------------------------
+3. Introduction
+
+3.1. How to slay and reincarnate your linux box!
+
+The purpose of this document is to offer tips to help you through the
+destruction and reinstallation of a linux system. It's not a foolproof
+cookbook by any means, but I hope it will serve as some indication of what
+you need to think about, and of the order in which to do things. It would
+have been a help to me, if someone else had written something like this
+before I did my first upgrade; so I hope it will be a help to you, if you
+have a linux machine to rebuild.
+
+Don't take it as gospel, though: your mileage will almost certainly vary.
+Even the directory names in this document may be different from the ones you
+need to use; some people have /usr/home instead of /home, for example; others
+call it /u, and some (delicate shudder :) even put all their users directly
+under /usr itself! I can't be specific about your system, so I've just used
+the names the way they are in mine.
+
+You'll also notice that I use Slackware distributions, and that I assume
+you've enough RAM and hard disk space to install linux kernel source and
+build your own kernel. If your system is different, some of my
+recommendations won't apply; but I hope you'll still find the general outline
+to be of assistance in your rebuild project.
+-----------------------------------------------------------------------------
+
+3.2. Why would anyone want to do that?
+
+Good question! If it can possibly be avoided, don't do it! (That's the single
+most important recommendation in this whole guide!!!) When this guide was
+first written, not many people had hard disks big enough to accomodate two
+whole Linux installations; these days, that's by no means uncommon. If you
+possibly can, build your new system in a separate partition (or group of
+partitions), keeping the old one intact till you're satisfied that the new
+one is just the way you want it. If you can avoid destroying the old system
+to make room for the new, by all means avoid it! But there are times when you
+may have no choice.
+
+(These examples are a bit dated, but they serve to illustrate my point:)
+
+For example, I installed a 4Gb hard disk and then found out that Slackware
+2.0 vintage linux didn't know a hard disk could have more than 2Gb, and it
+got horribly confused. So I had to upgrade to the then-current Slackware 2.3.
+That upgrade was a gruelling experience, and it's part of the reason I'm
+writing these notes. I did just about everything wrong, and only good luck
+and the fact that I had another running linux box beside me saved me from
+disaster.
+
+As another example, I found that I just couldn't succeed in building a
+working a.out linux kernel in the 1.3 series, using an out-of-the-box
+Slackware 2.3 installation (another machine, not the one I botched before). I
+took the plunge, bought Slackware 3.0 on CDROM and converted to ELF. This
+time the reinstallation went better, thanks in part to the previous bitter
+experience, and it served as the source of most of the ideas I'm offering you
+here.
+-----------------------------------------------------------------------------
+
+3.3. Do you have to ``destroy and reinstall?''
+
+See above. If you can build your new system in otherwise empty disk space, do
+it! For the rest of this document, however, I'll assume that this is one of
+those times when that option isn't available; you either have to reinstall
+"in place," over top of the existing system, or you have to bite the bullet
+and rebuild from scratch.
+
+The latter is safer, oddly enough. If you install over top of an existing
+linux system, chances are you'll have a mixture of old and new binaries, old
+and new configuration files, and generally a mess to try to administer.
+Wiping the system clean, and then putting back only what you know you need,
+is a drastic but effective way to get a clean result. (Of course we're
+talking about installing a whole new linux distribution here, not about
+upgrading one or two packages! The best way to avoid having to do a full
+reinstallation is, precisely, to keep the individual bits -- especially gcc
+and its libraries, and binutils -- current. If the stuff you use is
+reasonably up-to-date, and you can keep it so by bringing in, and if need be
+compiling, new code from time to time, then there's no need for a mass
+upgrade.)
+-----------------------------------------------------------------------------
+
+3.4. How long will it take?
+
+Depends, of course, on how complex your system is. But I figure that, for the
+successful upgrade (the other one? -- don't ask! :) I spent about ten hours
+making backups, six hours rebuilding the system to the point where I could
+enable logins, and another half day or thereabouts restoring the less-crucial
+stuff. As time passes I keep discovering little things that still aren't
+exactly as I want them -- I fix these as they're encountered -- but in the
+main, twenty hours' work should suffice for a reasonably complex rebuilding
+job. Maybe less if you're reinstalling from hard disk (I used CDROM) or more
+if you need to install from floppies. Maybe less if you've got a fast
+Pentium, more if it's a 386. You get the idea.
+
+Those were the bad old days. Now, with faster disks and faster machines and
+CD writers, things go better. My notebook was stolen in December, 2002, and
+when the new one came, I was up and pretty near complete -- despite having
+lost the old system without the chance to save the latest changes -- after
+about seven hours of effort.
+
+So much for the introduction. Here's how to set about it, once you've decided
+it must be done. Arm yourself with fortitude and Jolt or whatever, and:
+-----------------------------------------------------------------------------
+
+4. Write down everything you do.
+
+It's extremely valuable to have a record of what you've done in the process
+of preparing for, and carrying out, the changeover. Especially important is a
+list of the backups you'll be making in preparation for the destruction of
+your existing system.
+-----------------------------------------------------------------------------
+
+5. Make a full backup of the existing system.
+
+Generally speaking, big backups tend to be written on media that are
+sequentially accessed. That being so, you won't want to use this complete
+backup for restoring significant numbers of files; it's got too many files on
+it that you don't want. It's better to create small backups of individual
+segments that you know you're going to restore in their entirety. I'll list a
+bunch of examples later.
+
+Why then should you start with a full backup? Two basic reasons: first, in
+the event of a catastrophic failure installing the new system, you'll have a
+way to get back to the starting point with minimum pain. Second, no matter
+how carefully you prepare for the new installation, there is a very large
+chance that one or two important files will be overlooked. In that case the
+clumsiness of restoring those one or two files from the full backup set will
+be preferable to the inconvenience of doing without them.
+
+To save time and space, if you've still got the distribution medium for your
+old linux version, you might want to back up only those files the mtime or
+ctime of which is more recent than the date of the original installation.
+-----------------------------------------------------------------------------
+
+6. Back up /etc and its subdirectories on one or more floppies.
+
+This is the other extreme: you won't be restoring these files (for the most
+part, anyway); you'll be comparing them with the new ones that get created
+during installation. Why? Because the new ones may have data that the old
+ones didn't, or may express the old data in new ways. Changes in protocols,
+addition of new tools, or implementation of new features in existing tools
+may all dictate changes in the formats of the configuration files and startup
+scripts that the /etc tree contains, and you'll very likely have to edit your
+old data into these files so as to preserve the new formats and take
+advantage of the improvements.
+-----------------------------------------------------------------------------
+
+7. Make separate backups of each group of files you want to preserve.
+
+This is the most variable part of the job, and all I can really do to help is
+to describe what I did in my system, in the hope that it will serve as a
+rough guide. Basically, you want to look at every directory that contains any
+
+  * files that aren't part of your standard linux installation, or
+   
+  * files that are actually newer than the ones you'll install when you do
+    your new linux installation.
+   
+
+and separate out only those files that you want to carry over.
+
+(Another possible strategy is to back up all files with mtime or ctime more
+recent than the day of the previous linux installation, as mentioned above,
+and then restore from that. If you do that, you have to take into account
+that the new linux distribution may contain versions of some files that are
+newer still than the ones you saved.)
+
+In my case, I ended up making a .tgz file on the backup medium for each of
+
+  * /usr/lib/rn
+   
+  * /usr/lib/smail
+   
+  * /usr/lib/trn (the rest of /usr/lib would be reinstalled)
+   
+  * /usr/local/src
+   
+  * /usr/local/bin
+   
+  * /usr/local/lib
+   
+  * /usr/local/lpfont
+   
+  * /usr/local/man
+   
+  * /usr/local/sbin
+   
+  * /usr/local/thot (there were other /usr/local files I didn't need)
+   
+  * /usr/openwin
+   
+  * /usr/src/lilo-17 (because my new Slackware still had version 16)
+   
+  * /usr/src/linux-1.2.13 (because I'd done some customizing)
+   
+  * /usr/X11R6/lib/X11/app-defaults
+   
+  * /usr/X11R6/lib/X11/initrc (the rest of Xfree86 was to be reinstalled)
+   
+  * /var/named
+   
+  * /var/openwin
+   
+  * /var/texfonts
+   
+
+My machine was relatively easy in that there were no spool files to worry
+about. I don't run a news spool on this box, and since there are only two
+users, it was easiest just to get all the mail read before shutting down.
+Otherwise, /var/spool directories would have had to be backed up at the last
+minute. (And, of course, the news library and site directories!)
+-----------------------------------------------------------------------------
+
+8. Prepare root and boot floppies for the new installation.
+
+If you're lucky, your new package will include a bootable CD and this step
+won't be needed. If you haven't got a CDROM drive, or can't boot from it,
+details of how to make the floppies will be found in the installation guide
+for your new distribution.
+-----------------------------------------------------------------------------
+
+9. Format floppies for the temporary kernel and the final build.
+
+You'll need two, one floppy for each.
+
+After all that's done, you're ready for the Big Moment. The next step removes
+the system from production.
+-----------------------------------------------------------------------------
+
+10. Inhibit logins and back up the /root and /home trees.
+
+This is the last thing to be done on the old system before you destroy it, so
+as to carry forward the most current user and root information. To inhibit
+logins, just echo "getting ready for upgrade" >/etc/nologin (as root, of
+course).
+-----------------------------------------------------------------------------
+
+11. Boot from the new installation's boot and root floppies.
+
+Or, if you have that capability, boot the installation CD itself.
+-----------------------------------------------------------------------------
+
+12. Delete the linux partitions with fdisk and recreate them.
+
+The installation guide will explain how to set about doing this, which will
+destroy the old system. From now on you're dependent on the quality of the
+backups you made in the earlier steps! You have been warned!
+-----------------------------------------------------------------------------
+
+13. Run the new linux installation.
+
+There are already several good documents describing how to do this, so I'm
+not going into any detail. Continue from here when the new system can boot
+from its hard disk.
+
+Along the way, be sure to make a floppy that you can boot as well, since the
+kernel that the linux setup installs has to be replaced and accidents can
+happen during that process. Be sure to install the development packages and
+the kernel source.
+-----------------------------------------------------------------------------
+
+14. Restore configuration data to the /etc directory and subdirectories.
+
+As described above, you can't just copy all of the old files back into /etc
+and expect things to work properly afterward. Some files you can do that
+with; for example, /etc/XF86Config (as long as you're using the same version
+of XFree86 -- and the same video hardware -- in the new installation as you
+did in the old). For the most part, though, it's best to use diff to compare
+the old and new files before doing any copying. Watch out especially for
+significant changes in the files in /etc/rc.d and friends, which may require
+you to reestablish your old configuration by hand editing, instead of by
+copying the old rc scripts from your backup. Once it's all done, reboot.
+-----------------------------------------------------------------------------
+
+15. Configure and rebuild the linux kernel.
+
+Even if you don't absolutely have to do this in order to get a kernel that
+supports your hardware, it's worth doing it in order to get a kernel that
+doesn't contain masses of drivers for stuff your machine doesn't have -- and
+even more so, in order to get a good understanding of how your kernel
+configuration options affect the behaviour of your system! As linux grows,
+the ability of the distribution vendors to configure a one-size-fits-all
+kernel has become very limited. For details on how it's done, see the Kernel
+HOWTO; it looks complicated at first, but it's not rocket science; just take
+it a step at a time.
+
+Install the rebuilt kernel on a floppy at first; once that boots ok, install
+on the hard disk, run lilo if you're using it, and reboot.
+-----------------------------------------------------------------------------
+
+16. Restore the stuff from the backups you made earlier.
+
+Some of the binaries may need to be reinstalled from the source directories;
+I had to do that with lilo, for example, since my version was newer than the
+one on the Slackware installation and I hadn't bothered to save the binary
+from /sbin. You'll want to check through your restored programs and confirm
+the existence and correctness of configuration files, libraries and so on. In
+some cases, you may have to restore things in a specific order; you did make
+notes during backup, didn't you? ;-)
+-----------------------------------------------------------------------------
+
+17. Review security.
+
+(Sigh...) When I wrote this, this step was important but not crucial; the
+Internet was a friendlier place even in 1996 than it is today. Now, if your
+machine has Internet access, this step is utterly vital, and there are whole
+books devoted to getting it right; I can do nothing more here than offer a
+few very basic pointers:
+
+Check file permissions and directory permissions to be sure that access is
+neither too restricted nor too easy. I find that Slackware tends to lean
+toward a more open environment than I like, so I go around changing 755's to
+711's for binaries in the .../bin directories and stuff like that. Or even
+700's in the .../sbin ones. Especial care is needed if you've carried over
+ftp, telnet or web servers; but then, if you were running those, you probably
+thought of that already. :)
+
+Look at /etc/inetd.conf or /etc/xinetd.conf and make sure you're not running
+any Internet services you don't need to. Also go through the boot scripts in
+/etc/rc.d and friends for the same purpose. Check your firewall rules if your
+box is an Internet gateway or has Internet access.
+-----------------------------------------------------------------------------
+
+18. Enable logins.
+
+You're up and running. Over the next little while, there'll probably be
+details to clean up; but the bulk of the work is done. Enjoy!
+-----------------------------------------------------------------------------
+
+19. Sorry, but once again: USE THIS INFORMATION AT YOUR OWN RISK!
+
+(See the disclaimer at the start of this document.)
+-----------------------------------------------------------------------------
+
+20. Acknowledgements
+
+Thanks for contributing to the content of this mini-HOWTO are gratefully
+tendered to Zoltán Hidvégi; and for motivating me to bring it a bit closer to
+modern practice, to Steve Sanfratello, author of the rpmupgrade-HOWTO.

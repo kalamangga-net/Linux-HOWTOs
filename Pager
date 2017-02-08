@@ -1,0 +1,575 @@
+The Linux Alphanumeric Pager Gateway Mini-HOWTO
+
+Tanmoy Prasad
+
+Expert Software Consultants Ltd.
+
+C -17 Almora Bhawan
+New Delhi
+110 049
+INDIA
+Lilytanmoy@id.eth.net
+Revision History                                                             
+Revision 1.0     25 July 2001         Revised by: Tanmoy Prasad              
+Originally Drafted By Chris Snell, Jun 23 17:55:14 MDT 1996                  
+-----------------------------------------------------------------------------
+
+   
+   
+    This is Mini How-To, which discusses the compilation and installation of
+    e-mail to Pager Gateway.
+   
+   
+PREFACE & DISCLAIMER:
+
+This document was lying un-maintained. As I am also working in similar field
+so I, decided to maintain this document. Originally Mr. Chris Snell wrote
+this document. Anybody who wants to refer to the older document can find it
+at the Pager FTP Site://ftp.cs.unm.edu/pub/chris/paging"
+
+In spirit, this document is same as what Chris Snell wrote. I have only made
+minor modifications with the code to make it work with latest Kernel Version.
+I have mainly tried on Redhat Linux 6.0 , Kernel version 2.2.5 and Madrake
+Linux 7.2 and Kernel version 2.2.17.
+
+If you blow up your computer/pager/modem or ruin your company network trying
+to set this up, don't blame me. Most likely, you won't mess up anything but I
+should warn you that sendmail is a tricky thing to play with and you will
+definitely be playing with it if you follow this document.
+
+PURPOSE:
+
+This mini-HOWTO will describe how to set up an Alphanumeric Paging Gateway on
+any linux machine. Your gateway will be able to send messages originating
+from both the World Wide Web and the Internet e-mail system to your
+alphanumeric pager. This is especially convenient, because no special skills
+are required for someone to send a message to your pager. All they must be
+able to do is use e-mail or the World Wide Web.
+
+**SPECIAL NOTE: **
+
+This document does not cover the setup of paging gateways, which are intended
+to send messages to non-alphanumeric (i.e. numbers-only) pagers or voice
+pagers. You'll need to look elsewhere for that information.
+
+REQUIREMENTS:
+
+  * One or more alphanumeric pagers (see the ABOUT ALPHANUMERIC PAGERS
+    section)
+   
+  * A machine running linux
+   
+  * A working modem (manual recommended!)
+   
+  * A telephone line
+   
+  * An Internet connection (if you wish to use the WWW interface and the
+    net-wide e-mail interface)
+   
+  * Compiler tools (gcc, make, etc. and some basic knowledge of their use.)
+   
+  * The sendmail electronic mail handler (you probably have this)
+   
+  * - a working httpd (web server) if you want to create a WWW interface
+   
+
+ABOUT ALPHANUMERIC PAGERS:
+
+Alphanumeric pagers are available from most reputable paging companies. You
+can get one at a very reasonable cost. Nowadays it comes bundled with the
+Pager subscription. Anyway cost varies from country to country and you can
+check with your Pager service provider.
+
+Here are some things to look for when you go shopping for your pager:
+
+  * Is this a name brand (i.e. Motorola or the like) pager?
+   
+  * *MOST IMPORTANT* Does this pager support paging via a dial-up line
+    provided by your pager company? (See THE DIALUP PAGING LINE section).
+   
+  * Does its memory have enough room for the pages you wish to receive?
+   
+  * How reputable is the company? (See THE DIALUP PAGING LINE section)
+   
+
+I don't work for any pager manufacturers. I agree with Chris on recommending
+the Motorola line of pagers. As per Chris Snell " I own one myself and will
+testify to their reliability and durability. In fact, mine has been dropped
+onto the concrete on many occasions and did not sustain so much as a chipped
+case." You can find this line of pagers on Motorola's web site at: URL="http:
+//www.mot.com/MIMS/MSPG/Products/Alpha/".
+
+I have used one provided by my pager company along with subscription. I know
+it is not Motorola but in last one year I have to get it replaced once. So be
+sure of the brand and quality of the pager you buy.
+
+THE DIALUP PAGING LINE
+
+In order for your gateway to work, we need a way to deliver the messages to
+your paging company, which encodes them and transmits them over the air to
+your pager. This is done via a dial-up (modem) connection with your paging
+company. Without this connection, you cannot setup a paging gateway.
+Therefore, it is very important that your paging company have such a dial-up
+line. Unfortunately, many paging companies either do not have such a dial-up
+line or do not know about the line they have. When inquiring with a paging
+company about this line, I found it helpful to ask if they could provide
+"computer software to send an alphanumeric page with". If they make available
+such software, you can bet that they make the dial-up line available that is
+necessary to use it.
+
+SPECIFICS ON THE DIALUP LINE
+
+The dial-up line is simply a modem on a remote computer (or possibly some
+kind of specialized box). The modem usually connects at 33.6/56.6 KBPS but in
+case of modem dial-up line of paging companies it work at 300-1200bps. Some
+may provide connection using v.22b at speeds up to 2400bps. Once the
+connection is made, your computer sends the page to the Paging central by
+using a protocol known as TAP (formerly known as IXO). The Paging Central
+finally sends the message to the pager. For running the Paging gateway, you
+do not need to know the details of this protocol, but if you are interested,
+check out the following document on following ftp site:URL="ftp://
+ftp.cs.unm.edu/pub/chris/paging/ixo.txt"
+
+HOW YOUR GATEWAY WILL WORK
+
+Before we proceed, I am providing a brief explanation of how the e-mail->
+pager gateway will work. The WWW gateway is similar and will be explained
+later.
+
+ 1. Someone sends a message intended for your pager via e-mail to a special
+    address on your linux machine.
+   
+ 2. Your machine, using sendmail, accepts the message and routes it to a
+    filter program, which strips the message of its header and parses out
+    important information like the sender's name and e-mail address and the
+    subject of the message. This filter also strips the message of any
+    .signature lines so that they do not clog your pager with unimportant
+    information.
+   
+ 3. The paging filter passes the message onwards to the "sendpage" paging
+    software, which queues it for delivery.
+   
+ 4. Sendpage then dials your paging company's dial-up line and (using TAP)
+    sends the message to the Paging Central.
+   
+ 5. Paging Central of your paging company then beams the message to your
+    pager over the radio waves.
+   
+
+BEGINNING THE SETUP
+
+The setup of the Pager gateway consists of four parts:
+
+  * Setting up sendpage
+   
+  * (Optionally) Getting a special DNS entry added for your paging gateway
+   
+  * Setting up linux to handle multiple IP addresses
+   
+  * Setting up sendmail to handle the message routing
+   
+  * Setting up the World Wide Web interface
+   
+
+ 
+
+GETTING THE SOFTWARE
+
+Every piece of software necessary to set up this product can be obtained from
+the site, ftp://ftp.cs.unm.edu/pub/chris/paging. I will try to keep these
+files at some other alternate sites. In near future I will try to package
+this as an RPM so that installation becomes easy. Next revision of this
+document may see that change.
+
+SENDPAGE SETUP
+
+Sendpage is the most important component of your paging gateway. To get
+anywhere in this project, you will need to obtain this software and compile
+it on your machine. The sendpage software can be obtained via ftp at://
+ftp.net.ohio-state.edu/pub/pagers/sendpage7a.tar.Z" or from following
+machine: ftp://ftp.cs.unm.edu/pub/chris/paging/sendpage/sendpage7a.tar.Z".
+
+Create a "paging" subdirectory on your machine. Fetch this software and
+unpack it using the command "tar zxvf" in the paging subdirectory created.
+
+At this point, I would strongly suggest that you read all the configuration
+information and README and INSTALL files in the sendpage package. However,
+ignore all the discussions on the setup of sendmail, instead, rely on the
+procedure provided in the document. Follow the instructions in the INSTALL
+file for compiling sendpage.
+
+Here are a few notes about the settings in the sendpage.h file, which you
+will need to edit:
+
+  * Make sure you have the "#define ARSYSTEM_NOTIFIER" line commented out
+    (using "/*" and "*/") unless you own the commercial Remedy system monitor
+    package.
+   
+  * Following the ARSYSTEM_NOTIFIER line, there are a few Linux (POSIX)
+    specific lines that need to be defined:
+   
+      + #define POSIX_SIGNALS
+       
+      + #define POSIX_OPEN
+       
+   
+  * For the modem definition, I recommend using:#define MODEM_DEV "/dev/
+    modem" or "/dev/cua0" [com 1] or "/dev/cua1" [com 2]. In new Kernel
+    version it is better to use "/dev/ttyS0" or /dev/ttyS1" etc.... If you
+    have new version then use use the later one else you use the previous
+    one.
+   
+  * For the modem init, I use the simple string and rely on NVRAM settings
+    instead:#define MODEM_INIT ATEVXH.
+   
+  * I use RTS/CTS flow control:#define C_FLAG CTRSCTS|HUPCL.
+   
+  * and DTR toggle#define TOGGLE_DTR
+   
+
+ 
+
+*** If you are interested, my sendpage.cf is available in it's entirety from
+the following ftp site: ftp://ftp.cs.unm.edu/pub/chris/paging/sendpage/
+sendpage.h.example".
+
+If your Linux kernel version is 2.2.x then do following changes, in following
+files:
+
+ i. client.c
+   
+ii. config.c
+   
+iii. deamon.c
+   
+iv. deliver.c
+   
+ v. sendpage.c
+   
+vi. verify.c
+   
+
+Instead of #include DB.h put #include DB185.H DB185.H
+
+CONFIGURING YOUR MODEM
+
+I use a D-Link DFM-560 E which seems to work fine with sendpage. With other
+modems, your milage may vary (possibly for the better). Although your paging
+company's modem (referred to by sendpage as "Paging Central") could very well
+be different from mine, you may want to try this setup to see if it works.
+You should have your modem manual handy as a reference for the proper init
+string. Here is what I have set:
+
+  * Modem set to v.22bis 2400/1200 protocol (*no* auto-negotiate)
+   
+  * Serial port at 1200bps
+   
+  * Your init string sendpage.h should take care of:- Numeric (non-text)
+    responses [these are must!] i.e.:
+   
+      + 0 for "OK"
+       
+      + 5 for "CONNECT 1200"
+       
+      + 7 for "BUSY"
+       
+   
+
+For sendpage to work, it must be able to access the modem. This requires read
+/write permissions to the modem device. On my system, sendpage is run with
+set-uid to the username "sendpage". In my /etc/group file, I have a group
+called "modem" of which the user "sendpage" is a member. The device file for
+my modem (/dev/ttyS1) is owned by user "root" and group "modem". It is
+readable and writeable by both the owner and the group (chown root.modem /dev
+/cua1 ; chmod ug+w /dev/cua1).
+
+SENDPAGE MAKEFILE SETUP
+
+Here are the build options I use for Linux:
+
+  * CC = gcc
+   
+  * CFLAGS = -DLINUX -O2 -m486 -I/usr/include
+   
+  * LIBS = -ldb -lbsd
+   
+
+*** If you are interested, Makefile is available in it's entirety at the
+following ftp site:ftp://ftp.cs.unm.edu/pub/chris/paging/sendpage/
+Makefile.example".
+
+CONTINUING THE SETUP
+
+Hopefully, you were able to get sendpage to compile correctly on the first
+try. Now you must set up sendpage for the initial testing. Following the
+INSTALL file's instructions, you will set up the queue directory and begin
+setting up the sendpage.cf file (I keep mine in /etc).
+
+A few notes on setting up the /etc/sendpage.cf:
+
+  * I had to comment out (using "#") the entire trMap section for "both",
+    leaving only the trMap section for "std" in order to get sendpage to
+    work.
+   
+  * My "Global Options" section looks like:
+   
+      + global maxMsgSize=480 maxMsgSplit=5 syslogFacility=LOG_MAIL\
+       
+      + timeFormat=dayFirst replyToSender=no\
+       
+      + emailFrom="sendpage@e-expertsoft.com (UNM Pager Gateway)"
+       
+   
+  * My "Paging Central Definition" section looks like:
+   
+      + pc name=RPGPaging phone=9632567892 speed=1200 parity=even\
+       
+      + databits=7 stopbits=1 protocol=pet-pg1 msgretries=10\
+       
+      + answertime=25 modemdial=atdt dialer=internal\
+       
+      + modeminit=atevxh modemdev=/dev/ttyS1trMap=std\
+       
+      + emailFrom="sendpage@e-expertsoft.com (UNM Pager Gateway)"
+       
+   
+  * Here is my "Aliases" section. The 'tanmoyauto' definition does not send
+    an e-mail reply when a page is sent and is used for hourly system stats
+    that are sent to my page.
+   
+      + alias tanmoy 9632137604.RPGPaging trMap=std
+       
+      + alias tanmoyauto 9632137604.RPGPaging emailReply=no msgIncTime=yes
+        trMap=std
+       
+      + alias expert 9632137690.RPGPaging trMap=std
+       
+   
+  * And finally, the "Profile" section:
+   
+      + profile default emailReplyErr=yes emailReply=yes msgIncSender=yes\
+        msgIncDate=yes msgIncTime=yes
+       
+      + profile numeric emailReplyErr=yes emailReply=yes msgIncSender=no\
+        msgIncDate=no msgIncTime=no
+       
+      + set profile=default.
+       
+   
+
+*** If you are interested, the sendpage.cf is available in it's entirety from
+the following ftp site:ftp://ftp.cs.unm.edu/pub/chris/paging/sendpage/
+sendpage.cf.example".
+
+MOVING RIGHT ALONG...
+
+At this point, I am assuming you have been able to at least send a page to
+your pager using sendpage's command-line interface. If you haven't been able
+to do this, re-read the INSTALL file and re-check your sendpage.h and
+sendpage.cf. If all else fails, do mail me.
+
+SETTING UP A SPECIAL HOSTNAME
+
+If you want to have a special virtual hostname for your paging gateway (i.e.
+pager.yourcompany.com), there are a few steps that you will need to follow.
+If you do not want to (or cannot) set up an extra virtual hostname, skip
+ahead to the section entitled "SETTING UP /etc/aliases".
+
+Setting up a separate UP address (as described below) is not necessary if all
+you need is a mail->pager gateway [no www]. If this is all you need, follow
+the instructions found at: ftp://ftp.cs.unm.edu/pub/chris/paging/
+Sendmail-and-virtual-domains.txtto set up a MX entry for your paging
+hostname. When you've done this, skip ahead to the "SETTING UP SENDMAIL"
+section.
+
+The first thing you need to do to set up your new hostname is to ask your
+network administrator to add a new IP address and hostname to the DNS tables.
+I would recommend using the hostname "pager" but it really doesn't matter.
+Now that you have your new address and the associated IP number, you need to
+add it to your machine. This will be done in one of two ways, depending on
+the type of your linux distribution.
+
+If you use the Linux kernel 1.2.xx series. Get the IP aliasing patches from: 
+ftp://ftp.cs.unm.edu/pub/chris/paging/ip_alias and follow the instructions in
+the file README.alias, substituting your newly-assigned IP address and
+gateway address for the ones mentioned in this README file.
+
+* If you are using Linux kernel 2.0.xx and above, Enable the following
+options for your kernel and recompile: Network aliasing IP: aliasing support.
+In your startup scripts (/etc/rc.d/rc.inet1 for Slackware users, /etc/
+sysconfig/network-scripts/ifup-eth for RedHat users) add the following lines:
+
+  * ifconfig eth0:0 191.59.16.224
+   
+  * route add -host 191.59.16.224 dev eth0:0
+   
+  * replacing 191.59.16.224 with your new IP address
+   
+
+ 
+
+SETTING UP SENDMAIL
+
+We need to make some aliases so that sendmail can distinguish between a
+message sent to you@somemachine.dink.com and you@pager.dink.com, when
+"somemachine" and "pager" are actually the same machine. To do this, we need
+to set up a sendmail alias database. The following information is based upon
+the info I got from Sendmail Link .
+
+*** Create a file, /etc/domainalias with translations from the pager hostname
+to the "real" hostname. On my machine (mahavir), my translation file looks
+like this: <tanmoy@pager.com> <esc-pager@mahavir.esc>.<intest@pager.com> <
+guest-pager@mahavir.esc.in>. That's it for that file. We are almost done now.
+I hope you have a sendmail binary that was compiled with the following
+switches: -DNDBM -DNEWDB. These are to enable the database-handling code
+needed to read the domainalias.db file that we are about to create.
+
+Make sure that you have the makemap utility (part of the sendmail
+distribution). Compile it like this if you haven't already: (This may not be
+necessary, check to see if hash, dbm, or btree are supported or not, check
+next step on how to do this. )
+
+  * # cd /usr/src/sendmail-8.7.x/makemap
+   
+  * # rm Makefile makemap
+   
+  * # make CFLAGS='-m486 -O2 -I../src -DNDBM -DNEWDB' LDFLAGS='-s
+   
+  * -lgdbm -ldb' makemap
+   
+  * # cp makemap /usr/bin
+   
+
+Add a line to your /etc/sendmail.cf to make sendmail accept mail for the new
+virtual hostname: Cw pager.yourdomain.com Compile /etc/domainaliases into a
+database format: makemap btree domainaliases.db < domainalisaes
+
+Add another line to your /etc/sendmail.cf to tell sendmail about the
+domainaliases.db translation file which we just compiled. Kdomainaliases
+btree/etc/domainaliases.db . Now for the rule-set, make sure you type it
+exactly into/etc/sendmail.cf..
+
+The entries are separated by a TAB field NOT SPACES!!!! These are to be
+inserted INSIDE the S98 Ruleset.
+
+PRE 8.7.1 R$+ < @ $+ . > $: $1 < @ $2 > . R$+ < @ $+ . > $* $: (domainaliases
+$1@$2 $: $1 < @ $2 > $3 $) R$+ < @ $+ . > $* $: (domainaliases $2 $: $1 < @
+$2 > $3 $) R$+ < @ $+ > . $: $1 < @ $2 . >
+
+POST 8.7.1 R$+< $+. > $1< $2 > R$+< $+ > $: < > $(domainaliases $1$2 $) R< >
+$+ @ $* $: < $1 > $(domainaliases * @ $2 $) R< $+ > * $* $: < > $1 $2 R< > $*
+$: $>3 $1
+
+Now you must kill your sendmail daemon and restart it for the new
+configurations to take effect.
+
+  * /sbin/killall sendmail
+   
+  * sendmail -bd -q15m
+   
+
+Finally, test your new configuration to make sure you did it correctly, Check
+/var/log/maillog for any possible error messages.
+
+  * sevak~> sendmail -bt
+   
+  * ADDRESS TEST MODE (ruleset 3 NOT automatically invoked)
+   
+
+Enter <Ruleset> <Address> >0 tanmoy@PAGER.com
+
+  * rewrite: ruleset 0 input: tanmoy @ pager . com
+   
+  * rewrite: ruleset 98 input: tanmoy @ pager . com
+   
+  * rewrite: ruleset 98 returns: tanmoy @ pager . com
+   
+  * rewrite: ruleset 97 input: tanmoy @ pager . com
+   
+  * rewrite: ruleset 3 input: tanmoy @ pager . com
+   
+  * rewrite: ruleset 96 input: tanmoy < @ pager . com>
+   
+  * rewrite: ruleset 96 returns: tanmoy < @ pager . com. >
+   
+  * rewrite: ruleset 3 returns: tanmoy < @ pager . com. >
+   
+  * rewrite: ruleset 0 input: tanmoy < @ pager . com. >
+   
+  * rewrite: ruleset 98 input: tanmoy < @ pager . com. >
+   
+  * rewrite: ruleset 3 input: esc-pager @ sevak . esc . in
+   
+  * rewrite: ruleset 96 input: esc-pager < @ sevak .esc . in >
+   
+  * rewrite: ruleset 96 returns: esc-pager < @ sevak . esc . in . >
+   
+  * rewrite: ruleset 3 returns: esc-pager < @ sevak . esc. in . >
+   
+  * rewrite: ruleset 98 returns: esc-pager < @ sevak . esc .in . >
+   
+  * rewrite: ruleset 0 returns: $# local $: @ esc-pager
+   
+  * rewrite: ruleset 97 returns: $# local $: @ esc-pager
+   
+  * rewrite: ruleset 0 returns: $# local $: @ esc-pager
+   
+
+*** If this didn't work or you just don't understand, consult your local
+sendmail expert.
+
+SETTING UP /etc/aliases
+
+Now you need to set up your /etc/aliases file to handle the piping of the
+e-mail message to the filter which sends the message to sendpage. In the
+previous section, I demonstrated how I made tanmoy@pager.com point to
+pager@mahavir.esc.in. To make this work, I had to add a line to my /etc/
+aliases file to send all mail to esc-pager to the filter. That line is:
+esc-pager: "|/usr/local/bin/sendpagefilter tanmoy"^^^^^^^^^ ^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^ ^^^^^This is the This is the full path to the This is a username
+thatalias that paging filter. (see below) you defined in youryou created
+sendpage.cf
+
+The filter used in this example can be obtained at: ftp://ftp.cs.unm.edu/pub/
+chris/paging/paging_filter.tar.gz. Read the instructions in the included
+README file, compile the filter, and place it in a directory such as /usr/
+local/bin.You must now run the 'newaliases' command to make sendmail re-read
+/etc/aliases for the current configurations to take effect.With this
+complete, your paging gateway should be working. Try sending mail first to
+the alias which you created in /etc/aliases (in my example, esc-pager). If
+this works, try sending mail to your virtual mail alias which you created in
+the previous section (in my example, tanmoy@pager.com). If this works, you
+are done!!!
+
+THE WWW GATEWAY
+
+I am not going to write much here. I'm assuming that you have some HTML
+skills and have used CGI scripts before. Your gateway will use a CGI script
+to communicate between the web browser and the sendpage program. An example
+script and HTML page available at: URL="ftp://ftp.cs.unm.edu/pub/chris/paging
+/example_www_gateway.tar.gz".
+
+This script utilizes two additional programs, uncgi (to translate CGI data
+into shell environment variables for easy CGI programming) and d2utxt to
+strip out the ^M characters in a page message that make sendpage choke. These
+utilities are available in the same directory on the ftp site that the
+example HTML is found in. Read the instructions that come with them to
+compile them. This should be easy.
+
+If you are using Apache web server then visit URL=" http://www.apache.org" or
+refer to WWW-HOWTO for more information to set the web server. In CGI script,
+i.e., in send_a_page file make appropriate changes in the modem number of
+your Paging Central and your Pager number.
+
+GETTING MORE HELP
+
+You can mail me at <Lilytanmoy@id.eth.net>. Though I'm a busy employee but
+still you can ask for help. I hope i will be able to solve your problem.
+Still I cannot guarantee to solve your problem.
+
+Tanmoy Prasad<Lilytanmoy@id.eth.net>
+Expert Software Consultants Ltd.
+C -17 Almora Bhawan
+New Delhi
+110 049
+INDIA

@@ -1,0 +1,138 @@
+The Linux Print2Win mini-HOWTO
+
+Marcelo Pereira da Silva
+
+ 
+
+marcelo@pereira.com
+v1.1
+
+
+Jan 2002
+Revision History                                                             
+Revision 1.1            2002-07-19             Revised by: ms                
+Revision 1.0            2002-01-01             Revised by: ms                
+
+
+  This howto contains the general configuration to get Linux printing to a
+Windows print share.
+
+-----------------------------------------------------------------------------
+Table of Contents
+1. Introduction
+2. Server (Windows)
+3. Client (Linux)
+    3.1. Standard lpr
+   
+   
+4. /etc/printcap Tips
+5. License
+6. Credits
+
+-----------------------------------------------------------------------------
+1. Introduction
+
+  As we want the print service running, we'll set up all the environment step
+by step, to avoid mistakes or bad configurations.
+
+  First, set up the server; when you have the server running, configure the
+clients.
+-----------------------------------------------------------------------------
+
+2. Server (Windows)
+
+There is no special rules when configuring the server. Just install the
+printer driver in the Windows server, test it to verify that the printer is
+running properly, and share the printer.
+-----------------------------------------------------------------------------
+
+3. Client (Linux)
+
+  The client configuration is similar to Linux to Linux printing.
+-----------------------------------------------------------------------------
+
+3.1. Standard lpr
+
+  The simplest way to do it is to add an entry to /etc/printcap. As a quick
+example, the entry for a generic matrix printer would be:
+# EPSON LX300                                                                
+epson:\                                                                      
+:sd=/var/spool/lpd/epson:\                                                   
+:mx#0:\                                                                      
+:sh:\                                                                        
+:if=/var/spool/lpd/epson/filter:\                                            
+:lp=/dev/null:                                                               
+
+Note Make sure you are using the correct filter, or the right generic one.   
+
+  Be sure you have created the directory /var/spool/lpd/epson, and the users
+you wish to use the printer have the right access to this.
+
+  For example, assume the Windows print server is named meriadoc, with an IP
+address of 192.168.1.49, and the printer is shared from Windows as epsonLX.
+
+  So, you have to configure /var/spool/lpd/epson/.config like this:
+share='\\meriadoc\epsonLX'                                                   
+hostip=192.168.1.49                                                          
+
+  Where:
+
+  *  
+   
+    share='\\windows-print-server-name\print-share-name'
+   
+  *  
+   
+    hostip=windows-print-server-IP
+   
+
+  Once your /etc/printcap is configured, you have to enable the print share:
+[localhost]$ lpc up epson                                                    
+[localhost]$ lpc enable epson                                                
+
+  If everything is ok, you can send jobs to the queue:
+[localhost]$ lpr -Pepson file                                                
+-----------------------------------------------------------------------------
+
+4. /etc/printcap Tips
+
+  I have used the entry below in the first example, but this is not a
+particularly good idea:
+...                                                                          
+:lp=/dev/null:\                                                              
+
+  Because lpr does an "exclusive" open on the file you specify as lp=. It
+does this in order to prevent multiple processes from trying to print to the
+same printer at the same time.
+
+  The side effect of this is that in your case, eng and colour can't print at
+the same time, (usually more or less transparent since they probably print
+quickly and since they queue you probably don't notice) but any other process
+that tries to write to /dev/null will break!
+
+  On a single user system, probably not a big problem. I have a system with
+over 50 printers. It would be a problem there.
+
+  The solution is to create a dummy printer for each. Eg: touch /dev/eng.
+
+ 
+[localhost]$ touch /dev/eng                                                  
+[localhost]$ touch /dev/colour                                               
+-----------------------------------------------------------------------------
+
+5. License
+
+  This document, Print2Win-HOWTO, is copyrighted (c) 2001-2002 by Marcelo
+Pereira da Silva. Permission is granted to copy, distribute and/or modify
+this document under the terms of the GNU Free Documentation License, Version
+1.1 or any later version published by the Free Software Foundation; with no
+Invariant Sections, with no Front-Cover Texts, and with no Back-Cover Texts.
+A copy of the license is available at [http://www.gnu.org/copyleft/fdl.html]
+http://www.gnu.org/copyleft/fdl.html.
+-----------------------------------------------------------------------------
+
+6. Credits
+
+  Thanks to all those who sent opinions about this document, to everybody who
+told me some printing tips, to Rick Bressler, and a special thanks to Harish
+Pillay, who wrote the first version of this document.

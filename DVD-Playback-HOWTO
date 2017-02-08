@@ -1,0 +1,685 @@
+DVD Playback HOWTO
+
+David Jao
+
+<djao@dominia.org>
+
+2004-02-26
+Revision History                                                             
+Revision 1.0            2004-02-26             Revised by: DJ                
+Initial Release, reviewed by LDP                                             
+Revision 0.9            2004-02-07             Revised by: DJ                
+submitted to LDP                                                             
+Revision 0.1            2004-01-26             Revised by: DJ                
+first public release                                                         
+
+
+  This document describes how to view DVD movies on a Linux computer with a
+DVD drive.
+
+-----------------------------------------------------------------------------
+Table of Contents
+1. Introduction
+    1.1. Copyright and License
+    1.2. Disclaimer
+    1.3. Feedback
+   
+   
+2. System Preparation
+    2.1. Hardware Prerequisites
+    2.2. Creating the /dev/dvd symlink
+    2.3. Setting the DVD Region
+    2.4. X Video Overlay
+    2.5. Enabling DMA
+   
+   
+3. Software Installation
+    3.1. Red Hat / Fedora
+    3.2. Debian
+    3.3. Slackware
+    3.4. Mandrake
+    3.5. SuSE
+    3.6. Gentoo
+   
+   
+4. Software Usage
+    4.1. General principles: deinterlacing, telecine, and framerates
+    4.2. Specific usage instructions
+   
+   
+5. Troubleshooting
+6. Further Information
+
+1. Introduction
+
+  In this document we describe how to view DVD movies and video on a Linux
+system. We give practical, specific, and straightforward commands for getting
+DVD playback up and running quickly on most of the popular Linux
+distributions. Special attention is given to the various little-known
+performance optimizations that are needed for smooth DVD video playback.
+-----------------------------------------------------------------------------
+
+1.1. Copyright and License
+
+  This document, DVD Playback HOWTO, is copyrighted © 2004 by David Jao.
+Permission is granted to copy, distribute and/or modify this document under
+the terms of the GNU Free Documentation License, Version 1.2 or any later
+version published by the Free Software Foundation; with no Invariant
+Sections, with no Front-Cover Texts, and with no Back-Cover Texts. A copy of
+the license is available at [http://www.gnu.org/copyleft/fdl.html]   http://
+www.gnu.org/copyleft/fdl.html.
+
+  Linux® is a registered trademark of Linus Torvalds.
+-----------------------------------------------------------------------------
+
+1.2. Disclaimer
+
+  No liability for the contents of this document can be accepted. Use the
+concepts, examples and information at your own risk. Although this is highly
+unlikely, there may be errors and inaccuracies herein that could be damaging
+to your system. The author(s) do not take any responsibility for any damage
+that you incur through your own actions.
+
+  The mere act of accessing or viewing DVD content, or dealing in software
+written for such purposes, may be illegal in some localities. The author(s)
+cannot accept any responsibility for any actions of yours which violate the
+laws of the jurisdictions to which you are subject.
+
+  All copyrights are held by their by their respective owners, unless
+specifically noted otherwise. Use of a term in this document should not be
+regarded as affecting the validity of any trademark or service mark. Naming
+of particular products or brands should not be seen as endorsements.
+-----------------------------------------------------------------------------
+
+1.3. Feedback
+
+  Questions, comments, suggestions, and feedback are most certainly welcome
+and should be sent to the author of this document at <djao@dominia.org>.
+-----------------------------------------------------------------------------
+
+2. System Preparation
+
+2.1. Hardware Prerequisites
+
+ A certain level of processing power is necessary for smooth DVD playback.
+The system requirements in Linux are somewhat higher than in Windows, because
+many of the techniques used for hardware acceleration of video playback work
+only in Windows.
+
+At a minimum, I recommend the following:
+
+  * 700 MHz or higher CPU,
+   
+  * video card with X Video Overlay support
+   
+  * DVD drive with DMA enabled
+   
+
+-----------------------------------------------------------------------------
+2.2. Creating the /dev/dvd symlink
+
+If you don't already have a /dev/dvd symbolic link, then run (as root) the
+command
+# ln -s /dev/hdc /dev/dvd                                                    
+to create a symbolic link from /dev/dvd to the actual hardware device
+representing your DVD-ROM drive (which in this example is /dev/hdc, but you
+should replace it with the actual device file used by your drive). The /dev/
+dvd link is not merely a matter of convenience; almost all of the player
+software mentioned in this HOWTO assumes that the link is there.
+
+If you don't know which device name your DVD-ROM drive uses, you can usually
+find it with the command dmesg | grep DVD in the console or a shell right
+after booting up the system.
+-----------------------------------------------------------------------------
+
+2.3. Setting the DVD Region
+
+All DVD drives (except for [http://www.dvdcca.org/rpc.html] RPC Phase I
+drives made in 1999 or before) enforce region playback restrictions in the
+drive firmware and consequently are supposed to be set to a specific region
+before they can play back discs from that region (and only that region). In
+reality, most Linux DVD playback software can bypass the DVD drive's built-in
+region locks, but it takes extra time for the software to break the region
+lock, and it is better to avoid the complications of region locks if you can.
+
+ For the small minority of readers who own RPC-I drives, you do not need to
+do anything: your drive is already capable of handling DVDs from all
+geographical regions. These drives are old enough by now that everybody who
+has one of them probably knows already that they have one.
+
+ For the majority of readers who have RPC-II drives, there are several
+options available:
+
+ 1. If you only watch discs from one region, the easiest option is to use the
+    [http://linvdr.org/projects/regionset/] regionset program to set your DVD
+    drive to the correct region.
+   
+ 2. If you want to watch discs from multiple regions, you can try to find a
+    firmware upgrade for your DVD drive in the firmware-flash.com collection
+    of unofficial firmware files. Note that most of these files require you
+    to boot to DOS or Windows to install.
+   
+ 3. You can buy a separate DVD drive for each DVD region that you wish to
+    use. The prices for DVD-ROM drives have dropped low enough to make this
+    strategy feasible.
+   
+ 4. Of course, you can simply do nothing, and rely on the built-in ability of
+    Linux software to bypass the region restrictions. Note that even in this
+    case you should use the [http://linvdr.org/projects/regionset/] regionset
+    program to set the drive to the region that you will be using the most,
+    because an RPC-II drive without a region setting behaves as if all the
+    regions are locked out.
+   
+
+-----------------------------------------------------------------------------
+2.4. X Video Overlay
+
+The XFree86 video overlay extension is a very poorly documented standard
+feature of XFree86 4.x and is absolutely essential for high quality video
+playback under Linux. It is the only type of hardware playback acceleration
+that is widely supported in Linux, and it is by far the single most important
+configuration element for DVD playback on a Linux system.
+
+To check if you have this extension, type xvinfo in an X terminal. If the
+command returns several screens full of important-looking output, then
+congratulations, you have hardware video overlay and you need not worry about
+it anymore.
+
+ If, on the other hand, xvinfo returns with a negative answer like:
+# xvinfo                                                                     
+                                                                             
+X-Video Extension version 2.2                                                
+screen #0                                                                    
+ no adaptors present                                                         
+                                                                             
+then that means you don't have hardware overlay support. See Overlay
+Troubleshooting for tips on how to get overlay support working.
+-----------------------------------------------------------------------------
+
+2.5. Enabling DMA
+
+DMA drive access is critical for DVD playback because it lowers the CPU
+overhead of disc reading and leaves more of the CPU free for video playback.
+On most systems, enabling DMA support for the DVD drive means the difference
+between choppy playback and smooth playback.
+
+To see if you have DMA enabled, type (as root) the command
+# hdparm -d /dev/hdc                                                         
+(replacing /dev/hdc with your DVD drive's actual device name). If DMA is
+already on, then you're done. Otherwise, you should turn it on by typing 
+hdparm -d 1 /dev/hdc. You may want to add this command to a startup script
+such as /etc/rc.d/rc.local to ensure that the DMA support is active every
+time your computer boots.
+
+See the DMA Troubleshooting section if DMA won't turn on even after you've
+typed the command to turn it on.
+-----------------------------------------------------------------------------
+
+3. Software Installation
+
+ Here we cover the installation of the DVD playback software on various Linux
+distributions. For each Linux distribution we indicate how to install [http:/
+/www.mplayerhq.hu/] MPlayer, [http://xine.sourceforge.net/] Xine, [http://
+www.dtek.chalmers.se/groups/dvd/] Ogle, and [http://www.videolan.org/]
+VideoLAN onto the system. These are the four most popular software packages
+for DVD playback in Linux. Usage instructions for these programs will be
+given in the next section.
+
+ Read the section that corresponds to your Linux distribution. All of the
+installation commands given below should be run as root.
+-----------------------------------------------------------------------------
+
+3.1. Red Hat / Fedora
+
+If you run Red Hat Linux or Fedora, you can download all of the DVD playback
+software from the [http://freshrpms.net/] FreshRPMS package repository. Since
+there are so many packages needed for DVD playback, the easiest way to
+install all of them is to use apt-get. Here's how to do it:
+
+ 1. Follow the link to the version of apt that matches your Red Hat version:
+   
+      + Fedora Core 1
+       
+      + Red Hat Linux 9
+       
+      + Red Hat Linux 8
+       
+      + [http://ftp.freshrpms.net/pub/freshrpms/redhat/7.3/apt/] Red Hat
+        Linux 7.3
+       
+   
+    Download the appropriate binary x86 RPM package (in this example,
+    apt-0.5.15cnc3-0.1.fr.i386.rpm) and install it using the rpm command as
+    follows:
+    # rpm -Uvh apt-0.5.15cnc3-0.1.fr.i386.rpm                                
+   
+ 2. Run the commands
+    # apt-get update                                                         
+    # apt-get install mplayer xine ogle_gui                                  
+    to have apt install everything for you.
+   
+
+-----------------------------------------------------------------------------
+3.1.1. Special note about VideoLAN and Red Hat
+
+The FreshRPMS repository contains the videolan-client package for Red Hat 9
+and Red Hat 7.3, but not for Red Hat 8 or Fedora Core 1. If you want to
+install VideoLAN on Red Hat 9 or Red Hat 7.3, you can just type apt-get
+install videolan-client and let the program take care of it for you. Fedora
+Core 1 users who want VideoLAN will need to visit the official VideoLAN Red
+Hat page instead, and follow the instructions there. I do not recommend that
+Fedora users install VideoLAN, since the VideoLAN packages interfere to a
+large degree with the FreshRPMS packages installed in the previous step.
+
+There appears to be no easy way to install VideoLAN on Red Hat 8.
+-----------------------------------------------------------------------------
+
+3.2. Debian
+
+These instructions are for Debian, stable only (3.0r1 as of this writing) --
+it is assumed that if you run testing or unstable versions then you should
+already know what you are doing.
+
+ Make sure the following lines are in your /etc/apt/sources.list file:
+deb http://hpisi.nerim.net/ stable main                                      
+deb http://www.interq.or.jp/libra/oohara/debian-unofficial/ ./               
+deb http://download.videolan.org/pub/videolan/debian woody main              
+
+(The first line is for MPlayer, the second is for the Xine CSS plugins, and
+the third is for VideoLAN.) Then run the commands:
+# apt-get update                                                               
+# apt-get install mplayer-686 mplayer-fonts mplayer-doc ogle                   
+# /usr/share/doc/ogle/examples/install-css.sh                                  
+# apt-get install xine-ui xine-d5d-plugin xine-d4d-plugin gnome-vlc libdvdcss2 
+-----------------------------------------------------------------------------
+
+3.3. Slackware
+
+The best site for Slackware add-on packages is [http://www.linuxpackages.net
+/] http://www.linuxpackages.net/. You can use their search engine to find and
+download the Ogle, Xine, MPlayer, libdvdcss, libdvdnav, libdvdread, lame, and
+a52dec packages from the web site. Put the packages into a single directory
+and run pkgtool to install the packages onto your system.
+
+For VideoLAN, you will have to build it from source since there is no
+precompiled package on the LinuxPackages web site yet. To make matters worse,
+the version of mpeg2dec included with Slackware 9.1 is too old to be used
+with VideoLAN, so you have to compile a newer version of mpeg2dec as well.
+
+That said, if you still want to install VideoLAN, then download the latest
+source packages for [http://libmpeg2.sourceforge.net/] mpeg2dec and [http://
+www.videolan.org/] VideoLAN and run the following commands. Note that you
+have to disable ffmpeg support for the VideoLAN build because the Slackware
+MPlayer packages omit some of the header files needed by ffmpeg.
+# tar xzvf mpeg2dec-0.4.0.tar.gz                                             
+# cd mpeg2dec-0.4.0                                                          
+# ./configure                                                                
+# make                                                                       
+# make install                                                               
+# cd ..                                                                      
+# tar xzvf vlc-0.7.0.tar.gz                                                  
+# cd vlc-0.7.0                                                               
+# ./configure --disable-ffmpeg                                               
+# make                                                                       
+# make install                                                               
+-----------------------------------------------------------------------------
+
+3.4. Mandrake
+
+Mandrake users can get packages for all of the video programs from the [http:
+//plf.zarb.org/] Penguin Liberation Front web site. The fastest way is to
+visit the [http://urpmi.org/easyurpmi/] Easy Urpmi site and follow the
+instructions to generate a listing of the commands you need to type for PLF
+access in urpmi. You should then type in the commands returned by the web
+site to set up your system for PLF access.
+
+After you have set up PLF access, type:
+# urpmi.update -a                                                            
+# urpmi mplayer libdvdcss2 xine-ui ogle ogle_gui vlc                         
+to install all the video programs.
+-----------------------------------------------------------------------------
+
+3.5. SuSE
+
+The YaST package program included with SuSE works only with official
+packages, and there are no official packages that support DVD. Therefore you
+will have to install the packages for all of the DVD software manually.
+
+MPlayer and Xine packages for SuSE are available on the [http://
+packman.links2linux.org/?action=index] PackMan site. For MPlayer, you need
+the MPlayer, lzo, and xvid packages on that page as well as the "additionally
+needed binary packages" listed on the page for each package. SuSE 9.0 users
+should note that as of this writing the MPlayer package for SuSE 9.0 has a
+broken libsmbclient.so.0 dependency. You can work around this problem with
+the commands
+# rpm -Uvh --nodeps MPlayer-1.0pre3-pm.1.i686.rpm                            
+# ln -s libsmbclient3.so.0 /usr/lib/libsmbclient.so.0                        
+
+To install Xine, you should download and install the libxine1-dvd and xine-ui
+packages from [http://packman.links2linux.org/?action=index] PackMan.
+Encrypted DVD support in Xine also requires installing [http://
+download.videolan.org/pub/libdvdcss/1.2.8/rpm/redhat/]  libdvdcss from the
+VideoLAN site.
+
+Ogle can be installed using the Red Hat RPMs from the Ogle site. SuSE 9.0
+users who want to install the Ogle_gui package will also need to install
+[ftp://rpmfind.net/linux/SuSE-Linux/i386/8.2/suse/i586/
+orbit-0.5.17-116.i586.rpm]  orbit, [ftp://rpmfind.net/linux/SuSE-Linux/i386/
+8.2/suse/i586/gdk-pixbuf-0.18.0-248.i586.rpm]  gdk-pixbuf, [ftp://rpmfind.net
+/linux/SuSE-Linux/i386/8.2/suse/i586/gnome-libs-1.4.1.7-273.i586.rpm]  
+gnome-libs, and [ftp://rpmfind.net/linux/SuSE-Linux/i386/8.2/suse/i586/
+libglade-0.16-1015.i586.rpm]  libglade from SuSE 8.2.
+
+VideoLAN users will need to download the Red Hat RPMs from the VideoLAN site
+and install them forcibly using rpm --nodeps. The VideoLAN packages also
+require [ftp://rpmfind.net/linux/SuSE-Linux/i386/8.2/suse/i586/
+XFree86-compat-libs-4.3.0-19.i586.rpm] XFree86-compat-libs and [ftp://
+rpmfind.net/linux/SuSE-Linux/i386/8.2/suse/i586/freetype-1.3.1-801.i586.rpm]
+freetype from SuSE 8.2 in order to run.
+-----------------------------------------------------------------------------
+
+3.6. Gentoo
+
+The basic command to use is:
+# emerge sync                                                                
+# USE="dvd mmx sse" emerge mplayer xine-ui vlc ogle-gui                      
+
+ If you have an AMD processor, you should type USE="dvd mmx 3dnow" instead of
+using the sse flag. Athlon XP owners can use the 3dnow and sse flags
+together.
+-----------------------------------------------------------------------------
+
+4. Software Usage
+
+ Although I have tried very hard to keep this HOWTO focused on practical
+advice instead of abstract theory, it is necessary to have some minimal
+background in television video in order to understand how to get the best
+possible video quality under Linux.
+-----------------------------------------------------------------------------
+
+4.1. General principles: deinterlacing, telecine, and framerates
+
+ Regular television video is interlaced, meaning that the odd-numbered
+scanlines are recorded (and displayed) first, followed by the even numbered
+scanlines, then the odd ones again, then the even ones again, etc. Each
+individual line is displayed 30 times a second (or 25, depending on where you
+live), but because of the interlacing, the television image as a whole is
+refreshed 60 times a second (or 50), with only half of the total lines being
+refreshed each time.
+
+ In general, with interlaced motion pictures, there is no way to reconstruct
+any single video frame perfectly without artifacts. This point is important
+enough to repeat: there is no way to perfectly reconstruct any single frame!
+The reason is that the odd-numbered lines are recorded onto the video tape
+with a timing skew of one half-frame relative to the even-numbered lines. If
+the video picture is still, this timing skew is no problem, but for moving
+pictures it causes half the lines to be displaced from the other half. On a
+television screen, you can't see this displacement, since TV screens (except
+for high-end HDTV monitors) are of such low quality that the artifacts aren't
+visible. However, on a computer screen, this displacement is very visible and
+causes comb-like artifacts to appear in the video. You can see screenshots of
+interlacing artifacts in the interlacing section of Luke's Video Guide.
+-----------------------------------------------------------------------------
+
+4.1.1. How to fix interlacing artifacts
+
+The process of removing interlacing artifacts is called deinterlacing.
+Unfortunately, all deinterlacing techniques are imperfect to some extent, and
+there is no single method which works best in all situations. It is therefore
+important to experiment with all of the different possible deinterlace
+settings to see which one works best for a particular disc.
+
+ MPlayer users can get a list of deinterlacing options by typing mplayer
+-pphelp at the command line. Find the option that you want to use, and then
+use the -vf pp=<option> syntax to activate the option. For example, I usually
+use the lb option, which is done with the command: mplayer -vf pp=lb,
+followed by whatever other options you would normally use to play the DVD.
+
+ VideoLAN users can right-click on the movie to get a list of deinterlacing
+options (under Video Settings or Deinterlace, depending on the program
+version).
+
+ Xine has a list of deinterlacing options in the configuration panel; to get
+to it, right-click on the movie window, open the Settings->Setup dialog, set 
+"Configuration experience level" to "Advanced", and then look for "Software
+deinterlace method" under the "Video" tab.
+
+Ogle has no deinterlacing support, so it is not recommended to use Ogle for
+watching interlaced video.
+-----------------------------------------------------------------------------
+
+4.1.2. Telecined video
+
+This section only applies to video in NTSC format (used in North America,
+east Asia, and parts of Latin America) -- PAL users (the rest of the world)
+can skip ahead.
+
+ The one exception to all of the above discussion about interlacing is in the
+case of telecined video. Briefly put, telecine is a special kind of
+interlacing that is done only to theatrical (i.e. cinematic) movies and some
+forms of hand-drawn animated shows. The special thing about telecine is that
+it can usually be perfectly undone. The details are too complicated to
+explain here, but you can read about it in Luke's Video Guide or Bob Niland's
+FAQs if you're curious.
+
+The process of undoing the telecine artifacts is called inverse telecine. The
+good news is that inverse telecine, done properly, fully restores the
+original video quality of the source video with no artifacts whatsoever. The
+bad news is that MPlayer is the only player program in the world right now
+that can perform inverse telecine.
+
+To perform inverse telecine in MPlayer, simply add the -vf ivtc option to the
+MPlayer command. This option is the right one to use if you are watching a
+movie you know originated as a theatrical release, or if you are watching
+animated shows. Warning: this option is very CPU intensive. You need at least
+a 1 GHz processor to even think about doing it.
+-----------------------------------------------------------------------------
+
+4.1.3. How come Windows users don't have to deal with all this?
+
+Windows DVD players hide most of the complexity of DVD playback and fall back
+to the lowest common demoninator when playing DVDs. The result is that you
+get playback quality which is decent in a wide range of situations but not
+always the best that can be achieved in any given situation. For example, no
+Windows DVD player in the world has an inverse telecine filter like MPlayer
+does, so telecined material always looks dramatically worse in Windows than
+in MPlayer under Linux.
+-----------------------------------------------------------------------------
+
+4.2. Specific usage instructions
+
+Here we give specific instructions for launching basic DVD playback in the
+various player programs. These commands only cover the basic steps of
+operating each program. You are encouraged to refer to the man pages of each
+program for further instructions.
+
+Put the DVD that you want to play into your drive before attempting playback.
+-----------------------------------------------------------------------------
+
+4.2.1. MPlayer
+
+Type mplayer dvd://1 to begin playing title #1 on the disc. To play other
+title numbers, substitute the appropriate number in place of 1.
+
+Old versions of MPlayer, such as the one used in Debian, require the command 
+mplayer -dvd 1 instead. In some cases you also have to explicitly add the
+option -vo xv in order to make MPlayer use the hardware video overlay port.
+
+Subtitle and audio options for MPlayer have to be specified on the command
+line. The format is -alang NN or -slang NN where NN is the two-letter
+language code of the language you want. For example, to play back Japanese
+audio with English subtitles, type:
+# mplayer dvd://1 -alang ja -slang en                                        
+on the command line.
+-----------------------------------------------------------------------------
+
+4.2.2. Xine
+
+Simply type xine at the command prompt to start the program.
+
+The first time you start the program, it will display a configuration screen
+with a bunch of options. In most cases you can leave all of the options at
+the defaults.
+
+The program has a graphical console with a row of labeled buttons along the
+bottom. Press the DVD button to start playing the DVD. (However, if your
+version of Xine has a D5D button, use that instead.)
+
+Xine supports DVD menus, so you can set language or subtitling options as you
+normally would via the disc's own menu.
+-----------------------------------------------------------------------------
+
+4.2.3. Ogle
+
+Type ogle to start the program. Depending on which version of the program you
+have, it may start playing the DVD automatically. If it doesn't, then click
+on the File menu and select Open Disc to begin reading the disc.
+
+Ogle, like Xine, supports DVD menus for setting the language or subtitling
+options.
+-----------------------------------------------------------------------------
+
+4.2.4. VideoLAN
+
+Use the vlc command to bring up the VideoLAN GUI and click on the disc icon
+to open the disc and start playing. Right click the playback window to bring
+up the options menu, which includes deinterlacing, audio, and subtitle
+options.
+-----------------------------------------------------------------------------
+
+5. Troubleshooting
+
+5.1. xvinfo returns "no adaptors present"
+5.2. xvinfo works but overlay output is garbled
+5.3. DMA isn't working
+5.4. Video playback is choppy
+5.5. Sound playback is choppy
+5.6. Out of region discs play back garbled
+5.7. Out-of-region discs hang on playback
+
+5.1. xvinfo returns "no adaptors present"
+
+Make sure you are running XFree86 4.1 or above. You can find out your version
+of XFree86 by typing X -version at the command prompt.
+
+Use an appropriate driver for your video card. Some Linux distributions
+default to using the generic XFree86 VESA driver instead of the specific
+driver for your video card. You need to use the hardware-specific driver for
+your card in order to get hardware overlay support.
+
+  * ATI users should try downloading the improved ATI XFree86 drivers from
+    the [http://gatos.sourceforge.net/] GATOS home page, or from the official
+    ATI Linux support page.
+   
+  * NVidia users should try downloading the official NVidia Linux drivers for
+    their video card.
+   
+  * Sometimes upgrading [http://www.xfree86.org/] XFree86 can provide you
+    with an improved driver that has hardware overlay support, but such an
+    upgrade is beyond the scope of this HOWTO.
+   
+
+5.2. xvinfo works but overlay output is garbled
+
+Problems with garbled or missing overlay output usually mean that you don't
+have enough video RAM to hold both the regular desktop display and the video
+overlay display at once. Typically you need twice as much video RAM as normal
+at a given video resolution in order to use hardware video overlay. In some
+cases you may even need 3 to 5 times more RAM because of internal buffering
+in the video card.
+
+The only easy way to lower your video RAM requirements is to switch to a
+lower video resolution while playing videos.
+
+5.3. DMA isn't working
+
+You can tell that DMA is broken if using the command hdparm -d1 on your DVD
+drive returns a message like the following:
+# hdparm -d1 /dev/hda                                                        
+                                                                             
+/dev/hda:                                                                    
+ setting using_dma to 1 (on)                                                 
+ HDIO_SET_DMA failed: Operation not permitted                                
+ using_dma    =  0 (off)                                                     
+
+ The only way to fix this problem is to compile a kernel with DMA support for
+your particular chipset. It is beyond the scope of this HOWTO to explain how
+to compile a kernel, but the steps which are particularly relevant to DMA
+support are as follows:
+
+ 1. Download a recent kernel so that you have the greatest possible chance of
+    DMA being supported on your chipset.
+   
+ 2. Unpack your kernel and type make xconfig in the kernel build directory.
+    Under "ATA/IDE/MFM/RLL support", select "IDE, ATA, and ATAPI Block
+    devices" and enable "Generic PCI bus-master DMA support" and "Use DMA by
+    default when available".
+   
+ 3. On the same page there are several dozen chipset-specific DMA drivers
+    that continue downward for several screens. Find and select one relevant
+    to your chipset, if there are any. For example if you have an AMD Athlon
+    based VIA chipset, enable the "VIA82CXXX chipset support" item.
+   
+
+For more information on compiling kernels, see the [http://en.tldp.org/HOWTO/
+Kernel-HOWTO/] Kernel HOWTO as well as the Linux Ultra-DMA Mini-Howto.
+
+5.4. Video playback is choppy
+
+On a fast enough computer (say, over 1 GHz), choppy video playback usually
+means that your overlay support or DMA support is misconfigured. See the
+previous troubleshooting items.
+
+On a very slow computer (say, 0-500 MHz), there is nothing you can do short
+of hardware upgrades to make DVD playback run well.
+
+For borderline computers (anything in between), you can gain a modest (~10%)
+performance boost by upgrading from kernel 2.2 to kernel 2.4 and using an
+SSE-optimized player program like MPlayer.
+
+Finally, if all else fails, run MPlayer with the option mplayer -framedrop to
+patch over occasional glitches in video playback.
+
+5.5. Sound playback is choppy
+
+The most common cause of sound playback problems is from sound cards that do
+not support 48 kHz audio playback. For people in this category, I strongly
+suggest that you purchase a new sound card. Even a cheap PCI sound card can
+give you a substantial upgrade in sound quality for less than the cost of two
+DVDs.
+
+Failing that, you can lighten the load on your sound playback system by not
+using a sound daemon such as ESounD or aRts and playing the DVD audio
+directly to the OSS driver. To do this with MPlayer, run mplayer -ao=oss
+along with whatever other options you normally use.
+
+5.6. Out of region discs play back garbled
+
+In the past, older versions of most of the programs discussed here have had
+trouble decrypting out-of-region discs. The result of a failed decryption
+looks like the colored video noise that you see.
+
+Upgrading to the newest available version of any of the programs should solve
+this problem.
+
+5.7. Out-of-region discs hang on playback
+
+Watch the DVD drive's access light while the program is hanging. Is the light
+still blinking in an access pattern? If it is (and usually it will be), that
+means the program is still in the middle of decrypting the disc.
+
+Decrypting the DVD involves mounting a fairly large-scale computational
+effort to recover the key. It is not at all unusual for a computer to take
+five or even ten minutes to decrypt a single DVD key.
+
+In-region discs never have this problem because the DVD drive firmware
+automatically decrypts discs that match with the drive's own region.
+-----------------------------------------------------------------------------
+
+6. Further Information
+
+  * Dag Wieers' overview of the Linux DVD playback programs
+   
+  * Moritz Bunkus's DVD ripping guide for Linux
+   
+

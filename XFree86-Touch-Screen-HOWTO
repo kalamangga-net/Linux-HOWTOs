@@ -1,0 +1,298 @@
+  Documentation License applies to this document Linux Touch
+  Screen HOWTO
+  (c) 2002-2006 by Christoph Baumann, cgb(at)debian.org
+  v3.4 -- Nov 7, 2006 -- the GNU Free
+
+  This document describes how to set up a touch screen input device
+  under XFree86. As the author had only the opportunity to work with
+  devices from EloTouch(R) and MicroTouch(R) this HOWTO is rather spe-
+  cific for these devices. The examples given in this HOWTO concentrate
+  on devices connected via the serial port i.e. /dev/ttyS0 or
+  /dev/ttyS1.  (Information about USB devices would be appreciated!)
+  ______________________________________________________________________
+
+  Table of Contents
+
+
+  1. How to configure the device
+  2. Activating the device
+  3. Using touch screen and mouse in parallel
+  4. Configuration under XFree86 4
+     4.1 Another configuration example
+     4.2 Addendum
+
+  5. Touch Screens on Fujitsu LifeBooks
+  6. Configuration under X.Org
+  7. Suggested reading
+
+
+  ______________________________________________________________________
+
+  1.  How to configure the device
+
+  Touch screen devices are configured in the Xinput section in the
+  XF86Config file (mostly /etc/X11/XF86Config or /etc/XF86Config).  At
+  first verify that the device driver modules exist. They are located in
+  /usr/X11R6/lib/modules/ (the modules for the above mentioned devices
+  are xf86Elo.so and xf86MuTouch.so). Now have a look into XF86Config.
+  There should be a section looking like this:
+
+
+  Section "Files"
+  ...
+  ModulePath "/usr/X11R6/lib/modules"
+  ...
+  EndSection
+
+
+
+  To get the module loaded by the X server there has to be a section
+  like this:
+
+
+  Section "Module"
+  Load "xf86Elo.so"
+  EndSection
+
+
+
+  Now the more tricky part. X needs to know some parameters about the
+  device.  The section for this looks like this (see "man XF86Config"
+  for more details):
+
+
+
+  Section "Xinput"
+   SubSection "Elographics"
+  #the entry for a MicroTouch device would be SubSection "MicrotouchFinger"
+    Port "/dev/ttyS1" # for a device at serial port 2
+    DeviceName "TouchScreen" #could be any unambiguous name
+    MinimumXPosition 300
+    MaximumXPosition 3700
+    MinimumYPosition 300
+    MaximumYPosition 3700
+    UntouchDelay 10 #not supported with MuTouch
+    ReportDelay 10  #not supported with MuTouch
+    AlwaysCore #activates the device on startup
+   EndSubSection
+  EndSection
+
+
+
+  The values for the entries MinimumXPosition etc. are of course
+  specific for the setup of the hardware (i.e. depend on the position of
+  the touch screen relative to the monitor). The values determine where
+  the points (0,0) and (xmax,ymax) on your monitor (xmax and ymax depend
+  on the resolution chosen for the Xserver, such as 1024x768) are mapped
+  on the touch screen.  The device driver reads these values and
+  interpolishes the other coordinates.  For illustration:
+
+
+   --------------touch screen area-----------------
+   I                                              I
+   I  ########visible monitor area##############  I
+   I  #x                                       #  I
+   I  # (0,0)                                  #  I
+   I  # (MinimumXPosition,MinimumYPosition)    #  I
+   I  #                                        #  I
+   I  #                                        #  I
+   I  #                                        #  I
+   I  #                                        #  I
+   I  #                                        #  I
+   I  #                                        #  I
+   I  #                                        #  I
+   I  #     (MaximumXPosition,MaximumYPosition)#  I
+   I  #                             (xmax,ymax)#  I
+   I  #                                       x#  I
+   I  ##########################################  I
+   I                                              I
+   ------------------------------------------------
+
+
+
+  This mapping can be done by trial and error or by reading the raw
+  output of the device (needs some serial port programming, see "The
+  Linux Serial Programming HOWTO"). For the types EloTouch and
+  MicroTouch exists a rudimentary calibration tool (written by the
+  author of this document, it can be found at
+  http://touchcal.sourceforge.net <http://touchcal.sourceforge.net>).
+
+  2.  Activating the device
+
+  After starting X, type in an Xterminal the command
+
+  xsetpointer <devicename>
+
+  where<devicename> is the name defined in XF86Config with the line
+  DeviceName ".....", in this example it would be TouchScreen.
+
+  To get the device working on startup use the AlwaysCore option in the
+  touch screen section (see above)
+  3.  Using touch screen and mouse in parallel
+
+  To use the touch screen and a mouse in parallel you need to enter the
+  mouse specs in the Xinput-section. This definitions should be the same
+  as in the Pointer-section. The following example is for a PS/2-mouse:
+
+  Section "Xinput"
+     SubSection "Mouse"
+        Protocol "PS/2"
+        Port "/dev/mouse" #could also be /dev/psaux
+        DeviceName "Mouse"
+        AlwaysCore
+     EndSubSection
+  ...
+  EndSection
+
+
+  Several people pointed this out, especially the usage of the
+  AlwaysCore option. Thanks to them all.
+
+  4.  Configuration under XFree86 4
+
+  (from Lee Monamy)
+
+  Example XF86Config-4 for an ELO touch screen:
+
+
+  Section "InputDevice"
+          Identifier "ELO touchscreen"
+          Driver "elographics"
+          Option  "Device"        "/dev/ttyS0"
+          Option  "MinimumXPosition"      "300"
+          Option  "MaximumXPosition"      "3700"
+          Option  "MinimumYPosition"      "300"
+          Option  "MaximumYPosition"      "3700"
+          Option  "UntouchDelay"  "10"
+          Option  "ReportDelay"   "10"
+          Option  "SendCoreEvents"        "yes"
+  EndSection
+
+
+
+  Noteable differences between this and the version 3 config are that
+  you specify a Device, *not* a Port, otherwise you get an error.  Also,
+  AlwaysCore from v3 has been replaced with SendCoreEvents.
+
+  You must also add to the ServerLayout section, despite that X might
+  say: "(II) XINPUT: Adding extended input device "TOUCHSCREEN" (type:
+  Elographics Touch Screen)"
+
+
+  Section "ServerLayout"
+          Identifier      "Default Layout"
+          Screen  "Default Screen"
+          InputDevice "Generic Keyboard"
+  ...
+          InputDevice "ELO touchscreen"
+  EndSection
+
+
+
+  4.1.  Another configuration example
+
+  from Dirk Mueller (for Microtouch SMT3 Series):
+
+
+  Section "InputDevice"
+          Identifier  "MicroTouchFinger"
+          Driver      "mutouch"
+          Option      "Type" "finger"
+          Option      "Device" "/dev/ttyS0"
+          Option      "ScreenNo" "0"
+          Option      "MinimumXPosition" "0"
+          Option      "MaximumXPosition" "16383"
+          Option      "MinimumYPosition" "0"
+          Option      "MaximumYPosition" "16383"
+  EndSection
+
+
+
+  Option "Type" can be "finger" or "stylus" Since Microtouch was bought
+  by 3M-Touch, the resources are on
+  http://www.3M.com/3MTouchSystems/downloads/legacy.jhtml#Linux
+  <http://www.3M.com/3MTouchSystems/downloads/legacy.jhtml#Linux>
+
+  4.2.  Addendum
+
+  According to Wong Yeow Sen the configuration option names have changed
+  in XFree86 4.2 (at least with Red Hat 7.3). If it seems your
+  calibration values aren't parsed try the following:
+
+
+  ...
+          Option  "MinX"      "100"
+          Option  "MaxX"      "4000"
+          Option  "MinY"      "100"
+          Option  "MaxY"      "4000"
+  ...
+
+
+
+  5.  Touch Screens on Fujitsu LifeBooks
+
+  (from Joerg Hau)
+
+  Information about these devices can be found here:
+
+  "...
+
+  Harald Hoyer's Linux Touch Panel Drivers for the Fujitsu Lifebooks
+  B112/B142/B2130, http://parzelle.de/Linux/Lifebook/
+  <http://parzelle.de/Linux/Lifebook/>. Unfortunately, this is XFree 3.x
+  only and it seems that this information is now "static" (dead?).
+
+  Kenan Esau's Lifebook Series B Touchscreen driver, which is the
+  adaptation of Harald's driver to XFree 4.x.
+  http://www.conan.de/lifebook/lifebook.html
+  <http://www.conan.de/lifebook/lifebook.html>.
+
+  I [Joerg Hau] have used Kenan's driver on my Fujitsu LifeBook B142
+  (described at http://www.mysunrise.ch/users/joerg.hau/linux/b142.htm
+  <http://www.mysunrise.ch/users/joerg.hau/linux/b142.htm>), and it
+  works like a charm.
+
+  ..."
+
+  6.  Configuration under X.Org
+
+  (from Kenan Bektas)
+
+  Example xorg.conf for an Elo TouchSystems 2216 AccuTouch® USB Touch-
+  Monitor:
+  Section "InputDevice"
+      Identifier "elo"
+      Driver "elo"
+      Option "AlwaysCore"
+      Option "MinX"          "300"
+      Option "MaxX"          "3700"
+      Option "MinY"          "300"
+      Option "MaxY"          "3700"
+      Option "ScreenNumber"  "0"
+      Option "ButtonNumber"  "1"
+  EndSection
+
+
+
+  7.  Suggested reading
+
+
+  ·  Manpage for XF86Config
+
+  ·  http://www.elotouch.com/Support/linux.asp
+     <http://www.elotouch.com/support/linux.asp>
+
+  ·  http://www.3M.com/3MTouchSystems/downloads/legacy.jhtml#Linux
+     <http://www.3M.com/3MTouchSystems/downloads/legacy.jhtml#Linux>
+
+  ·  http://www.hof-berlin.de/tablet/tablet.html <http://www.hof-
+     berlin.de/tablet/tablet.html> (Thanks to Christer Olofsson for
+     sending me this URL)
+
+  ·  http://freshmeat.net/projects/xf86elousb
+     <http://freshmeat.net/projects/xf86elousb> (Driver for iTouch USB)
+
+  ·  The manual shipped with your touch screen :-)
+
+
+
